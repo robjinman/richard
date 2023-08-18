@@ -17,7 +17,7 @@ class Vector {
 
     double dot(const Vector& rhs) const;
     inline size_t size() const;
-    inline double operator[](size_t i) const;
+    inline double& operator[](size_t i) const;
 
     friend std::ostream& operator<<(std::ostream& os, const Vector& v);
 
@@ -30,6 +30,6 @@ inline size_t Vector::size() const {
   return m_size;
 }
 
-inline double Vector::operator[](size_t i) const {
+inline double& Vector::operator[](size_t i) const {
   return m_data[i];
 }

@@ -21,6 +21,10 @@ NeuralNet::NeuralNet(size_t inputs, std::initializer_list<size_t> layers, size_t
   }
 }
 
+void NeuralNet::train(const TrainingSample& sample) {
+  
+}
+
 const Vector& NeuralNet::evaluate(const Vector& inputs) const {
   // TODO
 

@@ -13,6 +13,8 @@ message("Building ${CMAKE_BUILD_TYPE} configuration...")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(Boost 1.56 REQUIRED COMPONENTS program_options)
+
 file(GLOB CPP_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 
 add_executable(richard ${CPP_SOURCES})
@@ -28,3 +30,4 @@ set(DEBUG_FLAGS ${COMPILER_FLAGS} -g)
 set(RELEASE_FLAGS ${COMPILER_FLAGS} -O3)
 
 target_compile_options(richard PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
+target_link_libraries(richard Boost::program_options)
