@@ -16,6 +16,7 @@ class Vector {
     Vector(std::initializer_list<double>);
 
     double dot(const Vector& rhs) const;
+    Vector hadamard(const Vector& rhs) const;
     inline size_t size() const;
     inline double& operator[](size_t i) const;
 

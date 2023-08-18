@@ -11,8 +11,19 @@ Vector::Vector(std::initializer_list<double> elements)
 }
 
 double Vector::dot(const Vector& rhs) const {
-  // TODO
-  return 0;
+  double x = 0.0;
+  for (size_t i = 0; i < m_size; ++i) {
+    x += m_data[i] * rhs[i];
+  }
+  return x;
+}
+
+Vector Vector::hadamard(const Vector& rhs) const {
+  Vector v(m_size);
+  for (size_t i = 0; i < m_size; ++i) {
+    v[i] = m_data[i] * rhs[i];
+  }
+  return v;
 }
 
 std::ostream& operator<<(std::ostream& os, const Vector& v) {
