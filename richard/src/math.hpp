@@ -6,20 +6,15 @@
 
 class Vector {
   public:
-    Vector(size_t size)
-      : m_size(size)
-      , m_data(std::make_unique<double[]>(size)) {}
-
+    Vector(size_t size);
     Vector(const Vector& cpy);
-
-    Vector(Vector&& mv)
-      : m_size(mv.m_size)
-      , m_data(std::move(mv.m_data)) {}
-
+    Vector(Vector&& mv);
     Vector(std::initializer_list<double>);
 
     Vector& operator=(const Vector& rhs);
-
+    Vector& operator=(Vector&& rhs);
+    bool operator==(const Vector& rhs) const;
+    inline bool operator!=(const Vector& rhs) const;
     double dot(const Vector& rhs) const;
     Vector hadamard(const Vector& rhs) const;
     Vector operator+(const Vector& rhs) const;
@@ -42,14 +37,24 @@ inline double& Vector::operator[](size_t i) const {
   return m_data[i];
 }
 
+inline bool Vector::operator!=(const Vector& rhs) const {
+  return !(*this == rhs);
+}
+
 class Matrix {
   public:
     Matrix(size_t cols, size_t rows);
 
     Vector operator*(const Vector& rhs) const;
+    inline double at(size_t col, size_t row) const;
+    void zero();
 
   private:
     size_t m_cols;
     size_t m_rows;
     std::unique_ptr<double[]> m_data;
 };
+
+inline double Matrix::at(size_t col, size_t row) const {
+  return m_data[row * m_rows + col];
+}
