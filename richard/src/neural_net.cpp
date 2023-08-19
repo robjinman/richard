@@ -1,4 +1,3 @@
-#include <functional>
 #include <cmath>
 #include "neural_net.hpp"
 
@@ -12,21 +11,37 @@ const ActivationFn sigmoid = [](double x) {
 
 }
 
+Layer::Layer(Layer&& mv)
+  : weights(std::move(mv.weights))
+  , biases(std::move(mv.biases)) {}
+
+Layer::Layer(Matrix&& weights, Vector&& biases)
+  : weights(std::move(weights))
+  , biases(std::move(biases)) {}
+
 NeuralNet::NeuralNet(size_t inputs, std::initializer_list<size_t> layers, size_t outputs)
-  : m_inputs(inputs)
-  , m_outputs(outputs) {
-  
-  for (size_t layer : layers) {
-    m_layers.push_back(Vector(layer));
+  : m_inputs(inputs) {
+
+  size_t prevLayerSize = inputs;
+  for (size_t layerSize : layers) {
+    m_layers.push_back(Layer(Matrix(prevLayerSize, layerSize), Vector(layerSize)));
+
+    prevLayerSize = layerSize;
   }
+
+  m_layers.push_back(Layer(Matrix(prevLayerSize, outputs), Vector(outputs)));
 }
 
 void NeuralNet::train(const TrainingSample& sample) {
-  
+  // TODO
 }
 
-const Vector& NeuralNet::evaluate(const Vector& inputs) const {
-  // TODO
+Vector NeuralNet::evaluate(const Vector& inputs) const {
+  Vector activations(inputs);
 
-  return m_outputs;
+  for (const auto& layer : m_layers) {
+    activations = (layer.weights * activations + layer.biases).transform(sigmoid);
+  }
+
+  return activations;
 }
