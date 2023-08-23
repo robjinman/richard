@@ -39,6 +39,27 @@ TEST_F(VectorTest, assignmentOperator) {
   ASSERT_EQ(Vector({1, 2, 3}), b);
 }
 
+Vector foo(const Vector& A, const Vector& B) {
+  auto doubler = [](double x) -> double {
+    return x * 2.0;
+  };
+
+  Vector V = A + B.transform(doubler);
+  return V;
+}
+
+TEST_F(VectorTest, assignmentOperatorInScope) {
+  Vector a({0, 0, 0});
+
+  {
+    Vector b{3, 3, 3};
+    Vector c({7, 7, 7});
+    a = foo(b, c);
+  }
+
+  ASSERT_EQ(Vector({17, 17, 17}), a);
+}
+
 TEST_F(VectorTest, dotProduct) {
   Vector a{1, 2, 3};
   Vector b{4, 5, 6};

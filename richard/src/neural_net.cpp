@@ -9,11 +9,11 @@ using ActivationFn = std::function<double(double)>;
 using CostFn = std::function<double(const Vector&, const Vector&)>;
 using CostDerivativesFn = std::function<Vector(const Vector&, const Vector&)>;
 
-const ActivationFn sigmoid = [](double x) {
+const ActivationFn sigmoid = [](double x) -> double {
   return 1.0 / (1.0 + exp(-x));
 };
 
-const ActivationFn sigmoidPrime = [](double x) {
+const ActivationFn sigmoidPrime = [](double x) -> double {
   double sigX = sigmoid(x);
   return sigX * (1.0 - sigX);
 };
@@ -34,10 +34,11 @@ const CostFn quadradicCost = [](const Vector& actual, const Vector& expected) {
 
 // Partial derivatives of quadraticCost with respect to the activations
 const CostDerivativesFn quadraticCostDerivatives = [](const Vector& actual,
-                                                      const Vector& expected) {
+                                                      const Vector& expected) -> Vector {
   ASSERT(actual.size() == expected.size());
 
-  return actual - expected;
+  Vector tmp = actual - expected;
+  return tmp;
 };
 
 }
@@ -52,41 +53,68 @@ TrainingData::TrainingData(const std::vector<char>& labels)
     m_classOutputVectors.insert({m_labels[i], v});
   }
 }
-
-Layer::Layer(Layer&& mv)
+/*
+NeuralNet::Layer::Layer(Layer&& mv)
   : weights(std::move(mv.weights))
   , biases(std::move(mv.biases))
   , Z(std::move(mv.Z)) {}
 
-Layer::Layer(Matrix&& weights, Vector&& biases)
+NeuralNet::Layer::Layer(Matrix&& weights, Vector&& biases)
   : weights(std::move(weights))
   , biases(std::move(biases))
   , Z(1) {}
+*/
+NeuralNet::Layer::Layer(const Layer& cpy)
+  : weights(cpy.weights)
+  , biases(cpy.biases)
+  , Z(cpy.Z) {}
 
-NeuralNet::NeuralNet(size_t inputs, std::initializer_list<size_t> layers, size_t outputs)
-  : m_inputs(inputs) {
+NeuralNet::Layer::Layer(const Matrix& weights, const Vector& biases)
+  : weights(weights)
+  , biases(biases)
+  , Z(1) {}
 
-  size_t prevLayerSize = inputs;
+NeuralNet::NeuralNet(std::initializer_list<size_t> layers) {
+  size_t prevLayerSize = 0;
+  size_t i = 0;
   for (size_t layerSize : layers) {
+    if (i == 0) {
+      prevLayerSize = layerSize;
+      ++i;
+      continue;
+    }
+
     Matrix weights(prevLayerSize, layerSize);
-    weights.randomize();
+    weights.randomize(1.0);
 
     Vector biases(layerSize);
-    biases.randomize();
+    biases.randomize(1.0);
 
-    m_layers.push_back(Layer(std::move(weights), std::move(biases)));
+    //m_layers.push_back(Layer(std::move(weights), std::move(biases)));
+    m_layers.emplace_back(weights, biases);
 
     prevLayerSize = layerSize;
+    ++i;
+  }
+}
+
+void NeuralNet::setWeights(const std::vector<Matrix>& W) {
+  if (W.size() != m_layers.size()) {
+    throw std::runtime_error("Wrong number of weight matrices");
   }
 
-  {
-    Matrix weights(prevLayerSize, outputs);
-    weights.randomize();
+  for (size_t i = 0; i < W.size(); ++i) {
+    m_layers[i].weights = W[i];
+  }
+}
 
-    Vector biases(outputs);
-    biases.randomize();
+void NeuralNet::setBiases(const std::vector<Vector>& B) {
+  if (B.size() != m_layers.size()) {
+    throw std::runtime_error("Wrong number of bias vectors");
+  }
 
-    m_layers.push_back(Layer(std::move(weights), std::move(biases)));
+  for (size_t i = 0; i < B.size(); ++i) {
+    m_layers[i].biases = B[i];
   }
 }
 
@@ -103,14 +131,18 @@ void NeuralNet::feedForward(const Vector& x) {
 }
 
 void NeuralNet::updateLayer(size_t layerIdx, const Vector& delta, const Vector& x) {
-  const double learnRate = 1.0;
+  const double learnRate = 0.1;
 
   Layer& layer = m_layers[layerIdx];
 
   Vector prevLayerActivations = layerIdx == 0 ? x : m_layers[layerIdx - 1].Z.transform(sigmoid);
+
+  //std::cout << "weights size: " << layer.weights.rows() << ", " << layer.weights.cols() << "\n";
   for (size_t j = 0; j < layer.weights.rows(); j++) {
     for (size_t k = 0; k < layer.weights.cols(); k++) {
       double dw = prevLayerActivations[k] * delta[j] * learnRate;
+
+      //std::cout << "dw = " << dw << "\n";
 
       double w = layer.weights.at(k, j);
       layer.weights.set(k, j, w - dw);
@@ -122,32 +154,35 @@ void NeuralNet::updateLayer(size_t layerIdx, const Vector& delta, const Vector& 
 
 void NeuralNet::train(const TrainingData& data) {
   const std::vector<TrainingData::Sample>& samples = data.data();
+  const size_t passes = 10;
 
-  for (const auto& sample : samples) {
-    const Vector& x = sample.data;
-    const Vector& y = data.classOutputVector(sample.label);
+  for (size_t pass = 0; pass < passes; ++pass) {
+    for (const auto& sample : samples) {
+      const Vector& x = sample.data;
+      const Vector& y = data.classOutputVector(sample.label);
 
-    feedForward(x);
+      feedForward(x);
 
-    Layer& outputLayer = m_layers.back();
-    const Vector& Z = outputLayer.Z;
-    Vector A = Z.transform(sigmoid);
+      Layer& outputLayer = m_layers.back();
+      const Vector& Z = outputLayer.Z;
+      Vector A = Z.transform(sigmoid);
 
-    Vector deltaC = quadraticCostDerivatives(A, y);
-    Vector delta = Z.transform(sigmoidPrime).hadamard(deltaC);
+      Vector deltaC = quadraticCostDerivatives(A, y);
+      Vector delta = Z.transform(sigmoidPrime).hadamard(deltaC);
 
-    updateLayer(m_layers.size() - 1, delta, x);
+      updateLayer(m_layers.size() - 1, delta, x);
 
-    // Back-propagate errors
+      // Back-propagate errors
 
-    for (int i = m_layers.size() - 2; i > 0; --i) {
-      const Layer& nextLayer = m_layers[i + 1];
-      Layer& thisLayer = m_layers[i];
+      for (int i = m_layers.size() - 2; i >= 0; --i) {
+        const Layer& nextLayer = m_layers[i + 1];
+        Layer& thisLayer = m_layers[i];
 
-      delta = nextLayer.weights.transposeMultiply(delta)
-                               .hadamard(thisLayer.Z.transform(sigmoidPrime));
+        delta = nextLayer.weights.transposeMultiply(delta)
+                                 .hadamard(thisLayer.Z.transform(sigmoidPrime));
 
-      updateLayer(i, delta, x);
+        updateLayer(i, delta, x);
+      }
     }
   }
 }

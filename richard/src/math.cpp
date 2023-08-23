@@ -1,45 +1,52 @@
 #include <cstring>
 #include <random>
+#include <iostream> // TODO
 #include "math.hpp"
 #include "util.hpp"
 
 Vector::Vector(std::initializer_list<double> elements)
   : m_size(elements.size())
-  , m_data(std::make_unique<double[]>(m_size)) {
+  , m_data(new double[m_size]) {
 
   size_t i = 0;
   for (double x : elements) {
     m_data[i++] = x;
   }
 }
-
+/*
 Vector::Vector(Vector&& mv)
   : m_size(mv.m_size)
   , m_data(std::move(mv.m_data)) {
 
   mv.m_size = 0;
-}
+}*/
 
 Vector::Vector(size_t size)
   : m_size(size)
-  , m_data(std::make_unique<double[]>(size)) {}
+  , m_data(new double[size]) {}
 
 Vector::Vector(const Vector& cpy)
   : m_size(cpy.m_size)
-  , m_data(std::make_unique<double[]>(cpy.m_size)) {
+  , m_data(new double[cpy.m_size]) {
 
-  memcpy(m_data.get(), cpy.m_data.get(), m_size * sizeof(double));
+  //memcpy(m_data.get(), cpy.m_data.get(), m_size * sizeof(double));
+  for (size_t i = 0; i < m_size; ++i) {
+    m_data[i] = cpy.m_data[i];
+  }
 }
 
 Vector& Vector::operator=(const Vector& rhs) {
   m_size = rhs.m_size;
-  m_data = std::make_unique<double[]>(m_size);
+  m_data.reset(new double[m_size]);
 
-  memcpy(m_data.get(), rhs.m_data.get(), m_size * sizeof(double));
+  //memcpy(m_data.get(), rhs.m_data.get(), m_size * sizeof(double));
+  for (size_t i = 0; i < m_size; ++i) {
+    m_data[i] = rhs.m_data[i];
+  }
 
   return *this;
 }
-
+/*
 Vector& Vector::operator=(Vector&& rhs) {
   m_size = rhs.m_size;
   m_data = std::move(rhs.m_data);
@@ -47,18 +54,34 @@ Vector& Vector::operator=(Vector&& rhs) {
   rhs.m_size = 0;
 
   return *this;
+}*/
+
+double Vector::magnitude() const {
+  double sqSum = 0.0;
+  for (size_t i = 0; i < m_size; ++i) {
+    double x = m_data[i];
+    sqSum += x * x;
+  }
+  return sqrt(sqSum);
 }
 
 void Vector::zero() {
   memset(m_data.get(), 0, m_size * sizeof(double));
 }
 
-void Vector::randomize() {
+void Vector::randomize(double maxMagnitude) {
   std::default_random_engine gen;
-  std::uniform_real_distribution<double> dist(0.0, 10.0);
+  std::uniform_real_distribution<double> dist(-maxMagnitude, maxMagnitude);
 
   for (size_t i = 0; i < m_size; ++i) {
     m_data[i] = dist(gen);
+  }
+}
+
+void Vector::normalize() {
+  double mag = magnitude();
+  for (size_t i = 0; i < m_size; ++i) {
+    m_data[i] = m_data[i] / mag;
   }
 }
 
@@ -156,7 +179,7 @@ Matrix::Matrix(size_t cols, size_t rows)
   : m_cols(cols)
   , m_rows(rows) {
 
-  m_data = std::make_unique<double[]>(cols * rows);
+  m_data.reset(new double[cols * rows]);
 }
 
 Vector Matrix::operator*(const Vector& rhs) const {
@@ -173,6 +196,32 @@ Vector Matrix::operator*(const Vector& rhs) const {
   return v;
 }
 
+Matrix::Matrix(const Matrix& cpy)
+  : m_cols(cpy.m_cols)
+  , m_rows(cpy.m_rows) {
+
+  m_data.reset(new double[m_rows * m_cols]);
+  memcpy(m_data.get(), cpy.m_data.get(), m_rows * m_cols * sizeof(double));
+}
+/*
+Matrix::Matrix(Matrix&& mv)
+  : m_cols(mv.m_cols)
+  , m_rows(mv.m_rows)
+  , m_data(std::move(mv.m_data)) {
+
+  mv.m_rows = 0;
+  mv.m_cols = 0;
+}*/
+
+Matrix& Matrix::operator=(const Matrix& rhs) {
+  m_cols = rhs.m_cols;
+  m_rows = rhs.m_rows;
+  m_data.reset(new double[m_rows * m_cols]);
+  memcpy(m_data.get(), rhs.m_data.get(), m_rows * m_cols * sizeof(double));
+
+  return *this;
+}
+
 Vector Matrix::transposeMultiply(const Vector& rhs) const {
   ASSERT(rhs.size() == m_rows);
 
@@ -180,7 +229,7 @@ Vector Matrix::transposeMultiply(const Vector& rhs) const {
   for (size_t c = 0; c < m_cols; ++c) {
     double sum = 0.0;
     for (size_t r = 0; r < m_rows; ++r) {
-      sum += at(r, c) * rhs[r];
+      sum += at(c, r) * rhs[r];
     }
     v[c] = sum;
   }
@@ -191,9 +240,9 @@ void Matrix::zero() {
   memset(m_data.get(), 0, m_rows * m_cols * sizeof(double));
 }
 
-void Matrix::randomize() {
+void Matrix::randomize(double maxMagnitude) {
   std::default_random_engine gen;
-  std::uniform_real_distribution<double> dist(0.0, 10.0);
+  std::uniform_real_distribution<double> dist(-maxMagnitude, maxMagnitude);
 
   for (size_t i = 0; i < m_rows * m_cols; ++i) {
     m_data[i] = dist(gen);

@@ -63,6 +63,7 @@ TrainingData loadTrainingData(const std::string& filePath) {
       }
     }
 
+    sample.normalize();
     trainingData.addSample(label, sample);
   }
 
@@ -107,9 +108,6 @@ void testNetwork(const NeuralNet& net) {
     Vector actual = net.evaluate(sample.data);
     Vector expected = testData.classOutputVector(sample.label);
 
-    //std::cout << sample.data;
-    //std::cout << actual;
-
     if (outputsMatch(actual, expected)) {
       ++good;
     }
@@ -140,7 +138,7 @@ int main(int argc, char** argv) {
 
     po::notify(vm);
 
-    NeuralNet net{2, { 4, 4 }, 2};
+    NeuralNet net{2, 3, 3, 2};
 
     if (vm["train"].as<bool>()) {
       std::cout << "Training neural net" << std::endl;
