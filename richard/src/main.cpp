@@ -69,9 +69,9 @@ TrainingData loadTrainingData(const std::string& filePath) {
   return trainingData;
 }
 
-void trainNetwork() {
-  NeuralNet net{2, { 4, 4 }, 2};
-  const std::string filePath = "data/train.csv";
+void trainNetwork(NeuralNet& net) {
+  //NeuralNet net{2, { 4, 4 }, 2};
+  const std::string filePath = "../data/bmi/train.csv"; // TODO
 
   TrainingData trainingData = loadTrainingData(filePath);
   net.train(trainingData);
@@ -79,14 +79,46 @@ void trainNetwork() {
   // TODO: Persist network weights to file
 }
 
-void testNetwork() {
-  NeuralNet net{2, { 4, 4 }, 2};
+bool outputsMatch(const Vector& x, const Vector& y) {
+  auto largestComponent = [](const Vector& v) {
+    double largest = std::numeric_limits<double>::min();
+    size_t largestIdx = 0;
+    for (size_t i = 0; i < v.size(); ++i) {
+      if (v[i] > largest) {
+        largest = v[i];
+        largestIdx = i;
+      }
+    }
+    return largestIdx;
+  };
 
-  // TODO: Load network weights from file
+  return largestComponent(x) == largestComponent(y);
+}
 
-  std::cout << net.evaluate({ 34.0, 23.0 });
-  std::cout << net.evaluate({ 12.0, 60.0 });
-  std::cout << net.evaluate({ 24.0, 11.0 });
+void testNetwork(const NeuralNet& net) {
+  //NeuralNet net{2, { 4, 4 }, 2};
+  const std::string filePath = "../data/bmi/test.csv"; // TODO
+
+  TrainingData testData = loadTrainingData(filePath);
+
+  size_t good = 0;
+  size_t bad = 0;
+  for (const auto& sample : testData.data()) {
+    Vector actual = net.evaluate(sample.data);
+    Vector expected = testData.classOutputVector(sample.label);
+
+    //std::cout << sample.data;
+    //std::cout << actual;
+
+    if (outputsMatch(actual, expected)) {
+      ++good;
+    }
+    else {
+      ++bad;
+    }
+  }
+
+  std::cout << "Correct classifications = " << good << "/" << good + bad << std::endl;
 }
 
 }
@@ -108,13 +140,18 @@ int main(int argc, char** argv) {
 
     po::notify(vm);
 
+    NeuralNet net{2, { 4, 4 }, 2};
+
     if (vm["train"].as<bool>()) {
       std::cout << "Training neural net" << std::endl;
-      trainNetwork();
+      trainNetwork(net);
     }
     else {
+      std::cout << "Training neural net" << std::endl;
+      trainNetwork(net);
+
       std::cout << "Evaluating neural net" << std::endl;
-      testNetwork();
+      testNetwork(net);
     }
   }
   catch (const po::error& e) {

@@ -16,6 +16,7 @@ class Vector {
     bool operator==(const Vector& rhs) const;
     inline bool operator!=(const Vector& rhs) const;
     void zero();
+    void randomize();
     double dot(const Vector& rhs) const;
     Vector hadamard(const Vector& rhs) const;
     Vector operator+(const Vector& rhs) const;
@@ -54,6 +55,7 @@ class Matrix {
     inline double at(size_t col, size_t row) const;
     inline void set(size_t col, size_t row, double x);
     void zero();
+    void randomize();
     inline size_t rows() const;
     inline size_t cols() const;
 

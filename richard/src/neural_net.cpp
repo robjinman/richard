@@ -1,4 +1,5 @@
 #include <cmath>
+#include <iostream> // TODO
 #include "neural_net.hpp"
 #include "util.hpp"
 
@@ -68,10 +69,10 @@ NeuralNet::NeuralNet(size_t inputs, std::initializer_list<size_t> layers, size_t
   size_t prevLayerSize = inputs;
   for (size_t layerSize : layers) {
     Matrix weights(prevLayerSize, layerSize);
-    weights.zero();
+    weights.randomize();
 
     Vector biases(layerSize);
-    biases.zero();
+    biases.randomize();
 
     m_layers.push_back(Layer(std::move(weights), std::move(biases)));
 
@@ -80,10 +81,10 @@ NeuralNet::NeuralNet(size_t inputs, std::initializer_list<size_t> layers, size_t
 
   {
     Matrix weights(prevLayerSize, outputs);
-    weights.zero();
+    weights.randomize();
 
     Vector biases(outputs);
-    biases.zero();
+    biases.randomize();
 
     m_layers.push_back(Layer(std::move(weights), std::move(biases)));
   }
@@ -153,10 +154,14 @@ void NeuralNet::train(const TrainingData& data) {
 
 Vector NeuralNet::evaluate(const Vector& x) const {
   Vector A(x);
+  std::cout << "Input: " << A;
 
   for (const auto& layer : m_layers) {
     A = (layer.weights * A + layer.biases).transform(sigmoid);
+    std::cout << A;
   }
+
+  std::cout << "Output: " << A;
 
   return A;
 }

@@ -1,4 +1,5 @@
 #include <cstring>
+#include <random>
 #include "math.hpp"
 #include "util.hpp"
 
@@ -50,6 +51,15 @@ Vector& Vector::operator=(Vector&& rhs) {
 
 void Vector::zero() {
   memset(m_data.get(), 0, m_size * sizeof(double));
+}
+
+void Vector::randomize() {
+  std::default_random_engine gen;
+  std::uniform_real_distribution<double> dist(0.0, 10.0);
+
+  for (size_t i = 0; i < m_size; ++i) {
+    m_data[i] = dist(gen);
+  }
 }
 
 double Vector::dot(const Vector& rhs) const {
@@ -179,4 +189,13 @@ Vector Matrix::transposeMultiply(const Vector& rhs) const {
 
 void Matrix::zero() {
   memset(m_data.get(), 0, m_rows * m_cols * sizeof(double));
+}
+
+void Matrix::randomize() {
+  std::default_random_engine gen;
+  std::uniform_real_distribution<double> dist(0.0, 10.0);
+
+  for (size_t i = 0; i < m_rows * m_cols; ++i) {
+    m_data[i] = dist(gen);
+  }
 }
