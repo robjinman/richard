@@ -1,23 +1,56 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
+#include <list>
+#include <map>
 #include <boost/program_options.hpp>
 #include "neural_net.hpp"
 
-const std::string DESCRIPTION = "Richard is gaining power";
-
 namespace po = boost::program_options;
 
-std::vector<TrainingSample> loadTrainingData(const std::string& filePath) {
+namespace {
+
+const std::string DESCRIPTION = "Richard is gaining power";
+
+// Load training data from csv file
+//
+// The first line is the set of possible labels, which should be a single character.
+// Subsequent lines are a label followed by float data values.
+// E.g.
+//
+// a,b,c
+// b,23.1,45.5
+// a,44.0,52.1
+// c,11.9,92.4
+// ...
+TrainingData loadTrainingData(const std::string& filePath) {
   std::ifstream fin(filePath);
-  std::vector<TrainingSample> trainingData;
 
-  const size_t dimensions = 2;
-  char label = '0';
-  Vector sample{dimensions};
+  std::string line;
+  std::vector<char> classLabels;
 
-  for (std::string line; std::getline(fin, line); ) {
+  std::getline(fin, line);
+
+  std::stringstream ss{line};
+  while (ss.good()) {
+    std::string token;
+    std::getline(ss, token, ',');
+    classLabels.push_back(token[0]);
+  }
+
+  TrainingData trainingData(classLabels);
+
+  std::streampos dataStart = fin.tellg();
+  std::getline(fin, line);
+  size_t dimensions = std::count(line.begin(), line.end(), ',');
+  fin.seekg(dataStart);
+
+  while (std::getline(fin, line)) {
     std::stringstream ss{line};
+    char label = '0';
+    Vector sample(dimensions);
+
     for (size_t i = 0; ss.good(); ++i) {
       std::string token;
       std::getline(ss, token, ',');
@@ -30,7 +63,7 @@ std::vector<TrainingSample> loadTrainingData(const std::string& filePath) {
       }
     }
 
-    trainingData.push_back(TrainingSample{label, std::move(sample)});
+    trainingData.addSample(label, sample);
   }
 
   return trainingData;
@@ -40,11 +73,8 @@ void trainNetwork() {
   NeuralNet net{2, { 4, 4 }, 2};
   const std::string filePath = "data/train.csv";
 
-  std::vector<TrainingSample> trainingData = loadTrainingData(filePath);
-
-  for (const TrainingSample& sample : trainingData) {
-    net.train(sample);
-  }
+  TrainingData trainingData = loadTrainingData(filePath);
+  net.train(trainingData);
 
   // TODO: Persist network weights to file
 }
@@ -57,6 +87,8 @@ void testNetwork() {
   std::cout << net.evaluate({ 34.0, 23.0 });
   std::cout << net.evaluate({ 12.0, 60.0 });
   std::cout << net.evaluate({ 24.0, 11.0 });
+}
+
 }
 
 int main(int argc, char** argv) {

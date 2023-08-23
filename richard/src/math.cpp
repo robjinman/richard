@@ -48,6 +48,10 @@ Vector& Vector::operator=(Vector&& rhs) {
   return *this;
 }
 
+void Vector::zero() {
+  memset(m_data.get(), 0, m_size * sizeof(double));
+}
+
 double Vector::dot(const Vector& rhs) const {
   ASSERT(rhs.size() == m_size);
 
@@ -83,9 +87,37 @@ Vector Vector::operator+(const Vector& rhs) const {
 
   Vector v(m_size);
   for (size_t i = 0; i < m_size; ++i) {
-    v[i] += m_data[i];
+    v[i] = m_data[i] + rhs[i];
   }
   return v;
+}
+
+Vector Vector::operator-(const Vector& rhs) const {
+  ASSERT(rhs.size() == m_size);
+
+  Vector v(m_size);
+  for (size_t i = 0; i < m_size; ++i) {
+    v[i] = m_data[i] - rhs[i];
+  }
+  return v;
+}
+
+Vector Vector::operator*(double s) const {
+  Vector v(m_size);
+  for (size_t i = 0; i < m_size; ++i) {
+    v[i] = m_data[i] * s;
+  }
+  return v;
+}
+
+double Vector::sum() const {
+  double s = 0.0;
+
+  for (size_t i = 0; i < m_size; ++i) {
+    s += m_data[i];
+  }
+
+  return s;
 }
 
 bool Vector::operator==(const Vector& rhs) const {
@@ -118,6 +150,8 @@ Matrix::Matrix(size_t cols, size_t rows)
 }
 
 Vector Matrix::operator*(const Vector& rhs) const {
+  ASSERT(rhs.size() == m_cols);
+
   Vector v(m_rows);
   for (size_t r = 0; r < m_rows; ++r) {
     double sum = 0.0;
@@ -125,6 +159,20 @@ Vector Matrix::operator*(const Vector& rhs) const {
       sum += at(c, r) * rhs[c];
     }
     v[r] = sum;
+  }
+  return v;
+}
+
+Vector Matrix::transposeMultiply(const Vector& rhs) const {
+  ASSERT(rhs.size() == m_rows);
+
+  Vector v(m_cols);
+  for (size_t c = 0; c < m_cols; ++c) {
+    double sum = 0.0;
+    for (size_t r = 0; r < m_rows; ++r) {
+      sum += at(r, c) * rhs[r];
+    }
+    v[c] = sum;
   }
   return v;
 }

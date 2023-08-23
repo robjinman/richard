@@ -15,9 +15,13 @@ class Vector {
     Vector& operator=(Vector&& rhs);
     bool operator==(const Vector& rhs) const;
     inline bool operator!=(const Vector& rhs) const;
+    void zero();
     double dot(const Vector& rhs) const;
     Vector hadamard(const Vector& rhs) const;
     Vector operator+(const Vector& rhs) const;
+    Vector operator-(const Vector& rhs) const;
+    Vector operator*(double s) const;
+    double sum() const;
     inline size_t size() const;
     inline double& operator[](size_t i) const;
     Vector transform(const std::function<double(double)>& f) const;
@@ -46,8 +50,12 @@ class Matrix {
     Matrix(size_t cols, size_t rows);
 
     Vector operator*(const Vector& rhs) const;
+    Vector transposeMultiply(const Vector& rhs) const;
     inline double at(size_t col, size_t row) const;
+    inline void set(size_t col, size_t row, double x);
     void zero();
+    inline size_t rows() const;
+    inline size_t cols() const;
 
   private:
     size_t m_cols;
@@ -57,4 +65,16 @@ class Matrix {
 
 inline double Matrix::at(size_t col, size_t row) const {
   return m_data[row * m_rows + col];
+}
+
+inline void Matrix::set(size_t col, size_t row, double x) {
+  m_data[row * m_rows + col] = x;
+}
+
+inline size_t Matrix::rows() const {
+  return m_rows;
+}
+
+inline size_t Matrix::cols() const {
+  return m_cols;
 }
