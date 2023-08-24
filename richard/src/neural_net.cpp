@@ -18,13 +18,6 @@ const ActivationFn sigmoidPrime = [](double x) -> double {
   return sigX * (1.0 - sigX);
 };
 
-const CostFn meanSquaredError = [](const Vector& actual, const Vector& expected) {
-  ASSERT(actual.size() == expected.size());
-
-  Vector diff = expected - actual;
-  return diff.hadamard(diff).sum() / diff.size();
-};
-
 const CostFn quadradicCost = [](const Vector& actual, const Vector& expected) {
   ASSERT(actual.size() == expected.size());
 
@@ -41,6 +34,22 @@ const CostDerivativesFn quadraticCostDerivatives = [](const Vector& actual,
   return tmp;
 };
 
+bool outputsMatch(const Vector& x, const Vector& y) {
+  auto largestComponent = [](const Vector& v) {
+    double largest = std::numeric_limits<double>::min();
+    size_t largestIdx = 0;
+    for (size_t i = 0; i < v.size(); ++i) {
+      if (v[i] > largest) {
+        largest = v[i];
+        largestIdx = i;
+      }
+    }
+    return largestIdx;
+  };
+
+  return largestComponent(x) == largestComponent(y);
+}
+
 }
 
 TrainingData::TrainingData(const std::vector<char>& labels)
@@ -53,7 +62,7 @@ TrainingData::TrainingData(const std::vector<char>& labels)
     m_classOutputVectors.insert({m_labels[i], v});
   }
 }
-/*
+
 NeuralNet::Layer::Layer(Layer&& mv)
   : weights(std::move(mv.weights))
   , biases(std::move(mv.biases))
@@ -63,7 +72,7 @@ NeuralNet::Layer::Layer(Matrix&& weights, Vector&& biases)
   : weights(std::move(weights))
   , biases(std::move(biases))
   , Z(1) {}
-*/
+
 NeuralNet::Layer::Layer(const Layer& cpy)
   : weights(cpy.weights)
   , biases(cpy.biases)
@@ -90,8 +99,7 @@ NeuralNet::NeuralNet(std::initializer_list<size_t> layers) {
     Vector biases(layerSize);
     biases.randomize(1.0);
 
-    //m_layers.push_back(Layer(std::move(weights), std::move(biases)));
-    m_layers.emplace_back(weights, biases);
+    m_layers.emplace_back(std::move(weights), std::move(biases));
 
     prevLayerSize = layerSize;
     ++i;
@@ -154,11 +162,13 @@ void NeuralNet::updateLayer(size_t layerIdx, const Vector& delta, const Vector& 
 
 void NeuralNet::train(const TrainingData& data) {
   const std::vector<TrainingData::Sample>& samples = data.data();
-  const size_t epochs = 100;
-  double learnRate = 0.1;
+  const size_t epochs = 10;
+  const double initialLearnRate = 1.0;
   double learnRateDecay = 0.95;
 
   for (size_t epoch = 0; epoch < epochs; ++epoch) {
+    double learnRate = initialLearnRate;
+
     for (const auto& sample : samples) {
       const Vector& x = sample.data;
       const Vector& y = data.classOutputVector(sample.label);
@@ -191,16 +201,39 @@ void NeuralNet::train(const TrainingData& data) {
   }
 }
 
+NeuralNet::Results NeuralNet::test(const TrainingData& data) const {
+  Results results;
+
+  double totalCost = 0.0;
+  for (const auto& sample : data.data()) {
+    Vector actual = evaluate(sample.data);
+    Vector expected = data.classOutputVector(sample.label);
+
+    if (outputsMatch(actual, expected)) {
+      ++results.good;
+    }
+    else {
+      ++results.bad;
+    }
+
+    totalCost += quadradicCost(actual, expected);
+  }
+
+  results.cost = totalCost / data.data().size();
+
+  return results;
+}
+
 Vector NeuralNet::evaluate(const Vector& x) const {
   Vector A(x);
-  std::cout << "Input: " << A;
+  //std::cout << "Input: " << A;
 
   for (const auto& layer : m_layers) {
     A = (layer.weights * A + layer.biases).transform(sigmoid);
-    std::cout << A;
+    //std::cout << A;
   }
 
-  std::cout << "Output: " << A;
+  //std::cout << "Output: " << A;
 
   return A;
 }

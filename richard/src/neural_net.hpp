@@ -15,7 +15,7 @@ class TrainingData {
       Vector data;
     };
 
-    TrainingData(const std::vector<char>& labels);
+    explicit TrainingData(const std::vector<char>& labels);
 
     inline void addSample(char label, const Vector& data);
     inline const std::vector<Sample>& data() const;
@@ -42,12 +42,19 @@ inline const Vector& TrainingData::classOutputVector(char label) const {
 
 class NeuralNet {
   public:
-    NeuralNet(std::initializer_list<size_t> layers);
+    struct Results {
+      size_t good = 0;
+      size_t bad = 0;
+      double cost = 0.0;
+    };
+
+    explicit NeuralNet(std::initializer_list<size_t> layers);
 
     void train(const TrainingData& data);
+    Results test(const TrainingData& data) const;
     Vector evaluate(const Vector& inputs) const;
 
-    // For testing
+    // For unit tests
     void setWeights(const std::vector<Matrix>& W);
     void setBiases(const std::vector<Vector>& B);
 
@@ -60,8 +67,8 @@ class NeuralNet {
       Vector biases;
       Vector Z;
 
-      //Layer(Layer&& mv);
-      //Layer(Matrix&& weights, Vector&& biases);
+      Layer(Layer&& mv);
+      Layer(Matrix&& weights, Vector&& biases);
       Layer(const Layer& cpy);
       Layer(const Matrix& weights, const Vector& biases);
     };

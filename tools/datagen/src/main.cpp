@@ -3,10 +3,10 @@
 
 int main() {
   std::default_random_engine generator;
-  std::normal_distribution<double> clusterAX(0.3, 0.1);
-  std::normal_distribution<double> clusterAY(0.4, 0.03);
-  std::normal_distribution<double> clusterBX(0.7, 0.1);
-  std::normal_distribution<double> clusterBY(0.8, 0.05);
+  std::normal_distribution<double> clusterAX(-0.7, 0.2);
+  std::normal_distribution<double> clusterAY(0.6, 0.06);
+  std::normal_distribution<double> clusterBX(0.68, 0.2);
+  std::normal_distribution<double> clusterBY(-0.4, 0.1);
 
   std::cout << "A,B" << std::endl;
 
@@ -21,7 +21,7 @@ int main() {
     double bX = clusterBX(generator);
     double bY = clusterBY(generator);
 
-    std::cout << "B," << aX << "," << aY << std::endl;
+    std::cout << "B," << bX << "," << bY << std::endl;
   }
 
   return 0;

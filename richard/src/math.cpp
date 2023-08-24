@@ -13,13 +13,13 @@ Vector::Vector(std::initializer_list<double> elements)
     m_data[i++] = x;
   }
 }
-/*
+
 Vector::Vector(Vector&& mv)
   : m_size(mv.m_size)
   , m_data(std::move(mv.m_data)) {
 
   mv.m_size = 0;
-}*/
+}
 
 Vector::Vector(size_t size)
   : m_size(size)
@@ -29,24 +29,26 @@ Vector::Vector(const Vector& cpy)
   : m_size(cpy.m_size)
   , m_data(new double[cpy.m_size]) {
 
-  //memcpy(m_data.get(), cpy.m_data.get(), m_size * sizeof(double));
+  memcpy(m_data.get(), cpy.m_data.get(), m_size * sizeof(double));
+  /*
   for (size_t i = 0; i < m_size; ++i) {
     m_data[i] = cpy.m_data[i];
-  }
+  }*/
 }
 
 Vector& Vector::operator=(const Vector& rhs) {
   m_size = rhs.m_size;
   m_data.reset(new double[m_size]);
 
-  //memcpy(m_data.get(), rhs.m_data.get(), m_size * sizeof(double));
+  memcpy(m_data.get(), rhs.m_data.get(), m_size * sizeof(double));
+  /*
   for (size_t i = 0; i < m_size; ++i) {
     m_data[i] = rhs.m_data[i];
   }
-
+*/
   return *this;
 }
-/*
+
 Vector& Vector::operator=(Vector&& rhs) {
   m_size = rhs.m_size;
   m_data = std::move(rhs.m_data);
@@ -54,7 +56,7 @@ Vector& Vector::operator=(Vector&& rhs) {
   rhs.m_size = 0;
 
   return *this;
-}*/
+}
 
 double Vector::magnitude() const {
   double sqSum = 0.0;
@@ -143,6 +145,22 @@ Vector Vector::operator*(double s) const {
   return v;
 }
 
+Vector Vector::operator+(double s) const {
+  Vector v(m_size);
+  for (size_t i = 0; i < m_size; ++i) {
+    v[i] = m_data[i] + s;
+  }
+  return v;
+}
+
+Vector Vector::operator-(double s) const {
+  Vector v(m_size);
+  for (size_t i = 0; i < m_size; ++i) {
+    v[i] = m_data[i] - s;
+  }
+  return v;
+}
+
 double Vector::sum() const {
   double s = 0.0;
 
@@ -203,7 +221,7 @@ Matrix::Matrix(const Matrix& cpy)
   m_data.reset(new double[m_rows * m_cols]);
   memcpy(m_data.get(), cpy.m_data.get(), m_rows * m_cols * sizeof(double));
 }
-/*
+
 Matrix::Matrix(Matrix&& mv)
   : m_cols(mv.m_cols)
   , m_rows(mv.m_rows)
@@ -211,7 +229,7 @@ Matrix::Matrix(Matrix&& mv)
 
   mv.m_rows = 0;
   mv.m_cols = 0;
-}*/
+}
 
 Matrix& Matrix::operator=(const Matrix& rhs) {
   m_cols = rhs.m_cols;

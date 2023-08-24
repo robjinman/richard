@@ -69,6 +69,7 @@ TrainingData loadTrainingData(const std::string& filePath) {
     }
 
     //sample.normalize();
+    //sample = sample - 0.5;
     trainingData.addSample(label, sample);
   }
 
@@ -76,7 +77,6 @@ TrainingData loadTrainingData(const std::string& filePath) {
 }
 
 void trainNetwork(NeuralNet& net) {
-  //NeuralNet net{2, { 4, 4 }, 2};
   const std::string filePath = "../data/train.csv"; // TODO
 
   TrainingData trainingData = loadTrainingData(filePath);
@@ -85,43 +85,16 @@ void trainNetwork(NeuralNet& net) {
   // TODO: Persist network weights to file
 }
 
-bool outputsMatch(const Vector& x, const Vector& y) {
-  auto largestComponent = [](const Vector& v) {
-    double largest = std::numeric_limits<double>::min();
-    size_t largestIdx = 0;
-    for (size_t i = 0; i < v.size(); ++i) {
-      if (v[i] > largest) {
-        largest = v[i];
-        largestIdx = i;
-      }
-    }
-    return largestIdx;
-  };
-
-  return largestComponent(x) == largestComponent(y);
-}
-
 void testNetwork(const NeuralNet& net) {
-  //NeuralNet net{2, { 4, 4 }, 2};
   const std::string filePath = "../data/test.csv"; // TODO
 
   TrainingData testData = loadTrainingData(filePath);
+  NeuralNet::Results results = net.test(testData);
 
-  size_t good = 0;
-  size_t bad = 0;
-  for (const auto& sample : testData.data()) {
-    Vector actual = net.evaluate(sample.data);
-    Vector expected = testData.classOutputVector(sample.label);
+  std::cout << "Correct classifications: "
+    << results.good << "/" << results.good + results.bad << std::endl;
 
-    if (outputsMatch(actual, expected)) {
-      ++good;
-    }
-    else {
-      ++bad;
-    }
-  }
-
-  std::cout << "Correct classifications = " << good << "/" << good + bad << std::endl;
+  std::cout << "Average cost: " << results.cost << std::endl;
 }
 
 }
@@ -145,7 +118,7 @@ int main(int argc, char** argv) {
 
     const auto t1 = high_resolution_clock::now();
 
-    NeuralNet net{2, 4, 2};
+    NeuralNet net{2, 4, 4, 2};
 
     if (vm["train"].as<bool>()) {
       std::cout << "Training neural net" << std::endl;

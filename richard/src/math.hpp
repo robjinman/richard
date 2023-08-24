@@ -7,13 +7,13 @@
 
 class Vector {
   public:
-    Vector(size_t size);
+    explicit Vector(size_t size);
     Vector(const Vector& cpy);
-    //Vector(Vector&& mv);
-    Vector(std::initializer_list<double>);
+    Vector(Vector&& mv);
+    explicit Vector(std::initializer_list<double>);
 
     Vector& operator=(const Vector& rhs);
-    //Vector& operator=(Vector&& rhs);
+    Vector& operator=(Vector&& rhs);
     bool operator==(const Vector& rhs) const;
     inline bool operator!=(const Vector& rhs) const;
     void zero();
@@ -24,6 +24,8 @@ class Vector {
     Vector hadamard(const Vector& rhs) const;
     Vector operator+(const Vector& rhs) const;
     Vector operator-(const Vector& rhs) const;
+    Vector operator+(double x) const;
+    Vector operator-(double x) const;
     Vector operator*(double s) const;
     double sum() const;
     inline size_t size() const;
@@ -32,7 +34,7 @@ class Vector {
 
     friend std::ostream& operator<<(std::ostream& os, const Vector& v);
 
-  //private:
+  private:
     size_t m_size;
     std::unique_ptr<double[]> m_data;
 };
@@ -54,7 +56,7 @@ class Matrix {
   public:
     Matrix(size_t cols, size_t rows);
     Matrix(const Matrix& cpy);
-    //Matrix(Matrix&& mv);
+    Matrix(Matrix&& mv);
 
     Matrix& operator=(const Matrix& rhs);
     Vector operator*(const Vector& rhs) const;
