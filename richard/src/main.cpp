@@ -4,8 +4,13 @@
 #include <algorithm>
 #include <list>
 #include <map>
+#include <chrono>
 #include <boost/program_options.hpp>
 #include "neural_net.hpp"
+
+using std::chrono::high_resolution_clock;
+using std::chrono::duration;
+using std::chrono::duration_cast;
 
 namespace po = boost::program_options;
 
@@ -63,7 +68,7 @@ TrainingData loadTrainingData(const std::string& filePath) {
       }
     }
 
-    sample.normalize();
+    //sample.normalize();
     trainingData.addSample(label, sample);
   }
 
@@ -72,7 +77,7 @@ TrainingData loadTrainingData(const std::string& filePath) {
 
 void trainNetwork(NeuralNet& net) {
   //NeuralNet net{2, { 4, 4 }, 2};
-  const std::string filePath = "../data/bmi/train.csv"; // TODO
+  const std::string filePath = "../data/train.csv"; // TODO
 
   TrainingData trainingData = loadTrainingData(filePath);
   net.train(trainingData);
@@ -98,7 +103,7 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 
 void testNetwork(const NeuralNet& net) {
   //NeuralNet net{2, { 4, 4 }, 2};
-  const std::string filePath = "../data/bmi/test.csv"; // TODO
+  const std::string filePath = "../data/test.csv"; // TODO
 
   TrainingData testData = loadTrainingData(filePath);
 
@@ -138,7 +143,9 @@ int main(int argc, char** argv) {
 
     po::notify(vm);
 
-    NeuralNet net{2, 3, 3, 2};
+    const auto t1 = high_resolution_clock::now();
+
+    NeuralNet net{2, 4, 2};
 
     if (vm["train"].as<bool>()) {
       std::cout << "Training neural net" << std::endl;
@@ -151,6 +158,10 @@ int main(int argc, char** argv) {
       std::cout << "Evaluating neural net" << std::endl;
       testNetwork(net);
     }
+
+    const auto t2 = high_resolution_clock::now();
+    const long long elapsed = duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+    std::cout << "Running time: " << elapsed << " milliseconds" << std::endl;
   }
   catch (const po::error& e) {
     std::cerr << e.what() << std::endl;

@@ -3,25 +3,25 @@
 
 int main() {
   std::default_random_engine generator;
-  std::normal_distribution<double> maleHeight(1.75, 0.1);
-  std::normal_distribution<double> maleWeight(80.1, 11.2);
-  std::normal_distribution<double> femaleHeight(1.56, 0.08);
-  std::normal_distribution<double> femaleWeight(67.5, 9.3);
+  std::normal_distribution<double> clusterAX(0.3, 0.1);
+  std::normal_distribution<double> clusterAY(0.4, 0.03);
+  std::normal_distribution<double> clusterBX(0.7, 0.1);
+  std::normal_distribution<double> clusterBY(0.8, 0.05);
 
-  std::cout << "M,F" << std::endl;
+  std::cout << "A,B" << std::endl;
 
-  size_t N = 10000;
+  size_t N = 100;
 
   for (int i = 0; i < N; ++i) {
-    double manH = maleHeight(generator);
-    double manW = maleWeight(generator);
+    double aX = clusterAX(generator);
+    double aY = clusterAY(generator);
 
-    std::cout << "M," << manH << "," << manW << std::endl;
+    std::cout << "A," << aX << "," << aY << std::endl;
 
-    double womanH = femaleHeight(generator);
-    double womanW = femaleWeight(generator);
+    double bX = clusterBX(generator);
+    double bY = clusterBY(generator);
 
-    std::cout << "F," << womanH << "," << womanW << std::endl;
+    std::cout << "B," << aX << "," << aY << std::endl;
   }
 
   return 0;

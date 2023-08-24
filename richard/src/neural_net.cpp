@@ -130,8 +130,8 @@ void NeuralNet::feedForward(const Vector& x) {
   }
 }
 
-void NeuralNet::updateLayer(size_t layerIdx, const Vector& delta, const Vector& x) {
-  const double learnRate = 0.1;
+void NeuralNet::updateLayer(size_t layerIdx, const Vector& delta, const Vector& x,
+  double learnRate) {
 
   Layer& layer = m_layers[layerIdx];
 
@@ -154,9 +154,11 @@ void NeuralNet::updateLayer(size_t layerIdx, const Vector& delta, const Vector& 
 
 void NeuralNet::train(const TrainingData& data) {
   const std::vector<TrainingData::Sample>& samples = data.data();
-  const size_t passes = 10;
+  const size_t epochs = 100;
+  double learnRate = 0.1;
+  double learnRateDecay = 0.95;
 
-  for (size_t pass = 0; pass < passes; ++pass) {
+  for (size_t epoch = 0; epoch < epochs; ++epoch) {
     for (const auto& sample : samples) {
       const Vector& x = sample.data;
       const Vector& y = data.classOutputVector(sample.label);
@@ -170,7 +172,7 @@ void NeuralNet::train(const TrainingData& data) {
       Vector deltaC = quadraticCostDerivatives(A, y);
       Vector delta = Z.transform(sigmoidPrime).hadamard(deltaC);
 
-      updateLayer(m_layers.size() - 1, delta, x);
+      updateLayer(m_layers.size() - 1, delta, x, learnRate);
 
       // Back-propagate errors
 
@@ -181,8 +183,10 @@ void NeuralNet::train(const TrainingData& data) {
         delta = nextLayer.weights.transposeMultiply(delta)
                                  .hadamard(thisLayer.Z.transform(sigmoidPrime));
 
-        updateLayer(i, delta, x);
+        updateLayer(i, delta, x, learnRate);
       }
+
+      learnRate *= learnRateDecay;
     }
   }
 }

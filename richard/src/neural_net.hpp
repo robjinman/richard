@@ -53,7 +53,7 @@ class NeuralNet {
 
   private:
     void feedForward(const Vector& x);
-    void updateLayer(size_t layerIdx, const Vector& delta, const Vector& x);
+    void updateLayer(size_t layerIdx, const Vector& delta, const Vector& x, double learnRate);
 
     struct Layer {
       Matrix weights;
