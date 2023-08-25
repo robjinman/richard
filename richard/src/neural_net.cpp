@@ -137,8 +137,7 @@ void NeuralNet::fromFile(const std::string& filePath) {
   size_t numLayers = 0;
   fin.read(reinterpret_cast<char*>(&numLayers), sizeof(size_t));
 
-  m_numInputs = 784; // TODO
-  //fin.read(reinterpret_cast<char*>(&m_numInputs), sizeof(size_t));
+  fin.read(reinterpret_cast<char*>(&m_numInputs), sizeof(size_t));
 
   size_t prevLayerSize = m_numInputs;
   for (size_t i = 0; i < numLayers; ++i) {
@@ -213,10 +212,11 @@ void NeuralNet::updateLayer(size_t layerIdx, const Vector& delta, const Vector& 
 
 void NeuralNet::train(const TrainingData& data) {
   const std::vector<TrainingData::Sample>& samples = data.data();
-  const size_t epochs = 1; // TODO
-  const double initialLearnRate = 1.0;
-  const double learnRateDecay = 0.95;
-  const size_t samplesToProcess = std::min<size_t>(1000, samples.size()); // TODO
+  const size_t epochs = 100; // TODO
+  const double initialLearnRate = 0.5;
+  const double learnRateDecay = 1.0;
+  const size_t maxSamplesToProcess = 300;
+  const size_t samplesToProcess = std::min<size_t>(maxSamplesToProcess, samples.size()); // TODO
 
   for (size_t epoch = 0; epoch < epochs; ++epoch) {
     std::cout << "Epoch " << epoch + 1 << "/" << epochs << std::endl; // TODO
@@ -224,7 +224,7 @@ void NeuralNet::train(const TrainingData& data) {
     double learnRate = initialLearnRate;
 
     for (size_t i = 0; i < samplesToProcess; ++i) {
-      std::cout << i << "/" << samplesToProcess << std::endl; // TODO
+      //std::cout << i << "/" << samplesToProcess << std::endl; // TODO
 
       const auto& sample = samples[i];
       const Vector& x = sample.data;

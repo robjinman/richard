@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 
     const auto t1 = high_resolution_clock::now();
 
-    NeuralNet net{784, 1000, 1000, 1000, 10};
+    NeuralNet net{784, 300, 80, 10};
 
     if (vm["train"].as<bool>()) {
       std::cout << "Training neural net" << std::endl;
