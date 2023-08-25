@@ -76,19 +76,13 @@ TrainingData loadTrainingData(const std::string& filePath) {
   return trainingData;
 }
 
-void trainNetwork(NeuralNet& net) {
-  const std::string filePath = "../data/train.csv"; // TODO
-
-  TrainingData trainingData = loadTrainingData(filePath);
+void trainNetwork(NeuralNet& net, const std::string& trainingDataFile) {
+  TrainingData trainingData = loadTrainingData(trainingDataFile);
   net.train(trainingData);
-
-  // TODO: Persist network weights to file
 }
 
-void testNetwork(const NeuralNet& net) {
-  const std::string filePath = "../data/test.csv"; // TODO
-
-  TrainingData testData = loadTrainingData(filePath);
+void testNetwork(const NeuralNet& net, const std::string& testDataFile) {
+  TrainingData testData = loadTrainingData(testDataFile);
   NeuralNet::Results results = net.test(testData);
 
   std::cout << "Correct classifications: "
@@ -114,22 +108,27 @@ int main(int argc, char** argv) {
       return 0;
     }
 
+    const std::string networkWeightsFile = "../data/ocr/network_weights"; // TODO
+    const std::string trainingDataFile = "../data/ocr/train.csv";
+    const std::string testDataFile = "../data/ocr/test.csv";
+
     po::notify(vm);
 
     const auto t1 = high_resolution_clock::now();
 
-    NeuralNet net{2, 4, 4, 2};
+    NeuralNet net{784, 1000, 1000, 1000, 10};
 
     if (vm["train"].as<bool>()) {
       std::cout << "Training neural net" << std::endl;
-      trainNetwork(net);
+      trainNetwork(net, trainingDataFile);
+
+      net.toFile(networkWeightsFile);
     }
     else {
-      std::cout << "Training neural net" << std::endl;
-      trainNetwork(net);
+      net.fromFile(networkWeightsFile);
 
       std::cout << "Evaluating neural net" << std::endl;
-      testNetwork(net);
+      testNetwork(net, testDataFile);
     }
 
     const auto t2 = high_resolution_clock::now();

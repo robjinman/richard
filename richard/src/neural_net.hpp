@@ -50,6 +50,8 @@ class NeuralNet {
 
     explicit NeuralNet(std::initializer_list<size_t> layers);
 
+    void toFile(const std::string& filePath) const;
+    void fromFile(const std::string& filePath);
     void train(const TrainingData& data);
     Results test(const TrainingData& data) const;
     Vector evaluate(const Vector& inputs) const;
@@ -73,5 +75,6 @@ class NeuralNet {
       Layer(const Matrix& weights, const Vector& biases);
     };
 
+    size_t m_numInputs;
     std::vector<Layer> m_layers;
 };

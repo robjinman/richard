@@ -1,5 +1,7 @@
 #include <cmath>
 #include <iostream> // TODO
+#include <fstream>
+#include <algorithm>
 #include "neural_net.hpp"
 #include "util.hpp"
 
@@ -88,6 +90,7 @@ NeuralNet::NeuralNet(std::initializer_list<size_t> layers) {
   size_t i = 0;
   for (size_t layerSize : layers) {
     if (i == 0) {
+      m_numInputs = layerSize;
       prevLayerSize = layerSize;
       ++i;
       continue;
@@ -103,6 +106,54 @@ NeuralNet::NeuralNet(std::initializer_list<size_t> layers) {
 
     prevLayerSize = layerSize;
     ++i;
+  }
+}
+
+void NeuralNet::toFile(const std::string& filePath) const {
+  std::ofstream fout(filePath, std::ios::out | std::ios::binary);
+
+  size_t numLayers = m_layers.size();
+  fout.write(reinterpret_cast<char*>(&numLayers), sizeof(size_t));
+
+  fout.write(reinterpret_cast<const char*>(&m_numInputs), sizeof(size_t));
+
+  for (const auto& layer : m_layers) {
+    size_t numNeurons = layer.biases.size();
+    const auto& B = layer.biases;
+    const auto& W = layer.weights;
+
+    fout.write(reinterpret_cast<char*>(&numNeurons), sizeof(size_t));
+    fout.write(reinterpret_cast<const char*>(B.data()), B.size() * sizeof(double));
+    fout.write(reinterpret_cast<const char*>(W.data()), W.rows() * W.cols() * sizeof(double));
+  }
+}
+
+void NeuralNet::fromFile(const std::string& filePath) {
+  std::ifstream fin(filePath, std::ios::in | std::ios::binary);
+
+  m_layers.clear();
+  m_numInputs = 0;
+
+  size_t numLayers = 0;
+  fin.read(reinterpret_cast<char*>(&numLayers), sizeof(size_t));
+
+  m_numInputs = 784; // TODO
+  //fin.read(reinterpret_cast<char*>(&m_numInputs), sizeof(size_t));
+
+  size_t prevLayerSize = m_numInputs;
+  for (size_t i = 0; i < numLayers; ++i) {
+    size_t numNeurons = 0;
+    fin.read(reinterpret_cast<char*>(&numNeurons), sizeof(size_t));
+
+    Vector B(numNeurons);
+    fin.read(reinterpret_cast<char*>(B.data()), numNeurons * sizeof(double));
+
+    Matrix W(prevLayerSize, numNeurons);
+    fin.read(reinterpret_cast<char*>(W.data()), W.rows() * W.cols() * sizeof(double));
+
+    m_layers.emplace_back(std::move(W), std::move(B));
+
+    prevLayerSize = numNeurons;
   }
 }
 
@@ -162,14 +213,20 @@ void NeuralNet::updateLayer(size_t layerIdx, const Vector& delta, const Vector& 
 
 void NeuralNet::train(const TrainingData& data) {
   const std::vector<TrainingData::Sample>& samples = data.data();
-  const size_t epochs = 10;
+  const size_t epochs = 1; // TODO
   const double initialLearnRate = 1.0;
-  double learnRateDecay = 0.95;
+  const double learnRateDecay = 0.95;
+  const size_t samplesToProcess = std::min<size_t>(1000, samples.size()); // TODO
 
   for (size_t epoch = 0; epoch < epochs; ++epoch) {
+    std::cout << "Epoch " << epoch + 1 << "/" << epochs << std::endl; // TODO
+
     double learnRate = initialLearnRate;
 
-    for (const auto& sample : samples) {
+    for (size_t i = 0; i < samplesToProcess; ++i) {
+      std::cout << i << "/" << samplesToProcess << std::endl; // TODO
+
+      const auto& sample = samples[i];
       const Vector& x = sample.data;
       const Vector& y = data.classOutputVector(sample.label);
 
@@ -186,14 +243,14 @@ void NeuralNet::train(const TrainingData& data) {
 
       // Back-propagate errors
 
-      for (int i = m_layers.size() - 2; i >= 0; --i) {
-        const Layer& nextLayer = m_layers[i + 1];
-        Layer& thisLayer = m_layers[i];
+      for (int l = m_layers.size() - 2; l >= 0; --l) {
+        const Layer& nextLayer = m_layers[l + 1];
+        Layer& thisLayer = m_layers[l];
 
         delta = nextLayer.weights.transposeMultiply(delta)
                                  .hadamard(thisLayer.Z.transform(sigmoidPrime));
 
-        updateLayer(i, delta, x, learnRate);
+        updateLayer(l, delta, x, learnRate);
       }
 
       learnRate *= learnRateDecay;
@@ -211,13 +268,16 @@ NeuralNet::Results NeuralNet::test(const TrainingData& data) const {
 
     if (outputsMatch(actual, expected)) {
       ++results.good;
+      std::cout << "1" << std::flush;
     }
     else {
       ++results.bad;
+      std::cout << "0" << std::flush;
     }
 
     totalCost += quadradicCost(actual, expected);
   }
+  std::cout << std::endl;
 
   results.cost = totalCost / data.data().size();
 

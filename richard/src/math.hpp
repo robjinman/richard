@@ -29,6 +29,8 @@ class Vector {
     Vector operator*(double s) const;
     double sum() const;
     inline size_t size() const;
+    inline double* data();
+    inline const double* data() const;
     inline double& operator[](size_t i) const;
     Vector transform(const std::function<double(double)>& f) const;
 
@@ -41,6 +43,14 @@ class Vector {
 
 inline size_t Vector::size() const {
   return m_size;
+}
+
+inline double* Vector::data() {
+  return m_data.get();
+}
+
+inline const double* Vector::data() const {
+  return m_data.get();
 }
 
 inline double& Vector::operator[](size_t i) const {
@@ -67,12 +77,22 @@ class Matrix {
     void randomize(double maxMagnitude);
     inline size_t rows() const;
     inline size_t cols() const;
+    inline double* data();
+    inline const double* data() const;
 
   private:
     size_t m_cols;
     size_t m_rows;
     std::unique_ptr<double[]> m_data;
 };
+
+inline double* Matrix::data() {
+  return m_data.get();
+}
+
+inline const double* Matrix::data() const {
+  return m_data.get();
+}
 
 inline double Matrix::at(size_t col, size_t row) const {
   ASSERT(row < m_rows);
