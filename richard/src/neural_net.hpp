@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 #include "math.hpp"
 
 class TrainingData {
@@ -61,13 +62,15 @@ class NeuralNet {
     void setBiases(const std::vector<Vector>& B);
 
   private:
-    void feedForward(const Vector& x);
+    double feedForward(const Vector& x, const Vector& y, double dropoutRate);
     void updateLayer(size_t layerIdx, const Vector& delta, const Vector& x, double learnRate);
 
     struct Layer {
       Matrix weights;
       Vector biases;
       Vector Z;
+      Vector A;
+      std::set<size_t> dropSet;
 
       Layer(Layer&& mv);
       Layer(Matrix&& weights, Vector&& biases);

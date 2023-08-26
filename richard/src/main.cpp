@@ -69,9 +69,10 @@ TrainingData loadTrainingData(const std::string& filePath) {
     }
 
     //sample.normalize();
-    //sample = sample - 0.5;
     trainingData.addSample(label, sample);
   }
+
+  trainingData.normalize();
 
   return trainingData;
 }

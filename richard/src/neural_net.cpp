@@ -1,5 +1,5 @@
 #include <cmath>
-#include <iostream> // TODO
+#include <iostream>
 #include <fstream>
 #include <algorithm>
 #include "neural_net.hpp"
@@ -65,25 +65,58 @@ TrainingData::TrainingData(const std::vector<char>& labels)
   }
 }
 
+void TrainingData::normalize() {
+  ASSERT(!m_samples.empty());
+
+  Vector min(m_samples[0].data.size());
+  Vector max(m_samples[0].data.size());
+
+  min.fill(std::numeric_limits<double>::max());
+  max.fill(std::numeric_limits<double>::min());
+
+  for (auto& sample : m_samples) {
+    sample.data.normalize();
+
+    for (size_t i = 0; i < sample.data.size(); ++i) {
+      if (sample.data[i] < min[i]) {
+        min[i] = sample.data[i];
+      }
+      if (sample.data[i] > max[i]) {
+        max[i] = sample.data[i];
+      }
+    }
+  }
+
+  for (auto& sample : m_samples) {
+    for (size_t i = 0; i < sample.data.size(); ++i) {
+      sample.data[i] = (sample.data[i] - min[i]) / (max[i] - min[i]);
+    }
+  }
+}
+
 NeuralNet::Layer::Layer(Layer&& mv)
   : weights(std::move(mv.weights))
   , biases(std::move(mv.biases))
-  , Z(std::move(mv.Z)) {}
+  , Z(std::move(mv.Z))
+  , A(std::move(mv.A)) {}
 
 NeuralNet::Layer::Layer(Matrix&& weights, Vector&& biases)
   : weights(std::move(weights))
   , biases(std::move(biases))
-  , Z(1) {}
+  , Z(1)
+  , A(1) {}
 
 NeuralNet::Layer::Layer(const Layer& cpy)
   : weights(cpy.weights)
   , biases(cpy.biases)
-  , Z(cpy.Z) {}
+  , Z(cpy.Z)
+  , A(cpy.A) {}
 
 NeuralNet::Layer::Layer(const Matrix& weights, const Vector& biases)
   : weights(weights)
   , biases(biases)
-  , Z(1) {}
+  , Z(1)
+  , A(1) {}
 
 NeuralNet::NeuralNet(std::initializer_list<size_t> layers) {
   size_t prevLayerSize = 0;
@@ -176,32 +209,15 @@ void NeuralNet::setBiases(const std::vector<Vector>& B) {
   }
 }
 
-void NeuralNet::feedForward(const Vector& x) {
-  Vector A(1);
-
-  size_t i = 0;
-  for (Layer& layer : m_layers) {
-    layer.Z = layer.weights * (i == 0 ? x : A) + layer.biases;
-    A = layer.Z.transform(sigmoid);
-
-    ++i;
-  }
-}
-
 void NeuralNet::updateLayer(size_t layerIdx, const Vector& delta, const Vector& x,
   double learnRate) {
 
   Layer& layer = m_layers[layerIdx];
+  Vector prevLayerActivations = layerIdx == 0 ? x : m_layers[layerIdx - 1].A;
 
-  Vector prevLayerActivations = layerIdx == 0 ? x : m_layers[layerIdx - 1].Z.transform(sigmoid);
-
-  //std::cout << "weights size: " << layer.weights.rows() << ", " << layer.weights.cols() << "\n";
   for (size_t j = 0; j < layer.weights.rows(); j++) {
     for (size_t k = 0; k < layer.weights.cols(); k++) {
       double dw = prevLayerActivations[k] * delta[j] * learnRate;
-
-      //std::cout << "dw = " << dw << "\n";
-
       double w = layer.weights.at(k, j);
       layer.weights.set(k, j, w - dw);
     }
@@ -210,33 +226,61 @@ void NeuralNet::updateLayer(size_t layerIdx, const Vector& delta, const Vector& 
   layer.biases = layer.biases - delta * learnRate;
 }
 
+double NeuralNet::feedForward(const Vector& x, const Vector& y, double dropoutRate) {
+  auto shouldDrop = [dropoutRate]() {
+    return rand() / (RAND_MAX + 1.0) < dropoutRate;
+  };
+
+  const Vector* A = nullptr;
+  size_t i = 0;
+  for (Layer& layer : m_layers) {
+    layer.Z = layer.weights * (i == 0 ? x : *A) + layer.biases;
+    layer.A = layer.Z.transform(sigmoid);
+    A = &layer.A;
+
+    for (size_t a = 0; a < layer.A.size(); ++a) {
+      if (shouldDrop()) {
+        layer.A[a] = 0.0;
+      }
+    }
+
+    ++i;
+  }
+
+  return quadradicCost(*A, y);
+}
+
 void NeuralNet::train(const TrainingData& data) {
   const std::vector<TrainingData::Sample>& samples = data.data();
-  const size_t epochs = 100; // TODO
-  const double initialLearnRate = 0.5;
-  const double learnRateDecay = 1.0;
-  const size_t maxSamplesToProcess = 300;
-  const size_t samplesToProcess = std::min<size_t>(maxSamplesToProcess, samples.size()); // TODO
+  const size_t epochs = 75;
+  double learnRate = 1.5;
+  const double learnRateDecay = 0.75;
+  const size_t maxSamplesToProcess = 1000;
+  const size_t samplesToProcess = std::min<size_t>(maxSamplesToProcess, samples.size());
+  const double dropoutRate = 0.5;
+
+  std::cout << "Epochs: " << epochs << std::endl;
+  std::cout << "Initial learn rate: " << learnRate << std::endl;
+  std::cout << "Learn rate decay: " << learnRateDecay << std::endl;
+  std::cout << "Samples in batch: " << samplesToProcess << std::endl;
 
   for (size_t epoch = 0; epoch < epochs; ++epoch) {
-    std::cout << "Epoch " << epoch + 1 << "/" << epochs << std::endl; // TODO
+    std::cout << "Epoch " << epoch + 1 << "/" << epochs;
 
-    double learnRate = initialLearnRate;
+    double cost = 0.0;
+    learnRate *= learnRateDecay;
 
     for (size_t i = 0; i < samplesToProcess; ++i) {
-      //std::cout << i << "/" << samplesToProcess << std::endl; // TODO
-
       const auto& sample = samples[i];
       const Vector& x = sample.data;
       const Vector& y = data.classOutputVector(sample.label);
 
-      feedForward(x);
+      cost += feedForward(x, y, dropoutRate);
 
       Layer& outputLayer = m_layers.back();
       const Vector& Z = outputLayer.Z;
-      Vector A = Z.transform(sigmoid);
 
-      Vector deltaC = quadraticCostDerivatives(A, y);
+      Vector deltaC = quadraticCostDerivatives(outputLayer.A, y);
       Vector delta = Z.transform(sigmoidPrime).hadamard(deltaC);
 
       updateLayer(m_layers.size() - 1, delta, x, learnRate);
@@ -252,9 +296,10 @@ void NeuralNet::train(const TrainingData& data) {
 
         updateLayer(l, delta, x, learnRate);
       }
-
-      learnRate *= learnRateDecay;
     }
+
+    cost /= samplesToProcess;
+    std::cout << ", cost = " << cost << std::endl;
   }
 }
 
@@ -286,14 +331,10 @@ NeuralNet::Results NeuralNet::test(const TrainingData& data) const {
 
 Vector NeuralNet::evaluate(const Vector& x) const {
   Vector A(x);
-  //std::cout << "Input: " << A;
 
   for (const auto& layer : m_layers) {
     A = (layer.weights * A + layer.biases).transform(sigmoid);
-    //std::cout << A;
   }
-
-  //std::cout << "Output: " << A;
 
   return A;
 }
