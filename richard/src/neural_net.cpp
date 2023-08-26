@@ -54,9 +54,7 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 
 }
 
-TrainingData::TrainingData(const std::vector<char>& labels)
-  : m_labels(labels) {
-
+Dataset::Dataset(const std::vector<char>& labels) : m_labels(labels) {
   for (size_t i = 0; i < m_labels.size(); ++i) {
     Vector v(m_labels.size());
     v.zero();
@@ -65,18 +63,58 @@ TrainingData::TrainingData(const std::vector<char>& labels)
   }
 }
 
-void TrainingData::normalize() {
-  ASSERT(!m_samples.empty());
-
-  Vector min(m_samples[0].data.size());
-  Vector max(m_samples[0].data.size());
-
-  min.fill(std::numeric_limits<double>::max());
-  max.fill(std::numeric_limits<double>::min());
-
+void Dataset::normalize(const Vector& min, const Vector& max) {
   for (auto& sample : m_samples) {
-    sample.data.normalize();
+    for (size_t i = 0; i < sample.data.size(); ++i) {
+      sample.data[i] = (sample.data[i] - min[i]) / (max[i] - min[i]);
+    }
+  }
+}
 
+TrainingData::TrainingData(std::unique_ptr<Dataset> data)
+  : m_data(std::move(data))
+  , m_min(1)
+  , m_max(1) {}
+
+void TrainingData::normalize() {
+  ASSERT(!m_data->samples().empty());
+
+  auto& samples = m_data->samples();
+
+  m_min = Vector(samples[0].data.size());
+  m_max = Vector(samples[0].data.size());
+
+  m_min.fill(std::numeric_limits<double>::max());
+  m_max.fill(std::numeric_limits<double>::min());
+
+  for (auto& sample : samples) {
+    //sample.data.normalize();
+
+    for (size_t i = 0; i < sample.data.size(); ++i) {
+      if (sample.data[i] < m_min[i]) {
+        m_min[i] = sample.data[i];
+      }
+      if (sample.data[i] > m_max[i]) {
+        m_max[i] = sample.data[i];
+      }
+    }
+  }
+
+  m_data->normalize(m_min, m_max);
+}
+
+TestData::TestData(std::unique_ptr<Dataset> data)
+  : m_data(std::move(data)) {}
+
+void TestData::normalize(const Vector& trainingMin, const Vector& trainingMax) {
+  ASSERT(!m_data->samples().empty());
+
+  Vector min = trainingMin;
+  Vector max = trainingMax;
+
+  auto& samples = m_data->samples();
+
+  for (auto& sample : samples) {
     for (size_t i = 0; i < sample.data.size(); ++i) {
       if (sample.data[i] < min[i]) {
         min[i] = sample.data[i];
@@ -87,11 +125,7 @@ void TrainingData::normalize() {
     }
   }
 
-  for (auto& sample : m_samples) {
-    for (size_t i = 0; i < sample.data.size(); ++i) {
-      sample.data[i] = (sample.data[i] - min[i]) / (max[i] - min[i]);
-    }
-  }
+  m_data->normalize(min, max);
 }
 
 NeuralNet::Layer::Layer(Layer&& mv)
@@ -142,7 +176,7 @@ NeuralNet::NeuralNet(std::initializer_list<size_t> layers) {
   }
 }
 
-void NeuralNet::toFile(const std::string& filePath) const {
+void NeuralNet::toFile(const TrainingData& trainingData, const std::string& filePath) const {
   std::ofstream fout(filePath, std::ios::out | std::ios::binary);
 
   size_t numLayers = m_layers.size();
@@ -159,9 +193,23 @@ void NeuralNet::toFile(const std::string& filePath) const {
     fout.write(reinterpret_cast<const char*>(B.data()), B.size() * sizeof(double));
     fout.write(reinterpret_cast<const char*>(W.data()), W.rows() * W.cols() * sizeof(double));
   }
+
+  const Vector& min = trainingData.min();
+  const Vector& max = trainingData.max();
+
+  ASSERT(min.size() == m_numInputs);
+  ASSERT(max.size() == m_numInputs);
+
+  fout.write(reinterpret_cast<const char*>(min.data()), m_numInputs * sizeof(double));
+  fout.write(reinterpret_cast<const char*>(max.data()), m_numInputs * sizeof(double));
+
+  //std::cout << "min: " << min;
+  //std::cout << "max: " << max;
 }
 
-void NeuralNet::fromFile(const std::string& filePath) {
+void NeuralNet::fromFile(const std::string& filePath, Vector& trainingDataMin,
+  Vector& trainingDataMax) {
+  
   std::ifstream fin(filePath, std::ios::in | std::ios::binary);
 
   m_layers.clear();
@@ -187,6 +235,21 @@ void NeuralNet::fromFile(const std::string& filePath) {
 
     prevLayerSize = numNeurons;
   }
+
+  Vector min(m_numInputs);
+  Vector max(m_numInputs);
+  fin.read(reinterpret_cast<char*>(min.data()), m_numInputs * sizeof(double));
+  fin.read(reinterpret_cast<char*>(max.data()), m_numInputs * sizeof(double));
+
+  //std::cout << "min: " << min;
+  //std::cout << "max: " << max;
+
+  trainingDataMin = min;
+  trainingDataMax = max;
+}
+
+size_t NeuralNet::inputSize() const {
+  return m_numInputs;
 }
 
 void NeuralNet::setWeights(const std::vector<Matrix>& W) {
@@ -252,8 +315,9 @@ double NeuralNet::feedForward(const Vector& x, const Vector& y, double dropoutRa
   return quadradicCost(*A, y);
 }
 
-void NeuralNet::train(const TrainingData& data) {
-  const std::vector<TrainingData::Sample>& samples = data.data();
+void NeuralNet::train(const TrainingData& trainingData) {
+  const Dataset& data = trainingData.data();
+  const std::vector<Sample>& samples = data.samples();
   const size_t epochs = 50;
   double learnRate = 0.7;
   const double learnRateDecay = 1.0;
@@ -307,13 +371,22 @@ void NeuralNet::train(const TrainingData& data) {
   }
 }
 
-NeuralNet::Results NeuralNet::test(const TrainingData& data) const {
+NeuralNet::Results NeuralNet::test(const TestData& testData) const {
   Results results;
 
+  const Dataset& data = testData.data();
+  const auto& samples = data.samples();
+
   double totalCost = 0.0;
-  for (const auto& sample : data.data()) {
+  for (const auto& sample : samples) {
+    //std::cout << "Sample label: " << sample.label << "\n";
+    //std::cout << "Sample: " << sample.data;
+
     Vector actual = evaluate(sample.data);
     Vector expected = data.classOutputVector(sample.label);
+
+    //std::cout << "Actual: " << actual;
+    //std::cout << "Expected: " << expected;
 
     if (outputsMatch(actual, expected)) {
       ++results.good;
@@ -328,7 +401,7 @@ NeuralNet::Results NeuralNet::test(const TrainingData& data) const {
   }
   std::cout << std::endl;
 
-  results.cost = totalCost / data.data().size();
+  results.cost = totalCost / data.samples().size();
 
   return results;
 }

@@ -29,7 +29,7 @@ const std::string DESCRIPTION = "Richard is gaining power";
 // a,44.0,52.1
 // c,11.9,92.4
 // ...
-TrainingData loadTrainingData(const std::string& filePath) {
+std::unique_ptr<Dataset> loadData(const std::string& filePath, size_t inputSize) {
   std::ifstream fin(filePath);
 
   std::string line;
@@ -44,17 +44,12 @@ TrainingData loadTrainingData(const std::string& filePath) {
     classLabels.push_back(token[0]);
   }
 
-  TrainingData trainingData(classLabels);
-
-  std::streampos dataStart = fin.tellg();
-  std::getline(fin, line);
-  size_t dimensions = std::count(line.begin(), line.end(), ',');
-  fin.seekg(dataStart);
+  auto data = std::make_unique<Dataset>(classLabels);
 
   while (std::getline(fin, line)) {
     std::stringstream ss{line};
     char label = '0';
-    Vector sample(dimensions);
+    Vector sample(inputSize);
 
     for (size_t i = 0; ss.good(); ++i) {
       std::string token;
@@ -69,27 +64,10 @@ TrainingData loadTrainingData(const std::string& filePath) {
     }
 
     //sample.normalize();
-    trainingData.addSample(label, sample);
+    data->addSample(label, sample);
   }
 
-  trainingData.normalize();
-
-  return trainingData;
-}
-
-void trainNetwork(NeuralNet& net, const std::string& trainingDataFile) {
-  TrainingData trainingData = loadTrainingData(trainingDataFile);
-  net.train(trainingData);
-}
-
-void testNetwork(const NeuralNet& net, const std::string& testDataFile) {
-  TrainingData testData = loadTrainingData(testDataFile);
-  NeuralNet::Results results = net.test(testData);
-
-  std::cout << "Correct classifications: "
-    << results.good << "/" << results.good + results.bad << std::endl;
-
-  std::cout << "Average cost: " << results.cost << std::endl;
+  return data;
 }
 
 }
@@ -121,15 +99,29 @@ int main(int argc, char** argv) {
 
     if (vm["train"].as<bool>()) {
       std::cout << "Training neural net" << std::endl;
-      trainNetwork(net, trainingDataFile);
 
-      net.toFile(networkWeightsFile);
+      TrainingData trainingData(loadData(trainingDataFile, net.inputSize()));
+      trainingData.normalize();
+
+      net.train(trainingData);
+
+      net.toFile(trainingData, networkWeightsFile);
     }
     else {
-      net.fromFile(networkWeightsFile);
+      Vector trainingDataMin(1);
+      Vector trainingDataMax(1);
+      net.fromFile(networkWeightsFile, trainingDataMin, trainingDataMax);
 
       std::cout << "Evaluating neural net" << std::endl;
-      testNetwork(net, testDataFile);
+
+      TestData testData(loadData(testDataFile, net.inputSize()));
+      testData.normalize(trainingDataMin, trainingDataMax);
+      NeuralNet::Results results = net.test(testData);
+
+      std::cout << "Correct classifications: "
+        << results.good << "/" << results.good + results.bad << std::endl;
+
+      std::cout << "Average cost: " << results.cost << std::endl;
     }
 
     const auto t2 = high_resolution_clock::now();
