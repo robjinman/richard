@@ -1,6 +1,5 @@
 #include <cstring>
 #include <random>
-#include <iostream> // TODO
 #include "math.hpp"
 #include "util.hpp"
 
@@ -30,10 +29,6 @@ Vector::Vector(const Vector& cpy)
   , m_data(new double[cpy.m_size]) {
 
   memcpy(m_data.get(), cpy.m_data.get(), m_size * sizeof(double));
-  /*
-  for (size_t i = 0; i < m_size; ++i) {
-    m_data[i] = cpy.m_data[i];
-  }*/
 }
 
 Vector& Vector::operator=(const Vector& rhs) {
@@ -41,11 +36,7 @@ Vector& Vector::operator=(const Vector& rhs) {
   m_data.reset(new double[m_size]);
 
   memcpy(m_data.get(), rhs.m_data.get(), m_size * sizeof(double));
-  /*
-  for (size_t i = 0; i < m_size; ++i) {
-    m_data[i] = rhs.m_data[i];
-  }
-*/
+
   return *this;
 }
 
@@ -263,16 +254,6 @@ Vector Matrix::transposeMultiply(const Vector& rhs) const {
 void Matrix::zero() {
   memset(m_data.get(), 0, m_rows * m_cols * sizeof(double));
 }
-/*
-void Matrix::zeroCol(size_t c) {
-  for (size_t r = 0; r < m_rows; ++r) {
-    set(c, r, 0);
-  }
-}
-
-void Matrix::zeroRow(size_t r) {
-  memset(m_data.get() + r * m_cols * sizeof(double), 0, m_cols * sizeof(double));
-}*/
 
 void Matrix::randomize(double maxMagnitude) {
   std::default_random_engine gen;

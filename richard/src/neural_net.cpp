@@ -257,7 +257,7 @@ void NeuralNet::train(const TrainingData& data) {
   const size_t epochs = 50;
   double learnRate = 0.7;
   const double learnRateDecay = 1.0;
-  const size_t maxSamplesToProcess = 5000;
+  const size_t maxSamplesToProcess = 10000;
   const size_t samplesToProcess = std::min<size_t>(maxSamplesToProcess, samples.size());
   const double dropoutRate = 0.5;
 
@@ -271,7 +271,6 @@ void NeuralNet::train(const TrainingData& data) {
     std::cout << "Epoch " << epoch + 1 << "/" << epochs;
 
     double cost = 0.0;
-    learnRate *= learnRateDecay;
 
     for (size_t i = 0; i < samplesToProcess; ++i) {
       const auto& sample = samples[i];
@@ -300,6 +299,8 @@ void NeuralNet::train(const TrainingData& data) {
         updateLayer(l, delta, x, learnRate);
       }
     }
+
+    learnRate *= learnRateDecay;
 
     cost = cost / samplesToProcess;
     std::cout << ", cost = " << cost << std::endl;

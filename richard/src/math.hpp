@@ -75,8 +75,6 @@ class Matrix {
     inline double at(size_t col, size_t row) const;
     inline void set(size_t col, size_t row, double x);
     void zero();
-    //void zeroCol(size_t c);
-    //void zeroRow(size_t r);
     void randomize(double maxMagnitude);
     inline size_t rows() const;
     inline size_t cols() const;
