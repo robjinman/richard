@@ -238,9 +238,11 @@ double NeuralNet::feedForward(const Vector& x, const Vector& y, double dropoutRa
     layer.A = layer.Z.transform(sigmoid);
     A = &layer.A;
 
-    for (size_t a = 0; a < layer.A.size(); ++a) {
-      if (shouldDrop()) {
-        layer.A[a] = 0.0;
+    if (i + 1 != m_layers.size()) {
+      for (size_t a = 0; a < layer.A.size(); ++a) {
+        if (shouldDrop()) {
+          layer.A[a] = 0.0;
+        }
       }
     }
 
@@ -252,10 +254,10 @@ double NeuralNet::feedForward(const Vector& x, const Vector& y, double dropoutRa
 
 void NeuralNet::train(const TrainingData& data) {
   const std::vector<TrainingData::Sample>& samples = data.data();
-  const size_t epochs = 75;
-  double learnRate = 1.5;
-  const double learnRateDecay = 0.75;
-  const size_t maxSamplesToProcess = 1000;
+  const size_t epochs = 50;
+  double learnRate = 0.7;
+  const double learnRateDecay = 1.0;
+  const size_t maxSamplesToProcess = 5000;
   const size_t samplesToProcess = std::min<size_t>(maxSamplesToProcess, samples.size());
   const double dropoutRate = 0.5;
 
@@ -263,6 +265,7 @@ void NeuralNet::train(const TrainingData& data) {
   std::cout << "Initial learn rate: " << learnRate << std::endl;
   std::cout << "Learn rate decay: " << learnRateDecay << std::endl;
   std::cout << "Samples in batch: " << samplesToProcess << std::endl;
+  std::cout << "dropout rate: " << dropoutRate << std::endl;
 
   for (size_t epoch = 0; epoch < epochs; ++epoch) {
     std::cout << "Epoch " << epoch + 1 << "/" << epochs;
@@ -298,7 +301,7 @@ void NeuralNet::train(const TrainingData& data) {
       }
     }
 
-    cost /= samplesToProcess;
+    cost = cost / samplesToProcess;
     std::cout << ", cost = " << cost << std::endl;
   }
 }
