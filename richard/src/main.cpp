@@ -63,7 +63,6 @@ std::unique_ptr<Dataset> loadData(const std::string& filePath, size_t inputSize)
       }
     }
 
-    //sample.normalize();
     data->addSample(label, sample);
   }
 

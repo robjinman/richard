@@ -32,8 +32,7 @@ const CostDerivativesFn quadraticCostDerivatives = [](const Vector& actual,
                                                       const Vector& expected) -> Vector {
   ASSERT(actual.size() == expected.size());
 
-  Vector tmp = actual - expected;
-  return tmp;
+  return actual - expected;
 };
 
 bool outputsMatch(const Vector& x, const Vector& y) {
@@ -202,9 +201,6 @@ void NeuralNet::toFile(const TrainingData& trainingData, const std::string& file
 
   fout.write(reinterpret_cast<const char*>(min.data()), m_numInputs * sizeof(double));
   fout.write(reinterpret_cast<const char*>(max.data()), m_numInputs * sizeof(double));
-
-  //std::cout << "min: " << min;
-  //std::cout << "max: " << max;
 }
 
 void NeuralNet::fromFile(const std::string& filePath, Vector& trainingDataMin,
@@ -240,9 +236,6 @@ void NeuralNet::fromFile(const std::string& filePath, Vector& trainingDataMin,
   Vector max(m_numInputs);
   fin.read(reinterpret_cast<char*>(min.data()), m_numInputs * sizeof(double));
   fin.read(reinterpret_cast<char*>(max.data()), m_numInputs * sizeof(double));
-
-  //std::cout << "min: " << min;
-  //std::cout << "max: " << max;
 
   trainingDataMin = min;
   trainingDataMax = max;
@@ -329,7 +322,7 @@ void NeuralNet::train(const TrainingData& trainingData) {
   std::cout << "Initial learn rate: " << learnRate << std::endl;
   std::cout << "Learn rate decay: " << learnRateDecay << std::endl;
   std::cout << "Samples in batch: " << samplesToProcess << std::endl;
-  std::cout << "dropout rate: " << dropoutRate << std::endl;
+  std::cout << "Dropout rate: " << dropoutRate << std::endl;
 
   for (size_t epoch = 0; epoch < epochs; ++epoch) {
     std::cout << "Epoch " << epoch + 1 << "/" << epochs;
@@ -379,14 +372,8 @@ NeuralNet::Results NeuralNet::test(const TestData& testData) const {
 
   double totalCost = 0.0;
   for (const auto& sample : samples) {
-    //std::cout << "Sample label: " << sample.label << "\n";
-    //std::cout << "Sample: " << sample.data;
-
     Vector actual = evaluate(sample.data);
     Vector expected = data.classOutputVector(sample.label);
-
-    //std::cout << "Actual: " << actual;
-    //std::cout << "Expected: " << expected;
 
     if (outputsMatch(actual, expected)) {
       ++results.good;
