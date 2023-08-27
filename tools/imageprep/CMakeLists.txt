@@ -13,6 +13,8 @@ message("Building ${CMAKE_BUILD_TYPE} configuration...")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(JPEG REQUIRED)
+
 file(GLOB
   CPP_SOURCES
   "${PROJECT_SOURCE_DIR}/src/*.cpp"
@@ -32,3 +34,4 @@ set(DEBUG_FLAGS ${COMPILER_FLAGS} -g)
 set(RELEASE_FLAGS ${COMPILER_FLAGS} -O3)
 
 target_compile_options(imageprep PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
+target_link_libraries(imageprep PUBLIC JPEG::JPEG)
