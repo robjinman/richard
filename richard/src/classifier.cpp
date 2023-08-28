@@ -54,8 +54,8 @@ Classifier::Classifier(const std::string& filePath)
   m_trainingSetMax = max;
 }
 
-Classifier::Classifier(const std::vector<size_t>& layers, const std::vector<std::string>& classes)
-  : m_neuralNet(std::make_unique<NeuralNet>(layers))
+Classifier::Classifier(const NetworkConfig& config, const std::vector<std::string>& classes)
+  : m_neuralNet(std::make_unique<NeuralNet>(config))
   , m_classes(classes)
   , m_isTrained(false)
   , m_trainingSetMin(1)
@@ -74,7 +74,7 @@ void Classifier::toFile(const std::string& filePath) const {
 
   std::ofstream fout(filePath, std::ios::binary);
 
-  m_neuralNet->toFile(fout);
+  m_neuralNet->writeToStream(fout);
 
   std::stringstream ss;
   for (size_t i = 0; i < m_classes.size(); ++i) {

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <sstream>
 #include "neural_net.hpp"
 #include "util.hpp"
 
@@ -36,6 +37,61 @@ const CostDerivativesFn quadraticCostDerivatives = [](const Vector& actual,
 
 }
 
+NetworkConfig::NetworkConfig(std::istream& s) {
+  std::map<std::string, std::string> keyVals = readKeyValuePairs(s);
+
+  std::stringstream ss(keyVals.at("layers"));
+  std::string strLayer;
+  while (std::getline(ss, strLayer, ',')) {
+    layers.push_back(std::stoul(strLayer));
+  }
+
+  if (keyVals.count("epochs")) {
+    params.epochs = std::stoul(keyVals.at("epochs"));
+  }
+  if (keyVals.count("learnRate")) {
+    params.learnRate = std::stod(keyVals.at("learnRate"));
+  }
+  if (keyVals.count("learnRateDecay")) {
+    params.learnRateDecay = std::stod(keyVals.at("learnRateDecay"));
+  }
+  if (keyVals.count("maxBatchSize")) {
+    params.maxBatchSize = std::stoul(keyVals.at("maxBatchSize"));
+  }
+  if (keyVals.count("dropoutRate")) {
+    params.dropoutRate = std::stod(keyVals.at("dropoutRate"));
+  }
+}
+
+void NetworkConfig::writeToStream(std::ostream& s) const {
+  s << "layers=";
+  for (size_t i = 0; i < layers.size(); ++i) {
+    s << layers[i];
+    if (i + 1 < layers.size()) {
+      s << ",";
+    }
+  }
+  s << std::endl;
+  s << "epochs=" << params.epochs << std::endl;
+  s << "learnRate=" << params.learnRate << std::endl;
+  s << "learnRateDecay=" << params.learnRateDecay << std::endl;
+  s << "maxBatchSize=" << params.maxBatchSize << std::endl;
+  s << "dropoutRate=" << params.dropoutRate << std::endl;
+}
+
+void NetworkConfig::printExample(std::ostream& s) {
+  NetworkConfig config(std::vector<size_t>({784, 300, 80, 10}));
+  config.writeToStream(s);
+}
+
+NetworkConfig::NetworkConfig(const std::vector<size_t>& layers)
+  : layers(layers) {}
+
+NetworkConfig NetworkConfig::fromFile(const std::string& filePath) {
+  std::ifstream fin(filePath);
+  return NetworkConfig(fin);
+}
+
 NeuralNet::Layer::Layer(Layer&& mv)
   : weights(std::move(mv.weights))
   , biases(std::move(mv.biases))
@@ -60,12 +116,13 @@ NeuralNet::Layer::Layer(const Matrix& weights, const Vector& biases)
   , Z(1)
   , A(1) {}
 
-NeuralNet::NeuralNet(const std::vector<size_t>& layers)
-  : m_isTrained(false) {
+NeuralNet::NeuralNet(const NetworkConfig& config)
+  : m_config(config)
+  , m_isTrained(false) {
 
   size_t prevLayerSize = 0;
   size_t i = 0;
-  for (size_t layerSize : layers) {
+  for (size_t layerSize : config.layers) {
     if (i == 0) {
       m_numInputs = layerSize;
       prevLayerSize = layerSize;
@@ -87,20 +144,24 @@ NeuralNet::NeuralNet(const std::vector<size_t>& layers)
 }
 
 NeuralNet::NeuralNet(std::istream& fin)
-  : m_isTrained(false) {
+  : m_config(std::vector<size_t>())
+  , m_isTrained(false) {
 
-  m_layers.clear();
-  m_numInputs = 0;
+  size_t configSize = 0;
+  fin.read(reinterpret_cast<char*>(&configSize), sizeof(size_t));
 
-  size_t numLayers = 0;
-  fin.read(reinterpret_cast<char*>(&numLayers), sizeof(size_t));
+  std::string configString(configSize, '_');
+  fin.read(reinterpret_cast<char*>(configString.data()), configSize);
 
-  fin.read(reinterpret_cast<char*>(&m_numInputs), sizeof(size_t));
+  std::stringstream ss(configString);
+  m_config = NetworkConfig(ss);
+
+  m_numInputs = m_config.layers[0];
+  size_t numLayers = m_config.layers.size() - 1;
 
   size_t prevLayerSize = m_numInputs;
   for (size_t i = 0; i < numLayers; ++i) {
-    size_t numNeurons = 0;
-    fin.read(reinterpret_cast<char*>(&numNeurons), sizeof(size_t));
+    size_t numNeurons = m_config.layers[i + 1];
 
     Vector B(numNeurons);
     fin.read(reinterpret_cast<char*>(B.data()), numNeurons * sizeof(double));
@@ -120,20 +181,21 @@ NeuralNet::CostFn NeuralNet::costFn() const {
   return quadradicCost;
 }
 
-void NeuralNet::toFile(std::ostream& fout) const {
+void NeuralNet::writeToStream(std::ostream& fout) const {
   ASSERT(m_isTrained);
 
-  size_t numLayers = m_layers.size();
-  fout.write(reinterpret_cast<char*>(&numLayers), sizeof(size_t));
+  std::stringstream ss;
+  m_config.writeToStream(ss);
 
-  fout.write(reinterpret_cast<const char*>(&m_numInputs), sizeof(size_t));
+  size_t configSize = ss.str().size();
+  fout.write(reinterpret_cast<char*>(&configSize), sizeof(size_t));
+
+  fout.write(ss.str().c_str(), configSize);
 
   for (const auto& layer : m_layers) {
-    size_t numNeurons = layer.biases.size();
     const auto& B = layer.biases;
     const auto& W = layer.weights;
 
-    fout.write(reinterpret_cast<char*>(&numNeurons), sizeof(size_t));
     fout.write(reinterpret_cast<const char*>(B.data()), B.size() * sizeof(double));
     fout.write(reinterpret_cast<const char*>(W.data()), W.rows() * W.cols() * sizeof(double));
   }
@@ -207,19 +269,20 @@ double NeuralNet::feedForward(const Vector& x, const Vector& y, double dropoutRa
 }
 
 void NeuralNet::train(const TrainingData& trainingData) {
+  const HyperParams& params = m_config.params;
   const Dataset& data = trainingData.data();
   const std::vector<Sample>& samples = data.samples();
-  double learnRate = m_params.learnRate;
-  const size_t samplesToProcess = std::min<size_t>(m_params.maxBatchSize, samples.size());
+  double learnRate = params.learnRate;
+  const size_t samplesToProcess = std::min<size_t>(params.maxBatchSize, samples.size());
 
-  std::cout << "Epochs: " << m_params.epochs << std::endl;
-  std::cout << "Initial learn rate: " << m_params.learnRate << std::endl;
-  std::cout << "Learn rate decay: " << m_params.learnRateDecay << std::endl;
+  std::cout << "Epochs: " << params.epochs << std::endl;
+  std::cout << "Initial learn rate: " << params.learnRate << std::endl;
+  std::cout << "Learn rate decay: " << params.learnRateDecay << std::endl;
   std::cout << "Samples in batch: " << samplesToProcess << std::endl;
-  std::cout << "Dropout rate: " << m_params.dropoutRate << std::endl;
+  std::cout << "Dropout rate: " << params.dropoutRate << std::endl;
 
-  for (size_t epoch = 0; epoch < m_params.epochs; ++epoch) {
-    std::cout << "Epoch " << epoch + 1 << "/" << m_params.epochs;
+  for (size_t epoch = 0; epoch < params.epochs; ++epoch) {
+    std::cout << "Epoch " << epoch + 1 << "/" << params.epochs;
 
     double cost = 0.0;
 
@@ -228,7 +291,7 @@ void NeuralNet::train(const TrainingData& trainingData) {
       const Vector& x = sample.data;
       const Vector& y = data.classOutputVector(sample.label);
 
-      cost += feedForward(x, y, m_params.dropoutRate);
+      cost += feedForward(x, y, params.dropoutRate);
 
       Layer& outputLayer = m_layers.back();
       const Vector& Z = outputLayer.Z;
@@ -251,7 +314,7 @@ void NeuralNet::train(const TrainingData& trainingData) {
       }
     }
 
-    learnRate *= m_params.learnRateDecay;
+    learnRate *= params.learnRateDecay;
 
     cost = cost / samplesToProcess;
     std::cout << ", cost = " << cost << std::endl;

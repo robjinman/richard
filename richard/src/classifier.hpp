@@ -10,7 +10,7 @@ class Classifier {
       double cost = 0.0;
     };
 
-    explicit Classifier(const std::vector<size_t>& layers, const std::vector<std::string>& classes);
+    explicit Classifier(const NetworkConfig& config, const std::vector<std::string>& classes);
     explicit Classifier(const std::string& filePath);
 
     void toFile(const std::string& filePath) const;

@@ -36,7 +36,7 @@ void optionDependency(const po::variables_map& vm, const std::string& forWhat,
 void optionChoice(const po::variables_map& vm, const std::vector<std::string>& choices) {
   size_t n = 0;
   for (const auto& choice : choices) {
-    n += vm[choice].as<bool>() ? 1 : 0;
+    n += vm.count(choice);
   }
   if (n != 1) {
     std::stringstream ss;
@@ -50,7 +50,7 @@ void optionChoice(const po::variables_map& vm, const std::vector<std::string>& c
 
 }
 
-// richard --train --samples ../data/ocr/train.csv --layers 784 300 80 10 --classes 0 1 2 3 4 5 6 7 8 9 --network ../data/ocr/network
+// richard --train --samples ../data/ocr/train.csv --config ../data/ocr/netconfig.txt --labels 0 1 2 3 4 5 6 7 8 9 --network ../data/ocr/network
 // richard --eval --samples ../data/ocr/test.csv --network ../data/ocr/network
 
 int main(int argc, char** argv) {
@@ -58,12 +58,12 @@ int main(int argc, char** argv) {
     po::options_description desc{DESCRIPTION};
     desc.add_options()
       ("help,h", "Show help")
-      ("train,t", po::bool_switch())
-      ("eval,e", po::bool_switch())
+      ("train,t", "Train a classifier")
+      ("eval,e", "Evaluate a classifier with test data")
+      ("gen,g", "Generate example neural net config file")
       ("samples,s", po::value<std::string>())
-      ("layers,l", po::value<std::vector<size_t>>()->multitoken(),
-        "Number of neurons in each layer, from input layer to output layer, e.g. 784 300 30 10")
-      ("classes,c", po::value<std::vector<std::string>>()->multitoken(),
+      ("config,c", po::value<std::string>(), "Network configuration file of key=value pairs")
+      ("labels,l", po::value<std::vector<std::string>>()->multitoken(),
         "List of class labels, e.g. cat dog")
       ("network,n", po::value<std::string>()->required(), "File to save/load neural network state");
 
@@ -75,15 +75,24 @@ int main(int argc, char** argv) {
       return 0;
     }
 
-    optionChoice(vm, { "train", "eval" });
+    optionChoice(vm, { "train", "eval", "gen" });
     optionDependency(vm, "train", "samples");
-    optionDependency(vm, "train", "layers");
-    optionDependency(vm, "train", "classes");
+    optionDependency(vm, "train", "labels");
+    optionDependency(vm, "train", "config");
     optionDependency(vm, "eval", "samples");
-    conflictingOptions(vm, "eval", "layers");
-    conflictingOptions(vm, "eval", "classes");
+    conflictingOptions(vm, "eval", "labels");
+    conflictingOptions(vm, "eval", "config");
+    conflictingOptions(vm, "gen", "samples");
+    conflictingOptions(vm, "gen", "config");
+    conflictingOptions(vm, "gen", "labels");
+    conflictingOptions(vm, "gen", "network");
 
-    const bool trainingMode = vm["train"].as<bool>();
+    if (vm.count("gen")) {
+      NetworkConfig::printExample(std::cout);
+      return 0;
+    }
+
+    const bool trainingMode = vm.count("train");
     const std::string networkFile = vm["network"].as<std::string>();
     const std::string samplesFile = vm["samples"].as<std::string>();
 
@@ -94,10 +103,12 @@ int main(int argc, char** argv) {
     if (trainingMode) {
       std::cout << "Training classifier" << std::endl;
 
-      const std::vector<size_t> layers = vm["layers"].as<std::vector<size_t>>();
-      const std::vector<std::string> classes = vm["classes"].as<std::vector<std::string>>();
+      std::vector<std::string> classes = vm["labels"].as<std::vector<std::string>>();
+      std::string configFile = vm["config"].as<std::string>();
 
-      Classifier classifier(layers, classes);
+      NetworkConfig config = NetworkConfig::fromFile(configFile);
+
+      Classifier classifier(config, classes);
 
       TrainingData trainingData(loadCsvData(samplesFile, classifier.inputSize(), classes));
       trainingData.normalize();
