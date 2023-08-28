@@ -8,7 +8,7 @@ class NeuralNetTest : public testing::Test {
 };
 
 TEST_F(NeuralNetTest, evaluate) {
-  NeuralNet net({1, 1});
+  NeuralNet net(std::vector<size_t>{1, 1});
 
   Matrix W(1, 1);
   W.set(0, 0, 12.3);

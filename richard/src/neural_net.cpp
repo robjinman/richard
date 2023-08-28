@@ -60,7 +60,9 @@ NeuralNet::Layer::Layer(const Matrix& weights, const Vector& biases)
   , Z(1)
   , A(1) {}
 
-NeuralNet::NeuralNet(std::vector<size_t> layers) : m_isTrained(false) {
+NeuralNet::NeuralNet(const std::vector<size_t>& layers)
+  : m_isTrained(false) {
+
   size_t prevLayerSize = 0;
   size_t i = 0;
   for (size_t layerSize : layers) {
@@ -84,7 +86,9 @@ NeuralNet::NeuralNet(std::vector<size_t> layers) : m_isTrained(false) {
   }
 }
 
-NeuralNet::NeuralNet(std::istream& fin) {
+NeuralNet::NeuralNet(std::istream& fin)
+  : m_isTrained(false) {
+
   m_layers.clear();
   m_numInputs = 0;
 
@@ -205,21 +209,17 @@ double NeuralNet::feedForward(const Vector& x, const Vector& y, double dropoutRa
 void NeuralNet::train(const TrainingData& trainingData) {
   const Dataset& data = trainingData.data();
   const std::vector<Sample>& samples = data.samples();
-  const size_t epochs = 50;
-  double learnRate = 0.7;
-  const double learnRateDecay = 1.0;
-  const size_t maxSamplesToProcess = 1000;
-  const size_t samplesToProcess = std::min<size_t>(maxSamplesToProcess, samples.size());
-  const double dropoutRate = 0.5;
+  double learnRate = m_params.learnRate;
+  const size_t samplesToProcess = std::min<size_t>(m_params.maxBatchSize, samples.size());
 
-  std::cout << "Epochs: " << epochs << std::endl;
-  std::cout << "Initial learn rate: " << learnRate << std::endl;
-  std::cout << "Learn rate decay: " << learnRateDecay << std::endl;
+  std::cout << "Epochs: " << m_params.epochs << std::endl;
+  std::cout << "Initial learn rate: " << m_params.learnRate << std::endl;
+  std::cout << "Learn rate decay: " << m_params.learnRateDecay << std::endl;
   std::cout << "Samples in batch: " << samplesToProcess << std::endl;
-  std::cout << "Dropout rate: " << dropoutRate << std::endl;
+  std::cout << "Dropout rate: " << m_params.dropoutRate << std::endl;
 
-  for (size_t epoch = 0; epoch < epochs; ++epoch) {
-    std::cout << "Epoch " << epoch + 1 << "/" << epochs;
+  for (size_t epoch = 0; epoch < m_params.epochs; ++epoch) {
+    std::cout << "Epoch " << epoch + 1 << "/" << m_params.epochs;
 
     double cost = 0.0;
 
@@ -228,7 +228,7 @@ void NeuralNet::train(const TrainingData& trainingData) {
       const Vector& x = sample.data;
       const Vector& y = data.classOutputVector(sample.label);
 
-      cost += feedForward(x, y, dropoutRate);
+      cost += feedForward(x, y, m_params.dropoutRate);
 
       Layer& outputLayer = m_layers.back();
       const Vector& Z = outputLayer.Z;
@@ -251,7 +251,7 @@ void NeuralNet::train(const TrainingData& trainingData) {
       }
     }
 
-    learnRate *= learnRateDecay;
+    learnRate *= m_params.learnRateDecay;
 
     cost = cost / samplesToProcess;
     std::cout << ", cost = " << cost << std::endl;
