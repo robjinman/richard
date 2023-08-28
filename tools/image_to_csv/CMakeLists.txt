@@ -24,7 +24,7 @@ target_include_directories(
   imagetocsv
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src"
-    "${PROJECT_SOURCE_DIR}/../common"
+    "${PROJECT_SOURCE_DIR}/../../common"
 )
 
 set(COMPILER_FLAGS -Wextra -Wall)

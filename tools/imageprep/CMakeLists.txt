@@ -26,7 +26,7 @@ target_include_directories(
   imageprep
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src"
-    "${PROJECT_SOURCE_DIR}/../common"
+    "${PROJECT_SOURCE_DIR}/../../common"
 )
 
 set(COMPILER_FLAGS -Wextra -Wall)

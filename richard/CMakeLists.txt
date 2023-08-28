@@ -18,7 +18,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost 1.56 REQUIRED COMPONENTS program_options)
 
-file(GLOB CPP_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
+file(GLOB
+  CPP_SOURCES
+  "${PROJECT_SOURCE_DIR}/src/*.cpp"
+  "${PROJECT_SOURCE_DIR}/../common/*.cpp")
 list(REMOVE_ITEM CPP_SOURCES "${PROJECT_SOURCE_DIR}/src/main.cpp")
 
 add_library(${RICHARD_LIB_NAME} ${CPP_SOURCES})
@@ -27,6 +30,7 @@ target_include_directories(
   ${RICHARD_LIB_NAME}
   PUBLIC
     "${PROJECT_SOURCE_DIR}/src"
+    "${PROJECT_SOURCE_DIR}/../common"
 )
 
 set(COMPILER_FLAGS -Wextra -Wall)

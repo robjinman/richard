@@ -1,7 +1,10 @@
 #include <iostream>
 #include <chrono>
+#include <filesystem>
+#include <algorithm>
 #include <boost/program_options.hpp>
-#include "csv.hpp"
+#include "csv_data.hpp"
+#include "image_data.hpp"
 #include "classifier.hpp"
 
 using std::chrono::high_resolution_clock;
@@ -48,10 +51,64 @@ void optionChoice(const po::variables_map& vm, const std::vector<std::string>& c
   }
 }
 
+void trainClassifier(const po::variables_map& vm, const std::string& networkFile,
+  const std::string& samplesPath) {
+  
+  std::cout << "Training classifier" << std::endl;
+
+  std::vector<std::string> classes = vm["labels"].as<std::vector<std::string>>();
+  std::string configFile = vm["config"].as<std::string>();
+
+  NetworkConfig config = NetworkConfig::fromFile(configFile);
+
+  Classifier classifier(config, classes);
+
+  std::unique_ptr<Dataset> dataset;
+  if (std::filesystem::is_directory(samplesPath)) {
+    dataset = std::make_unique<Dataset>(classes);
+    for (const auto& dirEntry : std::filesystem::directory_iterator{samplesPath}) {
+      if (std::filesystem::is_directory(dirEntry)) {
+        std::string dirName = dirEntry.path().stem();
+        loadImageData(*dataset, dirEntry.path().string(), dirName);
+      }
+    }
+    std::random_shuffle(dataset->samples().begin(), dataset->samples().end()); // TODO: Extremely inefficient
+  }
+  else {
+    dataset = loadCsvData(samplesPath, classifier.inputSize(), classes);
+  }
+
+  TrainingData trainingData(std::move(dataset));
+  trainingData.normalize();
+
+  classifier.train(trainingData);
+
+  classifier.toFile(networkFile);
+}
+
+void testClassifier(const po::variables_map& vm, const std::string& networkFile,
+  const std::string& samplesPath) {
+
+  Classifier classifier(networkFile);
+
+  std::cout << "Testing classifier" << std::endl;
+
+  TestData testData(loadCsvData(samplesPath, classifier.inputSize(), classifier.classLabels()));
+  testData.normalize(classifier.trainingSetMin(), classifier.trainingSetMax());
+  Classifier::Results results = classifier.test(testData);
+
+  std::cout << "Correct classifications: "
+    << results.good << "/" << results.good + results.bad << std::endl;
+
+  std::cout << "Average cost: " << results.cost << std::endl;
+}
+
 }
 
 // richard --train --samples ../data/ocr/train.csv --config ../data/ocr/netconfig.txt --labels 0 1 2 3 4 5 6 7 8 9 --network ../data/ocr/network
 // richard --eval --samples ../data/ocr/test.csv --network ../data/ocr/network
+
+// richard --train --samples ../data/catdog/train --config ../data/catdog/netconfig.txt --labels cat dog --network ../data/catdog/network
 
 int main(int argc, char** argv) {
   try {
@@ -94,42 +151,17 @@ int main(int argc, char** argv) {
 
     const bool trainingMode = vm.count("train");
     const std::string networkFile = vm["network"].as<std::string>();
-    const std::string samplesFile = vm["samples"].as<std::string>();
+    const std::string samplesPath = vm["samples"].as<std::string>();
 
     po::notify(vm);
 
     const auto t1 = high_resolution_clock::now();
 
     if (trainingMode) {
-      std::cout << "Training classifier" << std::endl;
-
-      std::vector<std::string> classes = vm["labels"].as<std::vector<std::string>>();
-      std::string configFile = vm["config"].as<std::string>();
-
-      NetworkConfig config = NetworkConfig::fromFile(configFile);
-
-      Classifier classifier(config, classes);
-
-      TrainingData trainingData(loadCsvData(samplesFile, classifier.inputSize(), classes));
-      trainingData.normalize();
-
-      classifier.train(trainingData);
-
-      classifier.toFile(networkFile);
+      trainClassifier(vm, networkFile, samplesPath);
     }
     else {
-      Classifier classifier(networkFile);
-
-      std::cout << "Testing classifier" << std::endl;
-
-      TestData testData(loadCsvData(samplesFile, classifier.inputSize(), classifier.classLabels()));
-      testData.normalize(classifier.trainingSetMin(), classifier.trainingSetMax());
-      Classifier::Results results = classifier.test(testData);
-
-      std::cout << "Correct classifications: "
-        << results.good << "/" << results.good + results.bad << std::endl;
-
-      std::cout << "Average cost: " << results.cost << std::endl;
+      testClassifier(vm, networkFile, samplesPath);
     }
 
     const auto t2 = high_resolution_clock::now();

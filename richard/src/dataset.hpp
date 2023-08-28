@@ -31,6 +31,7 @@ class Dataset {
 };
 
 inline void Dataset::addSample(const std::string& label, const Vector& data) {
+  ASSERT(m_classOutputVectors.count(label));
   m_samples.emplace_back(label, data);
 }
 
