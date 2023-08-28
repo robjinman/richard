@@ -1,12 +1,8 @@
 #include <iostream>
-#include <fstream>
-#include <sstream>
-#include <algorithm>
-#include <list>
-#include <map>
 #include <chrono>
 #include <boost/program_options.hpp>
-#include "neural_net.hpp"
+#include "csv.hpp"
+#include "classifier.hpp"
 
 using std::chrono::high_resolution_clock;
 using std::chrono::duration;
@@ -18,65 +14,58 @@ namespace {
 
 const std::string DESCRIPTION = "Richard is gaining power";
 
-// Load training data from csv file
-//
-// The first line is the set of possible labels, which should be a single character.
-// Subsequent lines are a label followed by float data values.
-// E.g.
-//
-// a,b,c
-// b,23.1,45.5
-// a,44.0,52.1
-// c,11.9,92.4
-// ...
-std::unique_ptr<Dataset> loadData(const std::string& filePath, size_t inputSize) {
-  std::ifstream fin(filePath);
+void conflictingOptions(const po::variables_map& vm, const std::string& opt1,
+  const std::string& opt2) {
 
-  std::string line;
-  std::vector<char> classLabels;
-
-  std::getline(fin, line);
-
-  std::stringstream ss{line};
-  while (ss.good()) {
-    std::string token;
-    std::getline(ss, token, ',');
-    classLabels.push_back(token[0]);
+  if (vm.count(opt1) && !vm[opt1].defaulted() && vm.count(opt2) && !vm[opt2].defaulted()) {
+    throw std::logic_error(std::string("Conflicting options '") + opt1 + "' and '" + opt2 + "'.");
   }
+}
 
-  auto data = std::make_unique<Dataset>(classLabels);
+void optionDependency(const po::variables_map& vm, const std::string& forWhat,
+  const std::string& requiredOpt) {
 
-  while (std::getline(fin, line)) {
-    std::stringstream ss{line};
-    char label = '0';
-    Vector sample(inputSize);
-
-    for (size_t i = 0; ss.good(); ++i) {
-      std::string token;
-      std::getline(ss, token, ',');
-
-      if (i == 0 && token.length() > 0) {
-        label = token[0];
-      }
-      else {
-        sample[i - 1] = std::stod(token);
-      }
+  if (vm.count(forWhat) && !vm[forWhat].defaulted()) {
+    if (vm.count(requiredOpt) == 0 || vm[requiredOpt].defaulted()) {
+      throw std::logic_error(std::string("Option '") + forWhat
+        + "' requires option '" + requiredOpt + "'.");
     }
-
-    data->addSample(label, sample);
   }
+}
 
-  return data;
+void optionChoice(const po::variables_map& vm, const std::vector<std::string>& choices) {
+  size_t n = 0;
+  for (const auto& choice : choices) {
+    n += vm[choice].as<bool>() ? 1 : 0;
+  }
+  if (n != 1) {
+    std::stringstream ss;
+    ss << "Expected exactly 1 of the following arguments: ";
+    for (size_t i = 0; i < choices.size(); ++i) {
+      ss << choices[i] << (i + 1 < choices.size() ? "," : ".");
+    }
+    throw std::logic_error(ss.str());
+  }
 }
 
 }
+
+// richard --train --samples ../data/ocr/train.csv --layers 784 300 80 10 --classes 0 1 2 3 4 5 6 7 8 9 --network ../data/ocr/network
+// richard --eval --samples ../data/ocr/test.csv --network ../data/ocr/network
 
 int main(int argc, char** argv) {
   try {
     po::options_description desc{DESCRIPTION};
     desc.add_options()
       ("help,h", "Show help")
-      ("train,t", po::bool_switch());
+      ("train,t", po::bool_switch())
+      ("eval,e", po::bool_switch())
+      ("samples,s", po::value<std::string>())
+      ("layers,l", po::value<std::vector<size_t>>()->multitoken(),
+        "Number of neurons in each layer, from input layer to output layer, e.g. 784 300 30 10")
+      ("classes,c", po::value<std::vector<std::string>>()->multitoken(),
+        "List of class labels, e.g. cat dog")
+      ("network,n", po::value<std::string>()->required(), "File to save/load neural network state");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -86,36 +75,45 @@ int main(int argc, char** argv) {
       return 0;
     }
 
-    const std::string networkWeightsFile = "../data/ocr/network_weights"; // TODO
-    const std::string trainingDataFile = "../data/ocr/train.csv";
-    const std::string testDataFile = "../data/ocr/test.csv";
+    optionChoice(vm, { "train", "eval" });
+    optionDependency(vm, "train", "samples");
+    optionDependency(vm, "train", "layers");
+    optionDependency(vm, "train", "classes");
+    optionDependency(vm, "eval", "samples");
+    conflictingOptions(vm, "eval", "layers");
+    conflictingOptions(vm, "eval", "classes");
+
+    const bool trainingMode = vm["train"].as<bool>();
+    const std::string networkFile = vm["network"].as<std::string>();
+    const std::string samplesFile = vm["samples"].as<std::string>();
 
     po::notify(vm);
 
     const auto t1 = high_resolution_clock::now();
 
-    NeuralNet net{784, 300, 80, 10};
+    if (trainingMode) {
+      std::cout << "Training classifier" << std::endl;
 
-    if (vm["train"].as<bool>()) {
-      std::cout << "Training neural net" << std::endl;
+      const std::vector<size_t> layers = vm["layers"].as<std::vector<size_t>>();
+      const std::vector<std::string> classes = vm["classes"].as<std::vector<std::string>>();
 
-      TrainingData trainingData(loadData(trainingDataFile, net.inputSize()));
+      Classifier classifier(layers, classes);
+
+      TrainingData trainingData(loadCsvData(samplesFile, classifier.inputSize(), classes));
       trainingData.normalize();
 
-      net.train(trainingData);
+      classifier.train(trainingData);
 
-      net.toFile(trainingData, networkWeightsFile);
+      classifier.toFile(networkFile);
     }
     else {
-      Vector trainingDataMin(1);
-      Vector trainingDataMax(1);
-      net.fromFile(networkWeightsFile, trainingDataMin, trainingDataMax);
+      Classifier classifier(networkFile);
 
-      std::cout << "Evaluating neural net" << std::endl;
+      std::cout << "Testing classifier" << std::endl;
 
-      TestData testData(loadData(testDataFile, net.inputSize()));
-      testData.normalize(trainingDataMin, trainingDataMax);
-      NeuralNet::Results results = net.test(testData);
+      TestData testData(loadCsvData(samplesFile, classifier.inputSize(), classifier.classLabels()));
+      testData.normalize(classifier.trainingSetMin(), classifier.trainingSetMax());
+      Classifier::Results results = classifier.test(testData);
 
       std::cout << "Correct classifications: "
         << results.good << "/" << results.good + results.bad << std::endl;
