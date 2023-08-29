@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iostream> // TODO
 #include "classifier.hpp"
+#include "exception.hpp"
 
 namespace {
 
@@ -52,6 +53,8 @@ Classifier::Classifier(const std::string& filePath)
 
   m_trainingSetMin = min;
   m_trainingSetMax = max;
+
+  m_isTrained = true;
 }
 
 Classifier::Classifier(const NetworkConfig& config, const std::vector<std::string>& classes)
@@ -70,7 +73,7 @@ const std::vector<std::string> Classifier::classLabels() const {
 }
 
 void Classifier::toFile(const std::string& filePath) const {
-  ASSERT(m_isTrained);
+  TRUE_OR_THROW(m_isTrained, "Classifier not trained");
 
   std::ofstream fout(filePath, std::ios::binary);
 
@@ -101,7 +104,7 @@ void Classifier::train(const TrainingData& data) {
 }
 
 Classifier::Results Classifier::test(const TestData& testData) const {
-  ASSERT(m_isTrained);
+  TRUE_OR_THROW(m_isTrained, "Classifier not trained");
 
   Results results;
 
@@ -112,6 +115,9 @@ Classifier::Results Classifier::test(const TestData& testData) const {
 
   double totalCost = 0.0;
   for (const auto& sample : samples) {
+    TRUE_OR_THROW(sample.data.size() == m_neuralNet->inputSize(),
+      "Expected sample of size " << m_neuralNet->inputSize() << ", got " << sample.data.size());
+
     Vector actual = m_neuralNet->evaluate(sample.data);
     Vector expected = data.classOutputVector(sample.label);
 
@@ -134,11 +140,11 @@ Classifier::Results Classifier::test(const TestData& testData) const {
 }
 
 Vector Classifier::trainingSetMin() const {
-  ASSERT(m_isTrained);
+  TRUE_OR_THROW(m_isTrained, "Classifier not trained");
   return m_trainingSetMin;
 }
 
 Vector Classifier::trainingSetMax() const {
-  ASSERT(m_isTrained);
+  TRUE_OR_THROW(m_isTrained, "Classifier not trained");
   return m_trainingSetMax;
 }

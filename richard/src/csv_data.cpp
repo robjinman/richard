@@ -1,6 +1,7 @@
 #include <fstream>
 #include <sstream>
 #include "csv_data.hpp"
+#include "exception.hpp"
 
 // Load training data from csv file
 //
@@ -25,6 +26,10 @@ std::unique_ptr<Dataset> loadCsvData(const std::string& filePath, size_t inputSi
     Vector sample(inputSize);
 
     for (size_t i = 0; ss.good(); ++i) {
+      if (i > inputSize) {
+        EXCEPTION("Input too large");
+      }
+
       std::string token;
       std::getline(ss, token, ',');
 

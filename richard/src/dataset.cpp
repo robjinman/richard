@@ -1,5 +1,6 @@
 #include <limits>
 #include "dataset.hpp"
+#include "exception.hpp"
 
 Dataset::Dataset(const std::vector<std::string>& labels) : m_labels(labels) {
   for (size_t i = 0; i < m_labels.size(); ++i) {
@@ -23,7 +24,7 @@ TrainingData::TrainingData(std::unique_ptr<Dataset> data)
   , m_min(1)
   , m_max(1) {
 
-  ASSERT(!m_data->samples().empty());
+  TRUE_OR_THROW(!m_data->samples().empty(), "Dataset is empty");
 
   auto& samples = m_data->samples();
 
@@ -55,7 +56,7 @@ TestData::TestData(std::unique_ptr<Dataset> data)
   : m_data(std::move(data)) {}
 
 void TestData::normalize(const Vector& trainingMin, const Vector& trainingMax) {
-  ASSERT(!m_data->samples().empty());
+  TRUE_OR_THROW(!m_data->samples().empty(), "Dataset is empty");
 
   Vector min = trainingMin;
   Vector max = trainingMax;

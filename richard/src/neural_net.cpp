@@ -5,6 +5,7 @@
 #include <sstream>
 #include "neural_net.hpp"
 #include "util.hpp"
+#include "exception.hpp"
 
 namespace {
 
@@ -182,7 +183,7 @@ NeuralNet::CostFn NeuralNet::costFn() const {
 }
 
 void NeuralNet::writeToStream(std::ostream& fout) const {
-  ASSERT(m_isTrained);
+  TRUE_OR_THROW(m_isTrained, "Neural net is not trained");
 
   std::stringstream ss;
   m_config.writeToStream(ss);
@@ -207,7 +208,7 @@ size_t NeuralNet::inputSize() const {
 
 void NeuralNet::setWeights(const std::vector<Matrix>& W) {
   if (W.size() != m_layers.size()) {
-    throw std::runtime_error("Wrong number of weight matrices");
+    EXCEPTION("Wrong number of weight matrices");
   }
 
   for (size_t i = 0; i < W.size(); ++i) {
@@ -217,7 +218,7 @@ void NeuralNet::setWeights(const std::vector<Matrix>& W) {
 
 void NeuralNet::setBiases(const std::vector<Vector>& B) {
   if (B.size() != m_layers.size()) {
-    throw std::runtime_error("Wrong number of bias vectors");
+    EXCEPTION("Wrong number of bias vectors");
   }
 
   for (size_t i = 0; i < B.size(); ++i) {
@@ -281,6 +282,10 @@ void NeuralNet::train(const TrainingData& trainingData) {
   std::cout << "Samples in batch: " << samplesToProcess << std::endl;
   std::cout << "Dropout rate: " << params.dropoutRate << std::endl;
 
+  TRUE_OR_THROW(!samples.empty(), "Dataset is empty");
+  TRUE_OR_THROW(samples[0].data.size() == m_numInputs,
+    "Sample size is " << samples[0].data.size() << ", expected " << m_numInputs);
+
   for (size_t epoch = 0; epoch < params.epochs; ++epoch) {
     std::cout << "Epoch " << epoch + 1 << "/" << params.epochs;
 
@@ -319,6 +324,8 @@ void NeuralNet::train(const TrainingData& trainingData) {
     cost = cost / samplesToProcess;
     std::cout << ", cost = " << cost << std::endl;
   }
+
+  m_isTrained = true;
 }
 
 Vector NeuralNet::evaluate(const Vector& x) const {
