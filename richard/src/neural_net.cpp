@@ -275,60 +275,76 @@ double NeuralNet::feedForward(const Vector& x, const Vector& y, double dropoutRa
   return quadradicCost(*A, y);
 }
 
-void NeuralNet::train(const TrainingData& trainingData) {
+void NeuralNet::train(LabelledDataSet& trainingData) {
   const HyperParams& params = m_config.params;
-  const Dataset& data = trainingData.data();
-  const std::vector<Sample>& samples = data.samples();
   double learnRate = params.learnRate;
-  const size_t samplesToProcess = std::min<size_t>(params.maxBatchSize, samples.size());
 
   std::cout << "Epochs: " << params.epochs << std::endl;
   std::cout << "Initial learn rate: " << params.learnRate << std::endl;
   std::cout << "Learn rate decay: " << params.learnRateDecay << std::endl;
-  std::cout << "Samples in batch: " << samplesToProcess << std::endl;
+  std::cout << "Max batch size: " << params.maxBatchSize << std::endl;
   std::cout << "Dropout rate: " << params.dropoutRate << std::endl;
 
-  TRUE_OR_THROW(!samples.empty(), "Dataset is empty");
-  TRUE_OR_THROW(samples[0].data.size() == m_numInputs,
-    "Sample size is " << samples[0].data.size() << ", expected " << m_numInputs);
+  const size_t N = 500; // TODO
 
   for (size_t epoch = 0; epoch < params.epochs; ++epoch) {
     std::cout << "Epoch " << epoch + 1 << "/" << params.epochs;
-
     double cost = 0.0;
+    size_t samplesProcessed = 0;
 
-    for (size_t i = 0; i < samplesToProcess; ++i) {
-      const auto& sample = samples[i];
-      const Vector& x = sample.data;
-      const Vector& y = data.classOutputVector(sample.label);
+    std::vector<Sample> samples;
+    while (size_t n = trainingData.loadSamples(samples, N) > 0) {
+      TRUE_OR_THROW(samples[0].data.size() == m_numInputs,
+        "Sample size is " << samples[0].data.size() << ", expected " << m_numInputs);
 
-      cost += feedForward(x, y, params.dropoutRate);
+      normalizeTrainingSamples(samples);
 
-      Layer& outputLayer = m_layers.back();
-      const Vector& Z = outputLayer.Z;
+      for (size_t i = 0; i < samples.size(); ++i) {
+        const auto& sample = samples[i];
+        const Vector& x = sample.data;
+        const Vector& y = trainingData.classOutputVector(sample.label);
 
-      Vector deltaC = quadraticCostDerivatives(outputLayer.A, y);
-      Vector delta = Z.transform(sigmoidPrime).hadamard(deltaC);
+        cost += feedForward(x, y, params.dropoutRate);
 
-      updateLayer(m_layers.size() - 1, delta, x, learnRate);
+        Layer& outputLayer = m_layers.back();
+        const Vector& Z = outputLayer.Z;
 
-      // Back-propagate errors
+        Vector deltaC = quadraticCostDerivatives(outputLayer.A, y);
+        Vector delta = Z.transform(sigmoidPrime).hadamard(deltaC);
 
-      for (int l = m_layers.size() - 2; l >= 0; --l) {
-        const Layer& nextLayer = m_layers[l + 1];
-        Layer& thisLayer = m_layers[l];
+        updateLayer(m_layers.size() - 1, delta, x, learnRate);
 
-        delta = nextLayer.weights.transposeMultiply(delta)
-                                 .hadamard(thisLayer.Z.transform(sigmoidPrime));
+        // Back-propagate errors
 
-        updateLayer(l, delta, x, learnRate);
+        for (int l = m_layers.size() - 2; l >= 0; --l) {
+          const Layer& nextLayer = m_layers[l + 1];
+          Layer& thisLayer = m_layers[l];
+
+          delta = nextLayer.weights.transposeMultiply(delta)
+                                  .hadamard(thisLayer.Z.transform(sigmoidPrime));
+
+          updateLayer(l, delta, x, learnRate);
+        }
+
+        ++samplesProcessed;
+        if (samplesProcessed >= params.maxBatchSize) {
+          break;
+        }
+      }
+
+      samples.clear();
+
+      if (samplesProcessed >= params.maxBatchSize) {
+        break;
       }
     }
 
     learnRate *= params.learnRateDecay;
 
-    cost = cost / samplesToProcess;
+    cost = cost / samplesProcessed;
     std::cout << ", cost = " << cost << std::endl;
+
+    trainingData.seekToBeginning();
   }
 
   m_isTrained = true;

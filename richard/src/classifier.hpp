@@ -14,12 +14,10 @@ class Classifier {
     explicit Classifier(const std::string& filePath);
 
     void toFile(const std::string& filePath) const;
-    void train(const TrainingData& trainingData);
-    Results test(const TestData& testData) const;
+    void train(LabelledDataSet& trainingData);
+    Results test(LabelledDataSet& testData) const;
     size_t inputSize() const;
     const std::vector<std::string> classLabels() const;
-    Vector trainingSetMin() const;
-    Vector trainingSetMax() const;
 
   private:
     std::unique_ptr<NeuralNet> m_neuralNet;
