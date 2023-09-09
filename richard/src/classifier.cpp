@@ -96,54 +96,55 @@ void Classifier::toFile(const std::string& filePath) const {
     m_trainingSetMax.size() * sizeof(double));
 }
 
-void Classifier::train(LabelledDataSet& data) {
+void Classifier::train(const TrainingData& data) {
   m_neuralNet->train(data);
-
-  m_trainingSetMin = data.stats().min;
-  m_trainingSetMax = data.stats().max;
-
+  m_trainingSetMin = data.min();
+  m_trainingSetMax = data.max();
   m_isTrained = true;
 }
 
-Classifier::Results Classifier::test(LabelledDataSet& testData) const {
+Classifier::Results Classifier::test(const TestData& testData) const {
   TRUE_OR_THROW(m_isTrained, "Classifier not trained");
-
-  const size_t N = 500; // TODO
 
   Results results;
 
-  std::vector<Sample> samples;
+  const Dataset& data = testData.data();
+  const auto& samples = data.samples();
+
   const auto& costFn = m_neuralNet->costFn();
 
-  size_t totalSamples = 0;
   double totalCost = 0.0;
-  while (size_t n = testData.loadSamples(samples, N) > 0) {
-    normalizeTestSamples(samples, m_trainingSetMin, m_trainingSetMax);
+  for (const auto& sample : samples) {
+    TRUE_OR_THROW(sample.data.size() == m_neuralNet->inputSize(),
+      "Expected sample of size " << m_neuralNet->inputSize() << ", got " << sample.data.size());
 
-    for (const auto& sample : samples) {
-      TRUE_OR_THROW(sample.data.size() == m_neuralNet->inputSize(),
-        "Expected sample of size " << m_neuralNet->inputSize() << ", got " << sample.data.size());
+    Vector actual = m_neuralNet->evaluate(sample.data);
+    Vector expected = data.classOutputVector(sample.label);
 
-      Vector actual = m_neuralNet->evaluate(sample.data);
-      Vector expected = testData.classOutputVector(sample.label);
-
-      if (outputsMatch(actual, expected)) {
-        ++results.good;
-        std::cout << "1" << std::flush;
-      }
-      else {
-        ++results.bad;
-        std::cout << "0" << std::flush;
-      }
-
-      totalCost += costFn(actual, expected);
-      ++totalSamples;
+    if (outputsMatch(actual, expected)) {
+      ++results.good;
+      std::cout << "1" << std::flush;
     }
-    samples.clear();
+    else {
+      ++results.bad;
+      std::cout << "0" << std::flush;
+    }
+
+    totalCost += costFn(actual, expected);
   }
   std::cout << std::endl;
 
-  results.cost = totalCost / totalSamples;
+  results.cost = totalCost / data.samples().size();
 
   return results;
+}
+
+Vector Classifier::trainingSetMin() const {
+  TRUE_OR_THROW(m_isTrained, "Classifier not trained");
+  return m_trainingSetMin;
+}
+
+Vector Classifier::trainingSetMax() const {
+  TRUE_OR_THROW(m_isTrained, "Classifier not trained");
+  return m_trainingSetMax;
 }

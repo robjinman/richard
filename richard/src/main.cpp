@@ -3,8 +3,8 @@
 #include <filesystem>
 #include <algorithm>
 #include <boost/program_options.hpp>
-#include "csv_data_set.hpp"
-#include "image_data_set.hpp"
+#include "csv_data.hpp"
+#include "image_data.hpp"
 #include "classifier.hpp"
 #include "exception.hpp"
 
@@ -60,15 +60,25 @@ void trainClassifier(const std::string& networkFile, const std::string& samplesP
 
   Classifier classifier(config, classes);
 
-  std::unique_ptr<LabelledDataSet> dataSet = nullptr;
+  std::unique_ptr<Dataset> dataset;
   if (std::filesystem::is_directory(samplesPath)) {
-    dataSet = std::make_unique<ImageDataSet>(samplesPath, classes);
+    dataset = std::make_unique<Dataset>(classes);
+    for (const auto& dirEntry : std::filesystem::directory_iterator{samplesPath}) {
+      if (std::filesystem::is_directory(dirEntry)) {
+        std::string dirName = dirEntry.path().stem();
+        loadImageData(*dataset, dirEntry.path().string(), dirName);
+      }
+    }
+    std::random_shuffle(dataset->samples().begin(), dataset->samples().end()); // TODO: Extremely inefficient
   }
   else {
-    dataSet = std::make_unique<CsvDataSet>(samplesPath, classifier.inputSize(), classes);
+    dataset = loadCsvData(samplesPath, classifier.inputSize(), classes);
   }
 
-  classifier.train(*dataSet);
+  TrainingData trainingData(std::move(dataset));
+  trainingData.normalize();
+
+  classifier.train(trainingData);
 
   classifier.toFile(networkFile);
 }
@@ -78,16 +88,24 @@ void testClassifier(const std::string& networkFile, const std::string& samplesPa
 
   std::cout << "Testing classifier" << std::endl;
 
-  std::unique_ptr<LabelledDataSet> dataSet = nullptr;
+  std::unique_ptr<Dataset> dataset;
   if (std::filesystem::is_directory(samplesPath)) {
-    dataSet = std::make_unique<ImageDataSet>(samplesPath, classifier.classLabels());
+    dataset = std::make_unique<Dataset>(classifier.classLabels());
+    for (const auto& dirEntry : std::filesystem::directory_iterator{samplesPath}) {
+      if (std::filesystem::is_directory(dirEntry)) {
+        std::string dirName = dirEntry.path().stem();
+        loadImageData(*dataset, dirEntry.path().string(), dirName);
+      }
+    }
+    std::random_shuffle(dataset->samples().begin(), dataset->samples().end()); // TODO: Extremely inefficient
   }
   else {
-    dataSet = std::make_unique<CsvDataSet>(samplesPath, classifier.inputSize(),
-      classifier.classLabels());
+    dataset = loadCsvData(samplesPath, classifier.inputSize(), classifier.classLabels());
   }
 
-  Classifier::Results results = classifier.test(*dataSet);
+  TestData testData(std::move(dataset));
+  testData.normalize(classifier.trainingSetMin(), classifier.trainingSetMax());
+  Classifier::Results results = classifier.test(testData);
 
   std::cout << "Correct classifications: "
     << results.good << "/" << results.good + results.bad << std::endl;

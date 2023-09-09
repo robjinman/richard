@@ -1,6 +1,6 @@
 #pragma once
 
-#include "labelled_data_set.hpp"
+#include "dataset.hpp"
 
 struct HyperParams {
   size_t epochs = 50;
@@ -33,7 +33,7 @@ class NeuralNet {
     CostFn costFn() const;
     size_t inputSize() const;
     void writeToStream(std::ostream& s) const;
-    void train(LabelledDataSet& data);
+    void train(const TrainingData& data);
     Vector evaluate(const Vector& inputs) const;
 
     // For unit tests
