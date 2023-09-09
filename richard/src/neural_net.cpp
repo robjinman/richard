@@ -105,6 +105,12 @@ NeuralNet::Layer::Layer(Matrix&& weights, Vector&& biases)
   , Z(1)
   , A(1) {}
 
+NeuralNet::Layer::Layer(const Matrix& weights, const Vector& biases)
+  : weights(weights)
+  , biases(biases)
+  , Z(1)
+  , A(1) {}
+
 NeuralNet::Layer::Layer(const Layer& cpy)
   : weights(cpy.weights)
   , biases(cpy.biases)
