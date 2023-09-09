@@ -36,8 +36,10 @@ size_t ImageDataSet::loadSamples(std::vector<Sample>& samples, size_t N) {
   size_t samplesLoaded = 0;
 
   while (samplesLoaded < N) {
+    size_t numIteratorsFinished = 0;
     for (auto& cursor : m_iterators) {
       if (cursor.i == std::filesystem::directory_iterator{}) {
+        ++numIteratorsFinished;
         continue;
       }
 
@@ -72,6 +74,10 @@ size_t ImageDataSet::loadSamples(std::vector<Sample>& samples, size_t N) {
       }
 
       ++cursor.i;
+    }
+
+    if (numIteratorsFinished == m_iterators.size()) {
+      break;
     }
   }
 
