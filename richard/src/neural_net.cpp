@@ -39,59 +39,44 @@ const CostDerivativesFn quadraticCostDerivatives = [](const Vector& actual,
 
 }
 
-NetworkConfig::NetworkConfig(std::istream& s) {
-  std::map<std::string, std::string> keyVals = readKeyValuePairs(s);
-
-  std::stringstream ss(keyVals.at("layers"));
-  std::string strLayer;
-  while (std::getline(ss, strLayer, ',')) {
-    layers.push_back(std::stoul(strLayer));
-  }
-
-  if (keyVals.count("epochs")) {
-    params.epochs = std::stoul(keyVals.at("epochs"));
-  }
-  if (keyVals.count("learnRate")) {
-    params.learnRate = std::stod(keyVals.at("learnRate"));
-  }
-  if (keyVals.count("learnRateDecay")) {
-    params.learnRateDecay = std::stod(keyVals.at("learnRateDecay"));
-  }
-  if (keyVals.count("maxBatchSize")) {
-    params.maxBatchSize = std::stoul(keyVals.at("maxBatchSize"));
-  }
-  if (keyVals.count("dropoutRate")) {
-    params.dropoutRate = std::stod(keyVals.at("dropoutRate"));
-  }
+const nlohmann::json& NeuralNet::defaultConfig() {
+  static NeuralNet::Params defaultParams;
+  static nlohmann::json config = defaultParams.toJson();
+  return config;
 }
 
-void NetworkConfig::writeToStream(std::ostream& s) const {
-  s << "layers=";
-  for (size_t i = 0; i < layers.size(); ++i) {
-    s << layers[i];
-    if (i + 1 < layers.size()) {
-      s << ",";
-    }
+NeuralNet::Params::Params()
+  : layers({ 784, 300, 80, 10 })
+  , epochs(50)
+  , learnRate(0.7)
+  , learnRateDecay(1.0)
+  , maxBatchSize(1000)
+  , dropoutRate(0.5) {}
+
+NeuralNet::Params::Params(const nlohmann::json& obj) {
+  nlohmann::json params = NeuralNet::defaultConfig();
+  params.merge_patch(obj);
+  for (auto& layer : params["layers"]) {
+    layers.push_back(layer.get<size_t>());
   }
-  s << std::endl;
-  s << "epochs=" << params.epochs << std::endl;
-  s << "learnRate=" << params.learnRate << std::endl;
-  s << "learnRateDecay=" << params.learnRateDecay << std::endl;
-  s << "maxBatchSize=" << params.maxBatchSize << std::endl;
-  s << "dropoutRate=" << params.dropoutRate << std::endl;
+  epochs = params["epochs"].get<size_t>();
+  learnRate = params["learnRate"].get<double>();
+  learnRateDecay = params["learnRateDecay"].get<double>();
+  maxBatchSize = params["maxBatchSize"].get<size_t>();
+  dropoutRate = params["dropoutRate"].get<double>();
 }
 
-void NetworkConfig::printExample(std::ostream& s) {
-  NetworkConfig config(std::vector<size_t>({784, 300, 80, 10}));
-  config.writeToStream(s);
-}
+nlohmann::json NeuralNet::Params::toJson() const {
+  nlohmann::json obj;
 
-NetworkConfig::NetworkConfig(const std::vector<size_t>& layers)
-  : layers(layers) {}
+  obj["layers"] = layers;
+  obj["epochs"] = epochs;
+  obj["learnRate"] = learnRate;
+  obj["learnRateDecay"] = learnRateDecay;
+  obj["maxBatchSize"] = maxBatchSize;
+  obj["dropoutRate"] = dropoutRate;
 
-NetworkConfig NetworkConfig::fromFile(const std::string& filePath) {
-  std::ifstream fin(filePath);
-  return NetworkConfig(fin);
+  return obj;
 }
 
 NeuralNet::Layer::Layer(Layer&& mv)
@@ -118,13 +103,13 @@ NeuralNet::Layer::Layer(const Matrix& weights, const Vector& biases)
   , Z(1)
   , A(1) {}
 
-NeuralNet::NeuralNet(const NetworkConfig& config)
-  : m_config(config)
+NeuralNet::NeuralNet(const nlohmann::json& config)
+  : m_params(config)
   , m_isTrained(false) {
 
   size_t prevLayerSize = 0;
   size_t i = 0;
-  for (size_t layerSize : config.layers) {
+  for (size_t layerSize : m_params.layers) {
     if (i == 0) {
       m_numInputs = layerSize;
       prevLayerSize = layerSize;
@@ -146,8 +131,7 @@ NeuralNet::NeuralNet(const NetworkConfig& config)
 }
 
 NeuralNet::NeuralNet(std::istream& fin)
-  : m_config(std::vector<size_t>())
-  , m_isTrained(false) {
+  : m_isTrained(false) {
 
   size_t configSize = 0;
   fin.read(reinterpret_cast<char*>(&configSize), sizeof(size_t));
@@ -155,15 +139,14 @@ NeuralNet::NeuralNet(std::istream& fin)
   std::string configString(configSize, '_');
   fin.read(reinterpret_cast<char*>(configString.data()), configSize);
 
-  std::stringstream ss(configString);
-  m_config = NetworkConfig(ss);
+  m_params = Params(nlohmann::json::parse(configString));
 
-  m_numInputs = m_config.layers[0];
-  size_t numLayers = m_config.layers.size() - 1;
+  m_numInputs = m_params.layers[0];
+  size_t numLayers = m_params.layers.size() - 1;
 
   size_t prevLayerSize = m_numInputs;
   for (size_t i = 0; i < numLayers; ++i) {
-    size_t numNeurons = m_config.layers[i + 1];
+    size_t numNeurons = m_params.layers[i + 1];
 
     Vector B(numNeurons);
     fin.read(reinterpret_cast<char*>(B.data()), numNeurons * sizeof(double));
@@ -186,13 +169,12 @@ NeuralNet::CostFn NeuralNet::costFn() const {
 void NeuralNet::writeToStream(std::ostream& fout) const {
   TRUE_OR_THROW(m_isTrained, "Neural net is not trained");
 
-  std::stringstream ss;
-  m_config.writeToStream(ss);
+  std::string configString = m_params.toJson().dump();
 
-  size_t configSize = ss.str().size();
+  size_t configSize = configString.size();
   fout.write(reinterpret_cast<char*>(&configSize), sizeof(size_t));
 
-  fout.write(ss.str().c_str(), configSize);
+  fout.write(configString.c_str(), configSize);
 
   for (const auto& layer : m_layers) {
     const auto& B = layer.biases;
@@ -271,24 +253,23 @@ double NeuralNet::feedForward(const Vector& x, const Vector& y, double dropoutRa
 }
 
 void NeuralNet::train(LabelledDataSet& trainingData) {
-  const HyperParams& params = m_config.params;
-  double learnRate = params.learnRate;
+  double learnRate = m_params.learnRate;
 
-  std::cout << "Epochs: " << params.epochs << std::endl;
-  std::cout << "Initial learn rate: " << params.learnRate << std::endl;
-  std::cout << "Learn rate decay: " << params.learnRateDecay << std::endl;
-  std::cout << "Max batch size: " << params.maxBatchSize << std::endl;
-  std::cout << "Dropout rate: " << params.dropoutRate << std::endl;
+  std::cout << "Epochs: " << m_params.epochs << std::endl;
+  std::cout << "Initial learn rate: " << m_params.learnRate << std::endl;
+  std::cout << "Learn rate decay: " << m_params.learnRateDecay << std::endl;
+  std::cout << "Max batch size: " << m_params.maxBatchSize << std::endl;
+  std::cout << "Dropout rate: " << m_params.dropoutRate << std::endl;
 
   const size_t N = 500; // TODO
 
-  for (size_t epoch = 0; epoch < params.epochs; ++epoch) {
-    std::cout << "Epoch " << epoch + 1 << "/" << params.epochs;
+  for (size_t epoch = 0; epoch < m_params.epochs; ++epoch) {
+    std::cout << "Epoch " << epoch + 1 << "/" << m_params.epochs;
     double cost = 0.0;
     size_t samplesProcessed = 0;
 
     std::vector<Sample> samples;
-    while (size_t n = trainingData.loadSamples(samples, N) > 0) {
+    while (trainingData.loadSamples(samples, N) > 0) {
       TRUE_OR_THROW(samples[0].data.size() == m_numInputs,
         "Sample size is " << samples[0].data.size() << ", expected " << m_numInputs);
 
@@ -297,7 +278,7 @@ void NeuralNet::train(LabelledDataSet& trainingData) {
         const Vector& x = sample.data;
         const Vector& y = trainingData.classOutputVector(sample.label);
 
-        cost += feedForward(x, y, params.dropoutRate);
+        cost += feedForward(x, y, m_params.dropoutRate);
 
         Layer& outputLayer = m_layers.back();
         const Vector& Z = outputLayer.Z;
@@ -320,19 +301,19 @@ void NeuralNet::train(LabelledDataSet& trainingData) {
         }
 
         ++samplesProcessed;
-        if (samplesProcessed >= params.maxBatchSize) {
+        if (samplesProcessed >= m_params.maxBatchSize) {
           break;
         }
       }
 
       samples.clear();
 
-      if (samplesProcessed >= params.maxBatchSize) {
+      if (samplesProcessed >= m_params.maxBatchSize) {
         break;
       }
     }
 
-    learnRate *= params.learnRateDecay;
+    learnRate *= m_params.learnRateDecay;
 
     cost = cost / samplesProcessed;
     std::cout << ", cost = " << cost << std::endl;

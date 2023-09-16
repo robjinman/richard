@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cassert>
-#include <map>
 #include <string>
+#include <nlohmann/json.hpp>
 
 #define ASSERT(X) assert(X)
 
-std::map<std::string, std::string> readKeyValuePairs(std::istream& s);
+nlohmann::json getOrThrow(const nlohmann::json& obj, const std::string& key);

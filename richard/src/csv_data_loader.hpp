@@ -5,8 +5,7 @@
 
 class CsvDataLoader : public DataLoader {
   public:
-    CsvDataLoader(const std::string& filePath, size_t inputSize,
-      const std::vector<std::string>& labels);
+    CsvDataLoader(const std::string& filePath, size_t inputSize);
 
     void seekToBeginning() override;
     size_t loadSamples(std::vector<Sample>& samples, size_t n) override;

@@ -2,34 +2,13 @@
 
 #include "math.hpp"
 
-struct HyperParams {
-  size_t epochs = 50;
-  double learnRate = 0.7;
-  double learnRateDecay = 1.0;
-  size_t maxBatchSize = 1000;
-  double dropoutRate = 0.5;
-};
-
-struct NetworkConfig {
-  explicit NetworkConfig(const std::vector<size_t>& layers);
-  explicit NetworkConfig(std::istream& s);
-
-  void writeToStream(std::ostream& s) const;
-
-  static void printExample(std::ostream& s);
-  static NetworkConfig fromFile(const std::string& filePath);
-
-  std::vector<size_t> layers;
-  HyperParams params;
-};
-
 class LabelledDataSet;
 
 class NeuralNet {
   public:
     using CostFn = std::function<double(const Vector&, const Vector&)>;
 
-    explicit NeuralNet(const NetworkConfig& config);
+    explicit NeuralNet(const nlohmann::json& config);
     explicit NeuralNet(std::istream& s);
 
     CostFn costFn() const;
@@ -41,6 +20,8 @@ class NeuralNet {
     // For unit tests
     void setWeights(const std::vector<Matrix>& W);
     void setBiases(const std::vector<Vector>& B);
+
+    static const nlohmann::json& defaultConfig();
 
   private:
     double feedForward(const Vector& x, const Vector& y, double dropoutRate);
@@ -58,8 +39,22 @@ class NeuralNet {
       Layer(const Matrix& weights, const Vector& biases);
     };
 
+    struct Params {
+      Params();
+      explicit Params(const nlohmann::json& obj);
+
+      std::vector<size_t> layers;
+      size_t epochs;
+      double learnRate;
+      double learnRateDecay;
+      size_t maxBatchSize;
+      double dropoutRate;
+
+      nlohmann::json toJson() const;
+    };
+
+    Params m_params;
     size_t m_numInputs;
     std::vector<Layer> m_layers;
-    NetworkConfig m_config;
     bool m_isTrained;
 };

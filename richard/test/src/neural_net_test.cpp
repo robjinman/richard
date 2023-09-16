@@ -8,7 +8,8 @@ class NeuralNetTest : public testing::Test {
 };
 
 TEST_F(NeuralNetTest, evaluate) {
-  NetworkConfig config(std::vector<size_t>({1, 1}));
+  auto config = NeuralNet::defaultConfig();
+  config["layers"] = { 1, 1 };
   NeuralNet net(config);
 
   Matrix W(1, 1);

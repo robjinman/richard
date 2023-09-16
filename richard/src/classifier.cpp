@@ -27,6 +27,12 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 
 }
 
+const nlohmann::json& Classifier::defaultConfig() {
+  static nlohmann::json config;
+  config["network"] = NeuralNet::defaultConfig();
+  return config;
+}
+
 Classifier::Classifier(const std::string& filePath)
   : m_isTrained(false)
   , m_trainingDataStats(nullptr) {
@@ -62,11 +68,14 @@ Classifier::Classifier(const std::string& filePath)
   m_isTrained = true;
 }
 
-Classifier::Classifier(const NetworkConfig& config, const std::vector<std::string>& classes)
-  : m_neuralNet(std::make_unique<NeuralNet>(config))
+Classifier::Classifier(const nlohmann::json& config, const std::vector<std::string>& classes)
+  : m_neuralNet(nullptr)
   , m_classes(classes)
   , m_isTrained(false)
-  , m_trainingDataStats(nullptr) {}
+  , m_trainingDataStats(nullptr) {
+
+  m_neuralNet = std::make_unique<NeuralNet>(getOrThrow(config, "network"));
+}
 
 size_t Classifier::inputSize() const {
   return m_neuralNet->inputSize();
@@ -127,7 +136,7 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
 
   size_t totalSamples = 0;
   double totalCost = 0.0;
-  while (size_t n = testData.loadSamples(samples, N) > 0) {
+  while (testData.loadSamples(samples, N) > 0) {
     for (const auto& sample : samples) {
       TRUE_OR_THROW(sample.data.size() == m_neuralNet->inputSize(),
         "Expected sample of size " << m_neuralNet->inputSize() << ", got " << sample.data.size());

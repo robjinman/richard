@@ -1,5 +1,6 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
 #include "neural_net.hpp"
 #include "data_stats.hpp"
 
@@ -13,7 +14,7 @@ class Classifier {
       double cost = 0.0;
     };
 
-    explicit Classifier(const NetworkConfig& config, const std::vector<std::string>& classes);
+    Classifier(const nlohmann::json& config, const std::vector<std::string>& classes);
     explicit Classifier(const std::string& filePath);
 
     void toFile(const std::string& filePath) const;
@@ -22,6 +23,8 @@ class Classifier {
     size_t inputSize() const;
     const std::vector<std::string> classLabels() const;
     const DataStats& trainingDataStats() const;
+
+    static const nlohmann::json& defaultConfig();
 
   private:
     std::unique_ptr<NeuralNet> m_neuralNet;

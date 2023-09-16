@@ -3,14 +3,15 @@
 #include <filesystem>
 #include <algorithm>
 #include <boost/program_options.hpp>
-#include <nlohmann/json.hpp>
 #include "training_data_set.hpp"
 #include "test_data_set.hpp"
 #include "image_data_loader.hpp"
 #include "csv_data_loader.hpp"
 #include "classifier.hpp"
 #include "exception.hpp"
+#include "util.hpp"
 
+using json = nlohmann::json;
 using std::chrono::high_resolution_clock;
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -56,11 +57,9 @@ void optionChoice(const po::variables_map& vm, const std::vector<std::string>& c
 }
 
 void trainClassifier(const std::string& networkFile, const std::string& samplesPath,
-  const std::string& configFile, const std::vector<std::string>& classes) {
+  const json& config, const std::vector<std::string>& classes) {
 
   std::cout << "Training classifier" << std::endl;
-
-  NetworkConfig config = NetworkConfig::fromFile(configFile);
 
   Classifier classifier(config, classes);
 
@@ -69,7 +68,7 @@ void trainClassifier(const std::string& networkFile, const std::string& samplesP
     loader = std::make_unique<ImageDataLoader>(samplesPath, classes);
   }
   else {
-    loader = std::make_unique<CsvDataLoader>(samplesPath, classifier.inputSize(), classes);
+    loader = std::make_unique<CsvDataLoader>(samplesPath, classifier.inputSize());
   }
 
   auto dataSet = std::make_unique<TrainingDataSet>(std::move(loader), classes, NORMALIZE);
@@ -89,8 +88,7 @@ void testClassifier(const std::string& networkFile, const std::string& samplesPa
     loader = std::make_unique<ImageDataLoader>(samplesPath, classifier.classLabels());
   }
   else {
-    loader = std::make_unique<CsvDataLoader>(samplesPath, classifier.inputSize(),
-      classifier.classLabels());
+    loader = std::make_unique<CsvDataLoader>(samplesPath, classifier.inputSize());
   }
 
   auto dataSet = std::make_unique<TestDataSet>(std::move(loader), classifier.classLabels());
@@ -106,12 +104,17 @@ void testClassifier(const std::string& networkFile, const std::string& samplesPa
   std::cout << "Average cost: " << results.cost << std::endl;
 }
 
+json loadConfig(const std::string& configFile) {
+  std::ifstream f(configFile);
+  return json::parse(f);
 }
 
-// richard --train --samples ../data/ocr/train.csv --config ../data/ocr/netconfig.txt --labels 0 1 2 3 4 5 6 7 8 9 --network ../data/ocr/network
+}
+
+// richard --train --samples ../data/ocr/train.csv --config ../data/ocr/config.json --labels 0 1 2 3 4 5 6 7 8 9 --network ../data/ocr/network
 // richard --eval --samples ../data/ocr/test.csv --network ../data/ocr/network
 
-// richard --train --samples ../data/catdog/train --config ../data/catdog/netconfig.txt --labels cat dog --network ../data/catdog/network
+// richard --train --samples ../data/catdog/train --config ../data/catdog/config.json --labels cat dog --network ../data/catdog/network
 // richard --eval --samples ../data/catdog/test --network ../data/catdog/network
 
 int main(int argc, char** argv) {
@@ -123,7 +126,7 @@ int main(int argc, char** argv) {
       ("eval,e", "Evaluate a classifier with test data")
       ("gen,g", "Generate example neural net config file")
       ("samples,s", po::value<std::string>())
-      ("config,c", po::value<std::string>(), "Network configuration file of key=value pairs")
+      ("config,c", po::value<std::string>(), "JSON configuration file")
       ("labels,l", po::value<std::vector<std::string>>()->multitoken(),
         "List of class labels, e.g. cat dog")
       ("network,n", po::value<std::string>()->required(), "File to save/load neural network state");
@@ -149,7 +152,9 @@ int main(int argc, char** argv) {
     conflictingOptions(vm, "gen", "network");
 
     if (vm.count("gen")) {
-      NetworkConfig::printExample(std::cout);
+      nlohmann::json obj;
+      obj["classifier"] = Classifier::defaultConfig();
+      std::cout << obj.dump(4) << std::endl;
       return 0;
     }
 
@@ -162,10 +167,11 @@ int main(int argc, char** argv) {
     const auto t1 = high_resolution_clock::now();
 
     if (trainingMode) {
-      std::vector<std::string> classes = vm["labels"].as<std::vector<std::string>>();
       std::string configFile = vm["config"].as<std::string>();
+      json config = loadConfig(configFile);
+      std::vector<std::string> classes = vm["labels"].as<std::vector<std::string>>();
 
-      trainClassifier(networkFile, samplesPath, configFile, classes);
+      trainClassifier(networkFile, samplesPath, getOrThrow(config, "classifier"), classes);
     }
     else {
       testClassifier(networkFile, samplesPath);

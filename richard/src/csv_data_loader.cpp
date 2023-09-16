@@ -11,8 +11,7 @@
 // a,44.0,52.1
 // c,11.9,92.4
 // ...
-CsvDataLoader::CsvDataLoader(const std::string& filePath, size_t inputSize,
-  const std::vector<std::string>& labels)
+CsvDataLoader::CsvDataLoader(const std::string& filePath, size_t inputSize)
   : m_inputSize(inputSize)
   , m_fin(filePath) {}
 
