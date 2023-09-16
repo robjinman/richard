@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <boost/program_options.hpp>
+#include <nlohmann/json.hpp>
 #include "training_data_set.hpp"
 #include "test_data_set.hpp"
 #include "image_data_loader.hpp"

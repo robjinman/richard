@@ -5,7 +5,8 @@
 
 using namespace cpputils;
 
-ImageDataLoader::ImageDataLoader(const std::string& directoryPath, const std::vector<std::string>& labels)
+ImageDataLoader::ImageDataLoader(const std::string& directoryPath,
+  const std::vector<std::string>& labels)
   : m_directoryPath(directoryPath) {
 
   TRUE_OR_THROW(std::filesystem::is_directory(m_directoryPath),

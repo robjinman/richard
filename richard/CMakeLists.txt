@@ -18,6 +18,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost 1.56 REQUIRED COMPONENTS program_options)
 
+include(FetchContent)
+
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
 file(GLOB
   CPP_SOURCES
   "${PROJECT_SOURCE_DIR}/src/*.cpp"
@@ -38,7 +43,10 @@ set(DEBUG_FLAGS ${COMPILER_FLAGS} -g)
 set(RELEASE_FLAGS ${COMPILER_FLAGS} -O3)
 
 target_compile_options(${RICHARD_LIB_NAME} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
-target_link_libraries(${RICHARD_LIB_NAME} PUBLIC Boost::program_options)
+target_link_libraries(${RICHARD_LIB_NAME}
+  PUBLIC
+  Boost::program_options
+  nlohmann_json::nlohmann_json)
 
 add_executable(richard "${PROJECT_SOURCE_DIR}/src/main.cpp")
 target_link_libraries(richard ${RICHARD_LIB_NAME})
