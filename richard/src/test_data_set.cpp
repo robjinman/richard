@@ -12,6 +12,7 @@ void TestDataSet::seekToBeginning() {
 
 void TestDataSet::normalize(const DataStats& trainingDataStats) {
   m_trainingDataStats = trainingDataStats;
+  m_normalize = true;
 }
 
 size_t TestDataSet::loadSamples(std::vector<Sample>& samples, size_t n) {

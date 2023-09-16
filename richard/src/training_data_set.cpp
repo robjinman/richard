@@ -1,5 +1,6 @@
 #include <limits>
 #include "training_data_set.hpp"
+#include "exception.hpp"
 
 TrainingDataSet::TrainingDataSet(std::unique_ptr<DataLoader> loader,
   const std::vector<std::string>& labels, bool computeStatsAndNormalize)
@@ -56,6 +57,13 @@ size_t TrainingDataSet::loadSamples(std::vector<Sample>& samples, size_t n) {
   return numLoaded;
 }
 
+bool TrainingDataSet::hasStats() const {
+  return m_stats != nullptr;
+}
+
 const DataStats& TrainingDataSet::stats() const {
+  if (m_stats == nullptr) {
+    EXCEPTION("Training set has no stats");
+  }
   return *m_stats;
 }

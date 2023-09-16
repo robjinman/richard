@@ -19,6 +19,7 @@ namespace po = boost::program_options;
 namespace {
 
 const std::string DESCRIPTION = "Richard is gaining power";
+const bool NORMALIZE = true; // TODO
 
 void conflictingOptions(const po::variables_map& vm, const std::string& opt1,
   const std::string& opt2) {
@@ -70,7 +71,7 @@ void trainClassifier(const std::string& networkFile, const std::string& samplesP
     loader = std::make_unique<CsvDataLoader>(samplesPath, classifier.inputSize(), classes);
   }
 
-  auto dataSet = std::make_unique<TrainingDataSet>(std::move(loader), classes, true);
+  auto dataSet = std::make_unique<TrainingDataSet>(std::move(loader), classes, NORMALIZE);
 
   classifier.train(*dataSet);
 
@@ -92,7 +93,9 @@ void testClassifier(const std::string& networkFile, const std::string& samplesPa
   }
 
   auto dataSet = std::make_unique<TestDataSet>(std::move(loader), classifier.classLabels());
-  dataSet->normalize(classifier.trainingDataStats());
+  if (NORMALIZE) {
+    dataSet->normalize(classifier.trainingDataStats());
+  }
 
   Classifier::Results results = classifier.test(*dataSet);
 

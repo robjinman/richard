@@ -10,6 +10,7 @@ class TrainingDataSet : public LabelledDataSet {
 
     void seekToBeginning() override;
     size_t loadSamples(std::vector<Sample>& samples, size_t n) override;
+    bool hasStats() const;
     const DataStats& stats() const;
 
   private:

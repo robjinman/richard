@@ -44,15 +44,20 @@ Classifier::Classifier(const std::string& filePath)
     m_classes.push_back(label);
   }
 
-  size_t numInputs = m_neuralNet->inputSize();
+  uint32_t hasStats = false;
+  fin.read(reinterpret_cast<char*>(&hasStats), sizeof(uint32_t));
 
-  Vector min(numInputs);
-  Vector max(numInputs);
+  if (hasStats) {
+    size_t numInputs = m_neuralNet->inputSize();
 
-  fin.read(reinterpret_cast<char*>(min.data()), numInputs * sizeof(double));
-  fin.read(reinterpret_cast<char*>(max.data()), numInputs * sizeof(double));
+    Vector min(numInputs);
+    Vector max(numInputs);
 
-  m_trainingDataStats = std::make_unique<DataStats>(min, max);
+    fin.read(reinterpret_cast<char*>(min.data()), numInputs * sizeof(double));
+    fin.read(reinterpret_cast<char*>(max.data()), numInputs * sizeof(double));
+
+    m_trainingDataStats = std::make_unique<DataStats>(min, max);
+  }
 
   m_isTrained = true;
 }
@@ -89,16 +94,23 @@ void Classifier::toFile(const std::string& filePath) const {
   fout.write(reinterpret_cast<char*>(&n), sizeof(n));
   fout.write(ss.str().c_str(), n);
 
-  fout.write(reinterpret_cast<const char*>(m_trainingDataStats->min.data()),
-    m_trainingDataStats->min.size() * sizeof(double));
-  fout.write(reinterpret_cast<const char*>(m_trainingDataStats->max.data()),
-    m_trainingDataStats->max.size() * sizeof(double));
+  uint32_t hasStats = m_trainingDataStats != nullptr;
+  fout.write(reinterpret_cast<const char*>(&hasStats), sizeof(uint32_t));
+
+  if (hasStats) {
+    fout.write(reinterpret_cast<const char*>(m_trainingDataStats->min.data()),
+      m_trainingDataStats->min.size() * sizeof(double));
+    fout.write(reinterpret_cast<const char*>(m_trainingDataStats->max.data()),
+      m_trainingDataStats->max.size() * sizeof(double));
+  }
 }
 
 void Classifier::train(TrainingDataSet& data) {
   m_neuralNet->train(data);
 
-  m_trainingDataStats = std::make_unique<DataStats>(data.stats());
+  if (data.hasStats()) {
+    m_trainingDataStats = std::make_unique<DataStats>(data.stats());
+  }
 
   m_isTrained = true;
 }
@@ -145,8 +157,7 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
 }
 
 const DataStats& Classifier::trainingDataStats() const {
-  if (m_trainingDataStats == nullptr) {
-    EXCEPTION("Training data stats is null. Is classifier trained?");
-  }
+  TRUE_OR_THROW(m_isTrained, "Classifier not trained");
+  TRUE_OR_THROW(m_trainingDataStats != nullptr, "No stats for training set");
   return *m_trainingDataStats;
 }
