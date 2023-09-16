@@ -29,6 +29,7 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 
 const nlohmann::json& Classifier::defaultConfig() {
   static nlohmann::json config;
+  config["classes"] = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
   config["network"] = NeuralNet::defaultConfig();
   return config;
 }
@@ -68,11 +69,16 @@ Classifier::Classifier(const std::string& filePath)
   m_isTrained = true;
 }
 
-Classifier::Classifier(const nlohmann::json& config, const std::vector<std::string>& classes)
+Classifier::Classifier(const nlohmann::json& config)
   : m_neuralNet(nullptr)
-  , m_classes(classes)
   , m_isTrained(false)
   , m_trainingDataStats(nullptr) {
+
+  auto classesJson = getOrThrow(config, "classes");
+
+  for (auto& label : classesJson) {
+    m_classes.push_back(label.get<std::string>());
+  }
 
   m_neuralNet = std::make_unique<NeuralNet>(getOrThrow(config, "network"));
 }

@@ -14,7 +14,7 @@ class Classifier {
       double cost = 0.0;
     };
 
-    Classifier(const nlohmann::json& config, const std::vector<std::string>& classes);
+    explicit Classifier(const nlohmann::json& config);
     explicit Classifier(const std::string& filePath);
 
     void toFile(const std::string& filePath) const;

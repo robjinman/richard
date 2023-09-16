@@ -11,7 +11,6 @@
 #include "exception.hpp"
 #include "util.hpp"
 
-using json = nlohmann::json;
 using std::chrono::high_resolution_clock;
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -57,21 +56,22 @@ void optionChoice(const po::variables_map& vm, const std::vector<std::string>& c
 }
 
 void trainClassifier(const std::string& networkFile, const std::string& samplesPath,
-  const json& config, const std::vector<std::string>& classes) {
+  const nlohmann::json& config) {
 
   std::cout << "Training classifier" << std::endl;
 
-  Classifier classifier(config, classes);
+  Classifier classifier(config);
 
   std::unique_ptr<DataLoader> loader = nullptr;
   if (std::filesystem::is_directory(samplesPath)) {
-    loader = std::make_unique<ImageDataLoader>(samplesPath, classes);
+    loader = std::make_unique<ImageDataLoader>(samplesPath, classifier.classLabels());
   }
   else {
     loader = std::make_unique<CsvDataLoader>(samplesPath, classifier.inputSize());
   }
 
-  auto dataSet = std::make_unique<TrainingDataSet>(std::move(loader), classes, NORMALIZE);
+  auto dataSet = std::make_unique<TrainingDataSet>(std::move(loader), classifier.classLabels(),
+    NORMALIZE);
 
   classifier.train(*dataSet);
 
@@ -104,17 +104,17 @@ void testClassifier(const std::string& networkFile, const std::string& samplesPa
   std::cout << "Average cost: " << results.cost << std::endl;
 }
 
-json loadConfig(const std::string& configFile) {
+nlohmann::json loadConfig(const std::string& configFile) {
   std::ifstream f(configFile);
-  return json::parse(f);
+  return nlohmann::json::parse(f);
 }
 
 }
 
-// richard --train --samples ../data/ocr/train.csv --config ../data/ocr/config.json --labels 0 1 2 3 4 5 6 7 8 9 --network ../data/ocr/network
+// richard --train --samples ../data/ocr/train.csv --config ../data/ocr/config.json --network ../data/ocr/network
 // richard --eval --samples ../data/ocr/test.csv --network ../data/ocr/network
 
-// richard --train --samples ../data/catdog/train --config ../data/catdog/config.json --labels cat dog --network ../data/catdog/network
+// richard --train --samples ../data/catdog/train --config ../data/catdog/config.json --network ../data/catdog/network
 // richard --eval --samples ../data/catdog/test --network ../data/catdog/network
 
 int main(int argc, char** argv) {
@@ -127,8 +127,6 @@ int main(int argc, char** argv) {
       ("gen,g", "Generate example neural net config file")
       ("samples,s", po::value<std::string>())
       ("config,c", po::value<std::string>(), "JSON configuration file")
-      ("labels,l", po::value<std::vector<std::string>>()->multitoken(),
-        "List of class labels, e.g. cat dog")
       ("network,n", po::value<std::string>()->required(), "File to save/load neural network state");
 
     po::variables_map vm;
@@ -141,14 +139,11 @@ int main(int argc, char** argv) {
 
     optionChoice(vm, { "train", "eval", "gen" });
     optionDependency(vm, "train", "samples");
-    optionDependency(vm, "train", "labels");
     optionDependency(vm, "train", "config");
     optionDependency(vm, "eval", "samples");
-    conflictingOptions(vm, "eval", "labels");
     conflictingOptions(vm, "eval", "config");
     conflictingOptions(vm, "gen", "samples");
     conflictingOptions(vm, "gen", "config");
-    conflictingOptions(vm, "gen", "labels");
     conflictingOptions(vm, "gen", "network");
 
     if (vm.count("gen")) {
@@ -168,10 +163,9 @@ int main(int argc, char** argv) {
 
     if (trainingMode) {
       std::string configFile = vm["config"].as<std::string>();
-      json config = loadConfig(configFile);
-      std::vector<std::string> classes = vm["labels"].as<std::vector<std::string>>();
+      nlohmann::json config = loadConfig(configFile);
 
-      trainClassifier(networkFile, samplesPath, getOrThrow(config, "classifier"), classes);
+      trainClassifier(networkFile, samplesPath, getOrThrow(config, "classifier"));
     }
     else {
       testClassifier(networkFile, samplesPath);

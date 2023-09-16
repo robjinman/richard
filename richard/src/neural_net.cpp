@@ -295,7 +295,7 @@ void NeuralNet::train(LabelledDataSet& trainingData) {
           Layer& thisLayer = m_layers[l];
 
           delta = nextLayer.weights.transposeMultiply(delta)
-                                  .hadamard(thisLayer.Z.transform(sigmoidPrime));
+                                   .hadamard(thisLayer.Z.transform(sigmoidPrime));
 
           updateLayer(l, delta, x, learnRate);
         }
