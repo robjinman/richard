@@ -4,6 +4,8 @@
 #include <iostream> // TODO
 #include "classifier.hpp"
 #include "exception.hpp"
+#include "training_data_set.hpp"
+#include "test_data_set.hpp"
 
 namespace {
 
@@ -27,8 +29,7 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 
 Classifier::Classifier(const std::string& filePath)
   : m_isTrained(false)
-  , m_trainingSetMin(1)
-  , m_trainingSetMax(1) {
+  , m_trainingDataStats(nullptr) {
 
   std::ifstream fin(filePath, std::ios::binary);
   m_neuralNet = std::make_unique<NeuralNet>(fin);
@@ -51,8 +52,7 @@ Classifier::Classifier(const std::string& filePath)
   fin.read(reinterpret_cast<char*>(min.data()), numInputs * sizeof(double));
   fin.read(reinterpret_cast<char*>(max.data()), numInputs * sizeof(double));
 
-  m_trainingSetMin = min;
-  m_trainingSetMax = max;
+  m_trainingDataStats = std::make_unique<DataStats>(min, max);
 
   m_isTrained = true;
 }
@@ -61,8 +61,7 @@ Classifier::Classifier(const NetworkConfig& config, const std::vector<std::strin
   : m_neuralNet(std::make_unique<NeuralNet>(config))
   , m_classes(classes)
   , m_isTrained(false)
-  , m_trainingSetMin(1)
-  , m_trainingSetMax(1) {}
+  , m_trainingDataStats(nullptr) {}
 
 size_t Classifier::inputSize() const {
   return m_neuralNet->inputSize();
@@ -90,17 +89,16 @@ void Classifier::toFile(const std::string& filePath) const {
   fout.write(reinterpret_cast<char*>(&n), sizeof(n));
   fout.write(ss.str().c_str(), n);
 
-  fout.write(reinterpret_cast<const char*>(m_trainingSetMin.data()),
-    m_trainingSetMin.size() * sizeof(double));
-  fout.write(reinterpret_cast<const char*>(m_trainingSetMax.data()),
-    m_trainingSetMax.size() * sizeof(double));
+  fout.write(reinterpret_cast<const char*>(m_trainingDataStats->min.data()),
+    m_trainingDataStats->min.size() * sizeof(double));
+  fout.write(reinterpret_cast<const char*>(m_trainingDataStats->max.data()),
+    m_trainingDataStats->max.size() * sizeof(double));
 }
 
-void Classifier::train(LabelledDataSet& data) {
+void Classifier::train(TrainingDataSet& data) {
   m_neuralNet->train(data);
 
-  m_trainingSetMin = data.stats().min;
-  m_trainingSetMax = data.stats().max;
+  m_trainingDataStats = std::make_unique<DataStats>(data.stats());
 
   m_isTrained = true;
 }
@@ -118,8 +116,6 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
   size_t totalSamples = 0;
   double totalCost = 0.0;
   while (size_t n = testData.loadSamples(samples, N) > 0) {
-    normalizeTestSamples(samples, m_trainingSetMin, m_trainingSetMax);
-
     for (const auto& sample : samples) {
       TRUE_OR_THROW(sample.data.size() == m_neuralNet->inputSize(),
         "Expected sample of size " << m_neuralNet->inputSize() << ", got " << sample.data.size());
@@ -146,4 +142,11 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
   results.cost = totalCost / totalSamples;
 
   return results;
+}
+
+const DataStats& Classifier::trainingDataStats() const {
+  if (m_trainingDataStats == nullptr) {
+    EXCEPTION("Training data stats is null. Is classifier trained?");
+  }
+  return *m_trainingDataStats;
 }

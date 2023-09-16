@@ -1,16 +1,14 @@
 #pragma once
 
-#include <vector>
 #include <filesystem>
-#include "labelled_data_set.hpp"
+#include "data_loader.hpp"
 
-class ImageDataSet : public LabelledDataSet {
+class ImageDataLoader : public DataLoader {
   public:
-    ImageDataSet(const std::string& directoryPath, const std::vector<std::string>& labels);
+    ImageDataLoader(const std::string& directoryPath, const std::vector<std::string>& labels);
 
     size_t loadSamples(std::vector<Sample>& samples, size_t n) override;
     void seekToBeginning() override;
-    const DataStats& stats() const override;
 
   private:
     struct ClassCursor {
@@ -24,5 +22,4 @@ class ImageDataSet : public LabelledDataSet {
 
     std::filesystem::path m_directoryPath;
     std::vector<ClassCursor> m_iterators;
-    std::unique_ptr<DataStats> m_stats;
 };

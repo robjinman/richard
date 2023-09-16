@@ -1,6 +1,6 @@
 #pragma once
 
-#include "labelled_data_set.hpp"
+#include "math.hpp"
 
 struct HyperParams {
   size_t epochs = 50;
@@ -22,6 +22,8 @@ struct NetworkConfig {
   std::vector<size_t> layers;
   HyperParams params;
 };
+
+class LabelledDataSet;
 
 class NeuralNet {
   public:

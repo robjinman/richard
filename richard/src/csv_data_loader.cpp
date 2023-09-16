@@ -1,6 +1,5 @@
 #include <sstream>
-#include <limits>
-#include "csv_data_set.hpp"
+#include "csv_data_loader.hpp"
 #include "exception.hpp"
 
 // Load training data from csv file
@@ -12,34 +11,22 @@
 // a,44.0,52.1
 // c,11.9,92.4
 // ...
-CsvDataSet::CsvDataSet(const std::string& filePath, size_t inputSize,
+CsvDataLoader::CsvDataLoader(const std::string& filePath, size_t inputSize,
   const std::vector<std::string>& labels)
-  : LabelledDataSet(labels)
-  , m_inputSize(inputSize)
-  , m_fin(filePath)
-  , m_stats(nullptr) {}
+  : m_inputSize(inputSize)
+  , m_fin(filePath) {}
 
-const DataStats& CsvDataSet::stats() const {
-  return *m_stats;
-}
-
-void CsvDataSet::seekToBeginning() {
+void CsvDataLoader::seekToBeginning() {
   m_fin.seekg(0);
 }
 
-size_t CsvDataSet::loadSamples(std::vector<Sample>& samples, size_t N) {
+size_t CsvDataLoader::loadSamples(std::vector<Sample>& samples, size_t N) {
   size_t numSamples = 0;
   std::string line;
   while (std::getline(m_fin, line)) {
     std::stringstream ss{line};
     std::string label = "_";
     Vector sample(m_inputSize);
-
-    if (m_stats == nullptr) {
-      m_stats = std::make_unique<DataStats>(Vector(m_inputSize), Vector(m_inputSize));
-      m_stats->min.fill(std::numeric_limits<double>::max());
-      m_stats->min.fill(std::numeric_limits<double>::min());
-    }
 
     for (size_t i = 0; ss.good(); ++i) {
       if (i > m_inputSize) {
@@ -55,13 +42,6 @@ size_t CsvDataSet::loadSamples(std::vector<Sample>& samples, size_t N) {
       else {
         double value = std::stod(token);
         sample[i - 1] = value;
-
-        if (value < m_stats->min[i - 1]) {
-          m_stats->min[i - 1] = value;
-        }
-        if (value > m_stats->max[i - 1]) {
-          m_stats->max[i - 1] = value;
-        }
       }
     }
 

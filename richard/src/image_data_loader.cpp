@@ -1,14 +1,12 @@
 #include <filesystem>
-#include "image_data_set.hpp"
+#include "image_data_loader.hpp"
 #include "bitmap.hpp"
 #include "exception.hpp"
 
 using namespace cpputils;
 
-ImageDataSet::ImageDataSet(const std::string& directoryPath, const std::vector<std::string>& labels)
-  : LabelledDataSet(labels)
-  , m_directoryPath(directoryPath)
-  , m_stats(nullptr) {
+ImageDataLoader::ImageDataLoader(const std::string& directoryPath, const std::vector<std::string>& labels)
+  : m_directoryPath(directoryPath) {
 
   TRUE_OR_THROW(std::filesystem::is_directory(m_directoryPath),
     "'" << m_directoryPath << "' is not a directory");
@@ -22,17 +20,13 @@ ImageDataSet::ImageDataSet(const std::string& directoryPath, const std::vector<s
   }
 }
 
-const DataStats& ImageDataSet::stats() const {
-  return *m_stats;
-}
-
-void ImageDataSet::seekToBeginning() {
+void ImageDataLoader::seekToBeginning() {
   for (auto& i : m_iterators) {
     i.i = std::filesystem::directory_iterator{m_directoryPath/i.label};
   }
 }
 
-size_t ImageDataSet::loadSamples(std::vector<Sample>& samples, size_t N) {
+size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples, size_t N) {
   size_t samplesLoaded = 0;
 
   while (samplesLoaded < N) {
@@ -48,21 +42,8 @@ size_t ImageDataSet::loadSamples(std::vector<Sample>& samples, size_t N) {
         Bitmap image = loadBitmap(entry.path().string());
         Vector v(image.numElements());
 
-        if (m_stats == nullptr) {
-          m_stats = std::make_unique<DataStats>(Vector(v.size()), Vector(v.size()));
-          m_stats->min.fill(std::numeric_limits<double>::max());
-          m_stats->max.fill(std::numeric_limits<double>::min());
-        }
-
         for (size_t i = 0; i < image.numElements(); ++i) {
           v[i] = static_cast<double>(image.data[i]);
-
-          if (v[i] < m_stats->min[i]) {
-            m_stats->min[i] = v[i];
-          }
-          if (v[i] > m_stats->max[i]) {
-            m_stats->max[i] = v[i];
-          }
         }
 
         samples.emplace_back(cursor.label, v);

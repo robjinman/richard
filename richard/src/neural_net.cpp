@@ -6,6 +6,7 @@
 #include "neural_net.hpp"
 #include "util.hpp"
 #include "exception.hpp"
+#include "labelled_data_set.hpp"
 
 namespace {
 
@@ -290,8 +291,6 @@ void NeuralNet::train(LabelledDataSet& trainingData) {
     while (size_t n = trainingData.loadSamples(samples, N) > 0) {
       TRUE_OR_THROW(samples[0].data.size() == m_numInputs,
         "Sample size is " << samples[0].data.size() << ", expected " << m_numInputs);
-
-      normalizeTrainingSamples(samples);
 
       for (size_t i = 0; i < samples.size(); ++i) {
         const auto& sample = samples[i];

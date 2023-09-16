@@ -3,8 +3,10 @@
 #include <filesystem>
 #include <algorithm>
 #include <boost/program_options.hpp>
-#include "csv_data_set.hpp"
-#include "image_data_set.hpp"
+#include "training_data_set.hpp"
+#include "test_data_set.hpp"
+#include "image_data_loader.hpp"
+#include "csv_data_loader.hpp"
 #include "classifier.hpp"
 #include "exception.hpp"
 
@@ -60,13 +62,15 @@ void trainClassifier(const std::string& networkFile, const std::string& samplesP
 
   Classifier classifier(config, classes);
 
-  std::unique_ptr<LabelledDataSet> dataSet = nullptr;
+  std::unique_ptr<DataLoader> loader = nullptr;
   if (std::filesystem::is_directory(samplesPath)) {
-    dataSet = std::make_unique<ImageDataSet>(samplesPath, classes);
+    loader = std::make_unique<ImageDataLoader>(samplesPath, classes);
   }
   else {
-    dataSet = std::make_unique<CsvDataSet>(samplesPath, classifier.inputSize(), classes);
+    loader = std::make_unique<CsvDataLoader>(samplesPath, classifier.inputSize(), classes);
   }
+
+  auto dataSet = std::make_unique<TrainingDataSet>(std::move(loader), classes, true);
 
   classifier.train(*dataSet);
 
@@ -78,14 +82,17 @@ void testClassifier(const std::string& networkFile, const std::string& samplesPa
 
   std::cout << "Testing classifier" << std::endl;
 
-  std::unique_ptr<LabelledDataSet> dataSet = nullptr;
+  std::unique_ptr<DataLoader> loader = nullptr;
   if (std::filesystem::is_directory(samplesPath)) {
-    dataSet = std::make_unique<ImageDataSet>(samplesPath, classifier.classLabels());
+    loader = std::make_unique<ImageDataLoader>(samplesPath, classifier.classLabels());
   }
   else {
-    dataSet = std::make_unique<CsvDataSet>(samplesPath, classifier.inputSize(),
+    loader = std::make_unique<CsvDataLoader>(samplesPath, classifier.inputSize(),
       classifier.classLabels());
   }
+
+  auto dataSet = std::make_unique<TestDataSet>(std::move(loader), classifier.classLabels());
+  dataSet->normalize(classifier.trainingDataStats());
 
   Classifier::Results results = classifier.test(*dataSet);
 
