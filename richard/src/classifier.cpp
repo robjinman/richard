@@ -39,7 +39,7 @@ Classifier::Classifier(const std::string& filePath)
   , m_trainingDataStats(nullptr) {
 
   std::ifstream fin(filePath, std::ios::binary);
-  m_neuralNet = std::make_unique<NeuralNet>(fin);
+  m_neuralNet = createNeuralNet(fin);
 
   size_t classesStringSize = 0;
   fin.read(reinterpret_cast<char*>(&classesStringSize), sizeof(size_t));
@@ -80,7 +80,7 @@ Classifier::Classifier(const nlohmann::json& config)
     m_classes.push_back(label.get<std::string>());
   }
 
-  m_neuralNet = std::make_unique<NeuralNet>(getOrThrow(config, "network"));
+  m_neuralNet = createNeuralNet(getOrThrow(config, "network"));
 }
 
 size_t Classifier::inputSize() const {

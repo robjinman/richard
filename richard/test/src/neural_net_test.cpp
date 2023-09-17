@@ -8,9 +8,12 @@ class NeuralNetTest : public testing::Test {
 };
 
 TEST_F(NeuralNetTest, evaluate) {
-  auto config = NeuralNet::defaultConfig();
-  config["layers"] = { 1, 1 };
-  NeuralNet net(config);
+  nlohmann::json config;
+  nlohmann::json paramsJson;
+  paramsJson["numInputs"] = 1;
+  paramsJson["numOutputs"] = 1;
+  config["hyperparams"] = paramsJson;
+  std::unique_ptr<NeuralNet> net = createNeuralNet(config);
 
   Matrix W(1, 1);
   W.set(0, 0, 12.3);
@@ -18,11 +21,11 @@ TEST_F(NeuralNetTest, evaluate) {
   Vector B(1);
   B[0] = 23.4;
 
-  net.setWeights({W});
-  net.setBiases({B});
+  net->setWeights({W});
+  net->setBiases({B});
 
   Vector X({45.6});
-  Vector Y = net.evaluate(X);
+  Vector Y = net->evaluate(X);
 
   //ASSERT_EQ(X[0] * W.at(0, 0) + B[0], Y[0]); // TODO: apply sigmoid
 }
