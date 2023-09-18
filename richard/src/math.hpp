@@ -20,6 +20,7 @@ class Vector {
     void normalize();
     void randomize(double maxMagnitude);
     double magnitude() const;
+    double squareMagnitude() const;
     double dot(const Vector& rhs) const;
     Vector hadamard(const Vector& rhs) const;
     Vector operator+(const Vector& rhs) const;

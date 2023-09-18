@@ -50,12 +50,16 @@ Vector& Vector::operator=(Vector&& rhs) {
 }
 
 double Vector::magnitude() const {
+  return sqrt(squareMagnitude());
+}
+
+double Vector::squareMagnitude() const {
   double sqSum = 0.0;
   for (size_t i = 0; i < m_size; ++i) {
     double x = m_data[i];
     sqSum += x * x;
   }
-  return sqrt(sqSum);
+  return sqSum;
 }
 
 void Vector::zero() {

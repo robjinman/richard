@@ -25,8 +25,7 @@ const ActivationFn sigmoidPrime = [](double x) -> double {
 const NeuralNet::CostFn quadradicCost = [](const Vector& actual, const Vector& expected) {
   ASSERT(actual.size() == expected.size());
 
-  Vector diff = expected - actual;
-  return diff.hadamard(diff).sum() / 2.0;
+  return (expected - actual).squareMagnitude() / 2.0;
 };
 
 // Partial derivatives of quadraticCost with respect to the activations
