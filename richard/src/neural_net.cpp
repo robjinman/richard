@@ -62,6 +62,7 @@ class Layer {
 class OutputLayer : public Layer {
   public:
     OutputLayer(size_t numNeurons, size_t inputSize, double learnRate);
+    OutputLayer(std::istream& fin, size_t numNeurons, size_t inputSize, double learnRate);
 
     LayerType type() const override { return LayerType::OUTPUT; }
     size_t outputSize() const override;
@@ -72,7 +73,7 @@ class OutputLayer : public Layer {
     void updateDelta(const Vector& layerInputs, const Layer& nextLayer) override { assert(false); }
     void updateDelta(const Vector& layerInputs, const Vector& y);
     nlohmann::json getConfig() const override;
-    void writeToStream(std::ostream& fout) const {}
+    void writeToStream(std::ostream& fout) const;
     const Matrix& W() const override;
 
   private:
@@ -208,6 +209,26 @@ OutputLayer::OutputLayer(size_t numNeurons, size_t inputSize, double learnRate)
 
   m_W = Matrix(inputSize, numNeurons);
   m_W.randomize(1.0);
+}
+
+OutputLayer::OutputLayer(std::istream& fin, size_t numNeurons, size_t inputSize, double learnRate)
+  : m_W(1, 1)
+  , m_B(1)
+  , m_Z(1)
+  , m_A(1)
+  , m_delta(1)
+  , m_learnRate(learnRate) {
+
+  m_B = Vector(numNeurons);
+  fin.read(reinterpret_cast<char*>(m_B.data()), numNeurons * sizeof(double));
+
+  m_W = Matrix(inputSize, numNeurons);
+  fin.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
+}
+
+void OutputLayer::writeToStream(std::ostream& fout) const {
+  fout.write(reinterpret_cast<const char*>(m_B.data()), m_B.size() * sizeof(double));
+  fout.write(reinterpret_cast<const char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
 }
 
 const Vector& OutputLayer::activations() const {
@@ -521,7 +542,7 @@ NeuralNetImpl::NeuralNetImpl(std::istream& fin) : m_isTrained(false) {
     m_layers.push_back(constructLayer(layerJson, fin, prevLayerSize));
     prevLayerSize = m_layers.back()->outputSize();
   }
-  m_layers.push_back(std::make_unique<OutputLayer>(m_params.numOutputs, prevLayerSize,
+  m_layers.push_back(std::make_unique<OutputLayer>(fin, m_params.numOutputs, prevLayerSize,
     m_params.learnRate));
 
   m_isTrained = true;
