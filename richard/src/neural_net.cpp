@@ -561,13 +561,13 @@ size_t NeuralNetImpl::inputSize() const {
 }
 
 double NeuralNetImpl::feedForward(const Vector& x, const Vector& y, double dropoutRate) {
-  const Vector* inputs = &x;
+  const Vector* A = &x;
   for (auto& layer : m_layers) {
-    layer->trainForward(*inputs);
-    inputs = &layer->activations();
+    layer->trainForward(*A);
+    A = &layer->activations();
   }
 
-  return quadradicCost(*inputs, y);
+  return quadradicCost(*A, y);
 }
 
 OutputLayer& NeuralNetImpl::outputLayer() {
@@ -640,12 +640,12 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
 }
 
 Vector NeuralNetImpl::evaluate(const Vector& x) const {
-  Vector activations = x;
+  Vector A = x;
   for (const auto& layer : m_layers) {
-    activations = layer->evalForward(activations);
+    A = layer->evalForward(A);
   }
 
-  return activations;
+  return A;
 }
 
 }
