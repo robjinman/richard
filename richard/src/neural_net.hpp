@@ -16,10 +16,6 @@ class NeuralNet {
     virtual void train(LabelledDataSet& data) = 0;
     virtual Vector evaluate(const Vector& inputs) const = 0;
 
-    // For unit tests
-    //virtual void setWeights(const std::vector<Matrix>& W) = 0;
-    //virtual void setBiases(const std::vector<Vector>& B) = 0;
-
     static const nlohmann::json& defaultConfig();
 
     virtual ~NeuralNet() {}

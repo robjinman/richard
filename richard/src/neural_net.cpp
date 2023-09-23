@@ -61,7 +61,7 @@ class Layer {
 
 class OutputLayer : public Layer {
   public:
-    OutputLayer(size_t numNeurons, size_t inputSize);
+    OutputLayer(size_t numNeurons, size_t inputSize, double learnRate);
 
     LayerType type() const override { return LayerType::OUTPUT; }
     size_t outputSize() const override;
@@ -81,13 +81,14 @@ class OutputLayer : public Layer {
     Vector m_Z;
     Vector m_A;
     Vector m_delta;
+    double m_learnRate;
 };
 
 class DenseLayer : public Layer {
   public:
-    DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize);
-    DenseLayer(const nlohmann::json& obj, size_t inputSize);
-    //DenseLayer(const Matrix& weights, const Vector& biases);
+    DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize, double learnRate,
+      double dropoutRate);
+    DenseLayer(const nlohmann::json& obj, size_t inputSize, double learnRate, double dropoutRate);
 
     LayerType type() const override { return LayerType::DENSE; }
     size_t outputSize() const override;
@@ -106,6 +107,8 @@ class DenseLayer : public Layer {
     Vector m_Z;
     Vector m_A;
     Vector m_delta;
+    double m_learnRate;
+    double m_dropoutRate;
 };
 
 class ConvolutionalLayer : public Layer {
@@ -179,27 +182,26 @@ class NeuralNetImpl : public NeuralNet {
     void train(LabelledDataSet& data) override;
     Vector evaluate(const Vector& inputs) const override;
 
-    // For unit tests
-    //void setWeights(const std::vector<Matrix>& W) override;
-    //void setBiases(const std::vector<Vector>& B) override;
-
   private:
     double feedForward(const Vector& x, const Vector& y, double dropoutRate);
-    void updateLayer(size_t layerIdx, const Vector& delta, const Vector& x, double learnRate);
     nlohmann::json getConfig() const;
     OutputLayer& outputLayer();
+    std::unique_ptr<Layer> constructLayer(const nlohmann::json& obj, std::istream& fin,
+      size_t prevLayerSize);
+    std::unique_ptr<Layer> constructLayer(const nlohmann::json& obj, size_t prevLayerSize);
 
     Hyperparams m_params;
     std::vector<std::unique_ptr<Layer>> m_layers;
     bool m_isTrained;
 };
 
-OutputLayer::OutputLayer(size_t numNeurons, size_t inputSize)
+OutputLayer::OutputLayer(size_t numNeurons, size_t inputSize, double learnRate)
   : m_W(1, 1)
   , m_B(1)
   , m_Z(1)
   , m_A(1)
-  , m_delta(1) {
+  , m_delta(1)
+  , m_learnRate(learnRate) {
 
   m_B = Vector(numNeurons);
   m_B.randomize(1.0);
@@ -232,26 +234,34 @@ size_t OutputLayer::outputSize() const {
   return m_B.size();
 }
 
+void OutputLayer::trainForward(const Vector& inputs) {
+  m_Z = m_W * inputs + m_B;
+  m_A = m_Z.transform(sigmoid);
+}
+
 void OutputLayer::updateDelta(const Vector& layerInputs, const Vector& y) {
   Vector deltaC = quadraticCostDerivatives(m_A, y);
   m_delta = m_Z.transform(sigmoidPrime).hadamard(deltaC);
 
   for (size_t j = 0; j < m_W.rows(); j++) {
     for (size_t k = 0; k < m_W.cols(); k++) {
-      double dw = layerInputs[k] * m_delta[j] * 0.7;//learnRate;
+      double dw = layerInputs[k] * m_delta[j] * m_learnRate;
       m_W.set(k, j, m_W.at(k, j) - dw);
     }
   }
 
-  m_B = m_B - m_delta * 0.7;//learnRate;
+  m_B = m_B - m_delta * m_learnRate;
 }
 
-DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize)
+DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize,
+  double learnRate, double dropoutRate)
   : m_W(1, 1)
   , m_B(1)
   , m_Z(1)
   , m_A(1)
-  , m_delta(1) {
+  , m_delta(1)
+  , m_learnRate(learnRate)
+  , m_dropoutRate(dropoutRate) {
 
   size_t numNeurons = getOrThrow(obj, "size").get<size_t>();
 
@@ -262,12 +272,15 @@ DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inpu
   fin.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
 }
 
-DenseLayer::DenseLayer(const nlohmann::json& obj, size_t inputSize)
+DenseLayer::DenseLayer(const nlohmann::json& obj, size_t inputSize, double learnRate,
+  double dropoutRate)
   : m_W(1, 1)
   , m_B(1)
   , m_Z(1)
   , m_A(1)
-  , m_delta(1) {
+  , m_delta(1)
+  , m_learnRate(learnRate)
+  , m_dropoutRate(dropoutRate) {
 
   size_t numNeurons = getOrThrow(obj, "size").get<size_t>();
 
@@ -310,18 +323,33 @@ Vector DenseLayer::evalForward(const Vector& x) const {
   return (m_W * x + m_B).transform(sigmoid);
 }
 
+void DenseLayer::trainForward(const Vector& inputs) {
+  auto shouldDrop = [this]() {
+    return rand() / (RAND_MAX + 1.0) < m_dropoutRate;
+  };
+
+  m_Z = m_W * inputs + m_B;
+  m_A = m_Z.transform(sigmoid);
+
+  for (size_t a = 0; a < m_A.size(); ++a) {
+    if (shouldDrop()) {
+      m_A[a] = 0.0;
+    }
+  }
+}
+
 void DenseLayer::updateDelta(const Vector& layerInputs, const Layer& nextLayer) {
   m_delta = nextLayer.W().transposeMultiply(nextLayer.delta())
                          .hadamard(m_Z.transform(sigmoidPrime));
 
   for (size_t j = 0; j < m_W.rows(); j++) {
     for (size_t k = 0; k < m_W.cols(); k++) {
-      double dw = layerInputs[k] * m_delta[j] * 0.7;//learnRate;
+      double dw = layerInputs[k] * m_delta[j] * m_learnRate;
       m_W.set(k, j, m_W.at(k, j) - dw);
     }
   }
 
-  m_B = m_B - m_delta * 0.7;//learnRate;
+  m_B = m_B - m_delta * m_learnRate;
 }
 
 size_t ConvolutionalLayer::outputSize() const {
@@ -419,12 +447,13 @@ nlohmann::json Hyperparams::toJson() const {
   return obj;
 }
 
-std::unique_ptr<Layer> constructLayer(const nlohmann::json& obj, std::istream& fin,
+std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj, std::istream& fin,
   size_t prevLayerSize) {
 
   std::string type = getOrThrow(obj, "type");
   if (type == "dense") {
-    return std::make_unique<DenseLayer>(obj, fin, prevLayerSize);
+    return std::make_unique<DenseLayer>(obj, fin, prevLayerSize, m_params.learnRate,
+      m_params.dropoutRate);
   }
   else if (type == "convolutional") {
     //return std::make_unique<ConvolutionalLayer>(obj, fin, prevLayerSize);
@@ -437,10 +466,13 @@ std::unique_ptr<Layer> constructLayer(const nlohmann::json& obj, std::istream& f
   }
 }
 
-std::unique_ptr<Layer> constructLayer(const nlohmann::json& obj, size_t prevLayerSize) {
+std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj,
+  size_t prevLayerSize) {
+
   std::string type = getOrThrow(obj, "type");
   if (type == "dense") {
-    return std::make_unique<DenseLayer>(obj, prevLayerSize);
+    return std::make_unique<DenseLayer>(obj, prevLayerSize, m_params.learnRate,
+      m_params.dropoutRate);
   }
   else if (type == "convolutional") {
     //return std::make_unique<ConvolutionalLayer>(obj, prevLayerSize);
@@ -467,7 +499,8 @@ NeuralNetImpl::NeuralNetImpl(const nlohmann::json& config)
     }
   }
 
-  m_layers.push_back(std::make_unique<OutputLayer>(m_params.numOutputs, prevLayerSize));
+  m_layers.push_back(std::make_unique<OutputLayer>(m_params.numOutputs, prevLayerSize,
+    m_params.learnRate));
 }
 
 NeuralNetImpl::NeuralNetImpl(std::istream& fin) : m_isTrained(false) {
@@ -488,7 +521,8 @@ NeuralNetImpl::NeuralNetImpl(std::istream& fin) : m_isTrained(false) {
     m_layers.push_back(constructLayer(layerJson, fin, prevLayerSize));
     prevLayerSize = m_layers.back()->outputSize();
   }
-  m_layers.push_back(std::make_unique<OutputLayer>(m_params.numOutputs, prevLayerSize));
+  m_layers.push_back(std::make_unique<OutputLayer>(m_params.numOutputs, prevLayerSize,
+    m_params.learnRate));
 
   m_isTrained = true;
 }
@@ -524,46 +558,6 @@ void NeuralNetImpl::writeToStream(std::ostream& fout) const {
 
 size_t NeuralNetImpl::inputSize() const {
   return m_params.numInputs;
-}
-/*
-void NeuralNetImpl::setWeights(const std::vector<Matrix>& W) {
-  if (W.size() != m_layers.size()) {
-    EXCEPTION("Wrong number of weight matrices");
-  }
-
-  for (size_t i = 0; i < W.size(); ++i) {
-    m_layers[i]->W() = W[i];
-  }
-}
-
-void NeuralNetImpl::setBiases(const std::vector<Vector>& B) {
-  if (B.size() != m_layers.size()) {
-    EXCEPTION("Wrong number of bias vectors");
-  }
-
-  for (size_t i = 0; i < B.size(); ++i) {
-    m_layers[i]->B() = B[i];
-  }
-}*/
-
-void DenseLayer::trainForward(const Vector& inputs) {
-  auto shouldDrop = [this]() {
-    return rand() / (RAND_MAX + 1.0) < 0.5;//m_dropoutRate;
-  };
-
-  m_Z = m_W * inputs + m_B;
-  m_A = m_Z.transform(sigmoid);
-
-  for (size_t a = 0; a < m_A.size(); ++a) {
-    if (shouldDrop()) {
-      m_A[a] = 0.0;
-    }
-  }
-}
-
-void OutputLayer::trainForward(const Vector& inputs) {
-  m_Z = m_W * inputs + m_B;
-  m_A = m_Z.transform(sigmoid);
 }
 
 double NeuralNetImpl::feedForward(const Vector& x, const Vector& y, double dropoutRate) {
