@@ -42,7 +42,10 @@ set(COMPILER_FLAGS -Wextra -Wall)
 set(DEBUG_FLAGS ${COMPILER_FLAGS} -g)
 set(RELEASE_FLAGS ${COMPILER_FLAGS} -O3)
 
-target_compile_options(${RICHARD_LIB_NAME} PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
+target_compile_options(${RICHARD_LIB_NAME}
+  PUBLIC
+  "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>"
+  "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
 target_link_libraries(${RICHARD_LIB_NAME}
   PUBLIC
   Boost::program_options

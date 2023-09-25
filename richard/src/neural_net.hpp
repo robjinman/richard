@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <fstream>
+#include <array>
 #include "math.hpp"
 
 class LabelledDataSet;
@@ -11,7 +12,7 @@ class NeuralNet {
     using CostFn = std::function<double(const Vector&, const Vector&)>;
 
     virtual CostFn costFn() const = 0;
-    virtual size_t inputSize() const = 0;
+    virtual std::array<size_t, 2> inputSize() const = 0;
     virtual void writeToStream(std::ostream& s) const = 0;
     virtual void train(LabelledDataSet& data) = 0;
     virtual Vector evaluate(const Vector& inputs) const = 0;

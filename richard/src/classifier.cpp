@@ -55,7 +55,8 @@ Classifier::Classifier(const std::string& filePath)
   fin.read(reinterpret_cast<char*>(&hasStats), sizeof(uint32_t));
 
   if (hasStats) {
-    size_t numInputs = m_neuralNet->inputSize();
+    std::array<size_t, 2> netInputSize = m_neuralNet->inputSize();
+    size_t numInputs = netInputSize[0] * netInputSize[1];
 
     Vector min(numInputs);
     Vector max(numInputs);
@@ -83,7 +84,7 @@ Classifier::Classifier(const nlohmann::json& config)
   m_neuralNet = createNeuralNet(getOrThrow(config, "network"));
 }
 
-size_t Classifier::inputSize() const {
+std::array<size_t, 2> Classifier::inputSize() const {
   return m_neuralNet->inputSize();
 }
 
@@ -144,8 +145,9 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
   double totalCost = 0.0;
   while (testData.loadSamples(samples, N) > 0) {
     for (const auto& sample : samples) {
-      TRUE_OR_THROW(sample.data.size() == m_neuralNet->inputSize(),
-        "Expected sample of size " << m_neuralNet->inputSize() << ", got " << sample.data.size());
+      size_t netInputSize = m_neuralNet->inputSize()[0] * m_neuralNet->inputSize()[1];
+      TRUE_OR_THROW(sample.data.size() == netInputSize,
+        "Expected sample of size " << netInputSize << ", got " << sample.data.size());
 
       Vector actual = m_neuralNet->evaluate(sample.data);
       Vector expected = testData.classOutputVector(sample.label);

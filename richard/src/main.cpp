@@ -67,7 +67,8 @@ void trainClassifier(const std::string& networkFile, const std::string& samplesP
     loader = std::make_unique<ImageDataLoader>(samplesPath, classifier.classLabels());
   }
   else {
-    loader = std::make_unique<CsvDataLoader>(samplesPath, classifier.inputSize());
+    std::array<size_t, 2> inputSize = classifier.inputSize();
+    loader = std::make_unique<CsvDataLoader>(samplesPath, inputSize[0] * inputSize[1]);
   }
 
   auto dataSet = std::make_unique<TrainingDataSet>(std::move(loader), classifier.classLabels(),
@@ -88,7 +89,8 @@ void testClassifier(const std::string& networkFile, const std::string& samplesPa
     loader = std::make_unique<ImageDataLoader>(samplesPath, classifier.classLabels());
   }
   else {
-    loader = std::make_unique<CsvDataLoader>(samplesPath, classifier.inputSize());
+    std::array<size_t, 2> inputSize = classifier.inputSize();
+    loader = std::make_unique<CsvDataLoader>(samplesPath, inputSize[0] * inputSize[1]);
   }
 
   auto dataSet = std::make_unique<TestDataSet>(std::move(loader), classifier.classLabels());
