@@ -62,7 +62,7 @@ void ConvolutionalLayer::trainForward(const Vector& inputs) {
   m_delta = Vector(featureMapW * featureMapH);
   for (size_t ymin = 0; ymin < featureMapH; ++ymin) {
     for (size_t xmin = 0; xmin < featureMapW; ++xmin) {
-      m_Z[ymin * featureMapW + xmin] = 0.0;
+      m_Z[ymin * featureMapW + xmin] = m_b;
       for (size_t j = 0; j < m_W.rows(); ++j) {
         for (size_t i = 0; i < m_W.cols(); ++i) {
           size_t inputX = xmin + i;
@@ -83,6 +83,7 @@ Vector ConvolutionalLayer::evalForward(const Vector& inputs) const {
   Vector A(featureMapW * featureMapH);
   for (size_t ymin = 0; ymin < featureMapH; ++ymin) {
     for (size_t xmin = 0; xmin < featureMapW; ++xmin) {
+      A[ymin * featureMapW + xmin] = m_b;
       for (size_t j = 0; j < m_W.rows(); ++j) {
         for (size_t i = 0; i < m_W.cols(); ++i) {
           size_t inputX = xmin + i;
