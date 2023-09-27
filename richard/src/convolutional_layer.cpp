@@ -20,7 +20,7 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW,
 
   m_W.randomize(1.0);
 
-  m_b = 0.0; // TODO: Randomize?
+  m_b = 0.5; // TODO: Randomize?
 }
 
 ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& fin, size_t inputW,
@@ -80,21 +80,21 @@ Vector ConvolutionalLayer::evalForward(const Vector& inputs) const {
   size_t featureMapW = m_inputW - m_W.cols();
   size_t featureMapH = m_inputH - m_W.rows();
 
-  Vector A(featureMapW * featureMapH);
+  Vector Z(featureMapW * featureMapH);
   for (size_t ymin = 0; ymin < featureMapH; ++ymin) {
     for (size_t xmin = 0; xmin < featureMapW; ++xmin) {
-      A[ymin * featureMapW + xmin] = m_b;
+      Z[ymin * featureMapW + xmin] = m_b;
       for (size_t j = 0; j < m_W.rows(); ++j) {
         for (size_t i = 0; i < m_W.cols(); ++i) {
           size_t inputX = xmin + i;
           size_t inputY = ymin + j;
-          A[ymin * featureMapW + xmin] += relu(m_W.at(i, j) * inputs[inputY * m_inputW + inputX]);
+          Z[ymin * featureMapW + xmin] += m_W.at(i, j) * inputs[inputY * m_inputW + inputX];
         }
       }
     }
   }
 
-  return A;
+  return Z.transform(relu);
 }
 
 void ConvolutionalLayer::updateDelta(const Vector& layerInputs, const Layer& nextLayer) {
@@ -107,21 +107,21 @@ void ConvolutionalLayer::updateDelta(const Vector& layerInputs, const Layer& nex
   size_t featureMapW = outputSize()[0];
   size_t featureMapH = outputSize()[1];
 
-  double learnRate = m_learnRate / (featureMapW * featureMapH);
+  double learnRate = m_learnRate;// / (featureMapW * featureMapH);
 
-  for (size_t j = 0; j < featureMapH; ++j) {
-    for (size_t i = 0; i < featureMapW; ++i) {
-      size_t idx = j * featureMapW + i;
+  for (size_t ymin = 0; ymin < featureMapH; ++ymin) {
+    for (size_t xmin = 0; xmin < featureMapW; ++xmin) {
+      size_t idx = ymin * featureMapW + xmin;
       m_delta[idx] = nextLayerDelta[idx];
-      for (size_t b = 0; b < m_W.rows(); ++b) {
-        for (size_t a = 0; a < m_W.cols(); ++a) {
-          size_t x = i + a;
-          size_t y = j + b;
-          double dw = layerInputs[y * m_inputW + x] * m_delta[idx] * learnRate;
-          m_W.set(b, a, m_W.at(b, a) - dw);
+      for (size_t j = 0; j < m_W.rows(); ++j) {
+        for (size_t i = 0; i < m_W.cols(); ++i) {
+          size_t inputX = xmin + i;
+          size_t inputY = ymin + j;
+          double dw = layerInputs[inputY * m_inputW + inputX] * m_delta[idx] * learnRate;
+          m_W.set(j, i, m_W.at(j, i) - dw);
+          m_b = m_b - m_delta[idx] * learnRate;
         }
       }
-      m_b = m_b - m_delta[idx] * learnRate;
     }
   }
 
