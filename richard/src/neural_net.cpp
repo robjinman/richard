@@ -25,12 +25,8 @@ struct Hyperparams {
   explicit Hyperparams(const nlohmann::json& obj);
 
   std::array<size_t, 2> numInputs;
-  size_t numOutputs;
   size_t epochs;
-  double learnRate;
-  double learnRateDecay;
   size_t maxBatchSize;
-  double dropoutRate;
 
   nlohmann::json toJson() const;
 };
@@ -49,7 +45,7 @@ class NeuralNetImpl : public NeuralNet {
     Vector evaluate(const Vector& inputs) const override;
 
   private:
-    double feedForward(const Vector& x, const Vector& y, double dropoutRate);
+    double feedForward(const Vector& x, const Vector& y);
     nlohmann::json getConfig() const;
     OutputLayer& outputLayer();
     std::unique_ptr<Layer> constructLayer(const nlohmann::json& obj, std::istream& fin,
@@ -64,35 +60,23 @@ class NeuralNetImpl : public NeuralNet {
 
 Hyperparams::Hyperparams()
   : numInputs({784, 1})
-  , numOutputs(10)
   , epochs(50)
-  , learnRate(0.7)
-  , learnRateDecay(1.0)
-  , maxBatchSize(1000)
-  , dropoutRate(0.5) {}
+  , maxBatchSize(1000) {}
 
 Hyperparams::Hyperparams(const nlohmann::json& obj) {
   nlohmann::json params = Hyperparams().toJson();
   params.merge_patch(obj);
   numInputs = getOrThrow(params, "numInputs").get<std::array<size_t, 2>>();
-  numOutputs = getOrThrow(params, "numOutputs").get<size_t>();
   epochs = getOrThrow(params, "epochs").get<size_t>();
-  learnRate = getOrThrow(params, "learnRate").get<double>();
-  learnRateDecay = getOrThrow(params, "learnRateDecay").get<double>();
   maxBatchSize = getOrThrow(params, "maxBatchSize").get<size_t>();
-  dropoutRate = getOrThrow(params, "dropoutRate").get<double>();
 }
 
 nlohmann::json Hyperparams::toJson() const {
   nlohmann::json obj;
 
   obj["numInputs"] = numInputs;
-  obj["numOutputs"] = numOutputs;
   obj["epochs"] = epochs;
-  obj["learnRate"] = learnRate;
-  obj["learnRateDecay"] = learnRateDecay;
   obj["maxBatchSize"] = maxBatchSize;
-  obj["dropoutRate"] = dropoutRate;
 
   return obj;
 }
@@ -104,12 +88,10 @@ std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj, 
 
   std::string type = getOrThrow(obj, "type");
   if (type == "dense") {
-    return std::make_unique<DenseLayer>(obj, fin, numInputs, m_params.learnRate,
-      m_params.dropoutRate);
+    return std::make_unique<DenseLayer>(obj, fin, numInputs);
   }
   else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(obj, fin, prevLayerSize[0], prevLayerSize[1],
-      m_params.learnRate);
+    return std::make_unique<ConvolutionalLayer>(obj, fin, prevLayerSize[0], prevLayerSize[1]);
   }
   else if (type == "maxPooling") {
     return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize[0], prevLayerSize[1]);
@@ -126,12 +108,10 @@ std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj,
 
   std::string type = getOrThrow(obj, "type");
   if (type == "dense") {
-    return std::make_unique<DenseLayer>(obj, numInputs, m_params.learnRate,
-      m_params.dropoutRate);
+    return std::make_unique<DenseLayer>(obj, numInputs);
   }
   else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(obj, prevLayerSize[0], prevLayerSize[1],
-      m_params.learnRate);
+    return std::make_unique<ConvolutionalLayer>(obj, prevLayerSize[0], prevLayerSize[1]);
   }
   else if (type == "maxPooling") {
     return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize[0], prevLayerSize[1]);
@@ -155,8 +135,9 @@ NeuralNetImpl::NeuralNetImpl(const nlohmann::json& config)
     }
   }
 
-  m_layers.push_back(std::make_unique<OutputLayer>(m_params.numOutputs,
-    prevLayerSize[0] * prevLayerSize[1], m_params.learnRate));
+  auto outLayerJson = config["outputLayer"];
+  m_layers.push_back(std::make_unique<OutputLayer>(outLayerJson,
+    prevLayerSize[0] * prevLayerSize[1]));
 }
 
 NeuralNetImpl::NeuralNetImpl(std::istream& fin) : m_isTrained(false) {
@@ -169,6 +150,7 @@ NeuralNetImpl::NeuralNetImpl(std::istream& fin) : m_isTrained(false) {
 
   nlohmann::json paramsJson = getOrThrow(config, "hyperparams");
   nlohmann::json layersJson = getOrThrow(config, "hiddenLayers");
+  nlohmann::json outLayerJson = getOrThrow(config, "outputLayer");
 
   m_params = Hyperparams(paramsJson);
 
@@ -177,8 +159,8 @@ NeuralNetImpl::NeuralNetImpl(std::istream& fin) : m_isTrained(false) {
     m_layers.push_back(constructLayer(layerJson, fin, prevLayerSize));
     prevLayerSize = m_layers.back()->outputSize();
   }
-  m_layers.push_back(std::make_unique<OutputLayer>(fin, m_params.numOutputs,
-    prevLayerSize[0] * prevLayerSize[1], m_params.learnRate));
+  m_layers.push_back(std::make_unique<OutputLayer>(outLayerJson, fin,
+    prevLayerSize[0] * prevLayerSize[1]));
 
   m_isTrained = true;
 }
@@ -194,8 +176,9 @@ nlohmann::json NeuralNetImpl::getConfig() const {
   for (auto& pLayer : m_layers) {
     layerJsons.push_back(pLayer->getConfig());
   }
-  layerJsons.pop_back(); // Omit the output layer
+  layerJsons.pop_back(); // Output layer
   config["hiddenLayers"] = layerJsons;
+  config["outputLayer"] = m_layers.back()->getConfig();
   return config;
 }
 
@@ -226,7 +209,7 @@ std::ostream& operator<<(std::ostream& os, LayerType layerType) {
   return os;
 }
 
-double NeuralNetImpl::feedForward(const Vector& x, const Vector& y, double dropoutRate) {
+double NeuralNetImpl::feedForward(const Vector& x, const Vector& y) {
   const Vector* A = &x;
   for (auto& layer : m_layers) {
     //std::cout << "Layer type: " << layer->type() << "\n";
@@ -247,13 +230,8 @@ OutputLayer& NeuralNetImpl::outputLayer() {
 }
 
 void NeuralNetImpl::train(LabelledDataSet& trainingData) {
-  double learnRate = m_params.learnRate;
-
   std::cout << "Epochs: " << m_params.epochs << std::endl;
-  std::cout << "Initial learn rate: " << m_params.learnRate << std::endl;
-  std::cout << "Learn rate decay: " << m_params.learnRateDecay << std::endl;
   std::cout << "Max batch size: " << m_params.maxBatchSize << std::endl;
-  std::cout << "Dropout rate: " << m_params.dropoutRate << std::endl;
 
   const size_t N = 500; // TODO
 
@@ -273,17 +251,17 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
         const Vector& x = sample.data;
         const Vector& y = trainingData.classOutputVector(sample.label);
 
-        cost += feedForward(x, y, m_params.dropoutRate);
+        cost += feedForward(x, y);
 
         for (int l = static_cast<int>(m_layers.size()) - 1; l >= 0; --l) {
           if (l == static_cast<int>(m_layers.size()) - 1) {
-            outputLayer().updateDelta(m_layers[m_layers.size() - 2]->activations(), y);
+            outputLayer().updateDelta(m_layers[m_layers.size() - 2]->activations(), y, epoch);
           }
           else if (l == 0) {
-            m_layers[l]->updateDelta(x, *m_layers[l + 1]);
+            m_layers[l]->updateDelta(x, *m_layers[l + 1], epoch);
           }
           else {
-            m_layers[l]->updateDelta(m_layers[l - 1]->activations(), *m_layers[l + 1]);
+            m_layers[l]->updateDelta(m_layers[l - 1]->activations(), *m_layers[l + 1], epoch);
           }
         }
 
@@ -300,10 +278,8 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
       }
     }
 
-    learnRate *= m_params.learnRateDecay;
-
     cost = cost / samplesProcessed;
-    std::cout << ", learn rate = " << learnRate << ", cost = " << cost << std::endl;
+    std::cout << ", cost = " << cost << std::endl;
 
     if (std::isnan(cost)) {
       exit(1); // TODO
@@ -331,16 +307,32 @@ const nlohmann::json& NeuralNet::defaultConfig() {
   static bool done = false;
 
   if (!done) {
+    // TODO: Construct temporary layers and get config?
+
     nlohmann::json layer1;
     layer1["type"] = "dense";
     layer1["size"] = 300;
+    layer1["learnRate"] = 0.7;
+    layer1["learnRateDecay"] = 1.0;
+    layer1["dropoutRate"] = 0.5;
     nlohmann::json layer2;
     layer2["type"] = "dense";
     layer2["size"] = 80;
+    layer2["learnRate"] = 0.7;
+    layer2["learnRateDecay"] = 1.0;
+    layer2["dropoutRate"] = 0.5;
     std::vector<nlohmann::json> layersJson{layer1, layer2};
 
     config["hyperparams"] = Hyperparams().toJson();
     config["hiddenLayers"] = layersJson;
+
+    nlohmann::json outLayer;
+    outLayer["type"] = "output";
+    outLayer["size"] = 10;
+    outLayer["learnRate"] = 0.7;
+    outLayer["learnRateDecay"] = 1.0;
+
+    config["outputLayer"] = outLayer;
 
     done = true;
   }

@@ -4,17 +4,17 @@
 #include "max_pooling_layer.hpp"
 #include "exception.hpp"
 
-ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW, size_t inputH,
-  double learnRate)
+ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW, size_t inputH)
   : m_W(1, 1)
   , m_Z(1)
   , m_A(1)
   , m_delta(1)
   , m_inputW(inputW)
-  , m_inputH(inputH)
-  , m_learnRate(learnRate) {
+  , m_inputH(inputH) {
 
   std::array<size_t, 2> kernelSize = getOrThrow(obj, "kernelSize").get<std::array<size_t, 2>>();
+  m_learnRate = getOrThrow(obj, "learnRate").get<double>();
+  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<double>();
 
   m_W = Matrix(kernelSize[0], kernelSize[1]);
 
@@ -27,16 +27,17 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW,
 }
 
 ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& fin, size_t inputW,
-  size_t inputH, double learnRate)
+  size_t inputH)
   : m_W(1, 1)
   , m_Z(1)
   , m_A(1)
   , m_delta(1)
   , m_inputW(inputW)
-  , m_inputH(inputH)
-  , m_learnRate(learnRate) {
+  , m_inputH(inputH) {
 
   std::array<size_t, 2> kernelSize = getOrThrow(obj, "kernelSize").get<std::array<size_t, 2>>();
+  m_learnRate = getOrThrow(obj, "learnRate").get<double>();
+  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<double>();
 
   m_W = Matrix(kernelSize[0], kernelSize[1]);
 
@@ -100,7 +101,9 @@ Vector ConvolutionalLayer::evalForward(const Vector& inputs) const {
   return Z.transform(relu);
 }
 
-void ConvolutionalLayer::updateDelta(const Vector& layerInputs, const Layer& nextLayer) {
+void ConvolutionalLayer::updateDelta(const Vector& layerInputs, const Layer& nextLayer,
+  size_t epoch) {
+  
   TRUE_OR_THROW(nextLayer.type() == LayerType::MAX_POOLING,
     "Expect max pooling after convolutional layer");
 
@@ -110,7 +113,7 @@ void ConvolutionalLayer::updateDelta(const Vector& layerInputs, const Layer& nex
   size_t featureMapW = outputSize()[0];
   size_t featureMapH = outputSize()[1];
 
-  double learnRate = m_learnRate / (featureMapW * featureMapH);
+  double learnRate = m_learnRate * pow(m_learnRateDecay, epoch) / (featureMapW * featureMapH);
 
   for (size_t ymin = 0; ymin < featureMapH; ++ymin) {
     for (size_t xmin = 0; xmin < featureMapW; ++xmin) {
@@ -136,6 +139,8 @@ nlohmann::json ConvolutionalLayer::getConfig() const {
   nlohmann::json config;
   config["type"] = "convolutional";
   config["kernelSize"] = std::array<size_t, 2>({ m_W.cols(), m_W.rows() });
+  config["learnRate"] = m_learnRate;
+  config["learnRateDecay"] = m_learnRateDecay;
   return config;
 }
 

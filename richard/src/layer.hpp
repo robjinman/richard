@@ -43,7 +43,7 @@ class Layer {
     virtual const Vector& delta() const = 0;
     virtual void trainForward(const Vector& inputs) = 0;
     virtual Vector evalForward(const Vector& inputs) const = 0;
-    virtual void updateDelta(const Vector& layerInputs, const Layer& nextLayer) = 0;
+    virtual void updateDelta(const Vector& layerInputs, const Layer& nextLayer, size_t epoch) = 0;
     virtual nlohmann::json getConfig() const = 0;
     virtual void writeToStream(std::ostream& fout) const = 0;
     virtual const Matrix& W() const = 0;

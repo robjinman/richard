@@ -12,9 +12,9 @@ class MaxPoolingLayer : public Layer {
     const Vector& delta() const override;
     void trainForward(const Vector& inputs) override;
     Vector evalForward(const Vector& inputs) const override;
-    void updateDelta(const Vector& layerInputs, const Layer& nextLayer) override;
+    void updateDelta(const Vector& layerInputs, const Layer& nextLayer, size_t epoch) override;
     nlohmann::json getConfig() const override;
-    void writeToStream(std::ostream& fout) const override {}
+    void writeToStream(std::ostream&) const override {}
     const Matrix& W() const override;
 
   private:

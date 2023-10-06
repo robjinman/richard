@@ -4,9 +4,8 @@
 
 class ConvolutionalLayer : public Layer {
   public:
-    ConvolutionalLayer(const nlohmann::json& obj, size_t inputW, size_t inputH, double learnRate);
-    ConvolutionalLayer(const nlohmann::json& obj, std::istream& fin, size_t inputW, size_t inputH,
-      double learnRate);
+    ConvolutionalLayer(const nlohmann::json& obj, size_t inputW, size_t inputH);
+    ConvolutionalLayer(const nlohmann::json& obj, std::istream& fin, size_t inputW, size_t inputH);
 
     LayerType type() const override { return LayerType::CONVOLUTIONAL; }
     std::array<size_t, 2> outputSize() const override;
@@ -14,7 +13,7 @@ class ConvolutionalLayer : public Layer {
     const Vector& delta() const override;
     void trainForward(const Vector& inputs) override;
     Vector evalForward(const Vector& inputs) const override;
-    void updateDelta(const Vector& layerInputs, const Layer& nextLayer) override;
+    void updateDelta(const Vector& layerInputs, const Layer& nextLayer, size_t epoch) override;
     nlohmann::json getConfig() const override;
     void writeToStream(std::ostream& fout) const override;
     const Matrix& W() const override;
@@ -28,4 +27,5 @@ class ConvolutionalLayer : public Layer {
     size_t m_inputW;
     size_t m_inputH;
     double m_learnRate;
+    double m_learnRateDecay;
 };

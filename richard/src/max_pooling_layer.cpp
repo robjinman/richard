@@ -13,8 +13,8 @@ MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_
   m_regionW = regionSize[0];
   m_regionH = regionSize[1];
 
-  TRUE_OR_THROW(inputW % m_regionW == 0, "region width does not divide input width");
-  TRUE_OR_THROW(inputH % m_regionH == 0, "region height does not divide input height");
+  TRUE_OR_THROW(inputW % m_regionW == 0, "Region width does not divide input width");
+  TRUE_OR_THROW(inputH % m_regionH == 0, "Region height does not divide input height");
 }
 
 const Matrix& MaxPoolingLayer::W() const {
@@ -97,7 +97,7 @@ Vector MaxPoolingLayer::evalForward(const Vector& inputs) const {
   return Z;
 }
 
-void MaxPoolingLayer::updateDelta(const Vector& layerInputs, const Layer& nextLayer) {
+void MaxPoolingLayer::updateDelta(const Vector&, const Layer& nextLayer, size_t) {
   m_delta = Vector(m_inputW * m_inputH);
 
   Vector delta = nextLayer.W().transposeMultiply(nextLayer.delta());
