@@ -1,3 +1,5 @@
+#include <iostream> // TODO
+#include <random>
 #include "convolutional_layer.hpp"
 #include "max_pooling_layer.hpp"
 #include "exception.hpp"
@@ -16,11 +18,12 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW,
 
   m_W = Matrix(kernelSize[0], kernelSize[1]);
 
-  //m_W = Matrix(width * height, 1);
-
   m_W.randomize(1.0);
 
-  m_b = 0.5; // TODO: Randomize?
+  std::default_random_engine gen;
+  std::uniform_real_distribution<double> dist(-1.0, 1.0);
+
+  m_b = dist(gen);
 }
 
 ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& fin, size_t inputW,
@@ -107,7 +110,7 @@ void ConvolutionalLayer::updateDelta(const Vector& layerInputs, const Layer& nex
   size_t featureMapW = outputSize()[0];
   size_t featureMapH = outputSize()[1];
 
-  double learnRate = m_learnRate;// / (featureMapW * featureMapH);
+  double learnRate = m_learnRate / (featureMapW * featureMapH);
 
   for (size_t ymin = 0; ymin < featureMapH; ++ymin) {
     for (size_t xmin = 0; xmin < featureMapW; ++xmin) {

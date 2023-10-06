@@ -303,7 +303,7 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
     learnRate *= m_params.learnRateDecay;
 
     cost = cost / samplesProcessed;
-    std::cout << ", cost = " << cost << std::endl;
+    std::cout << ", learn rate = " << learnRate << ", cost = " << cost << std::endl;
 
     if (std::isnan(cost)) {
       exit(1); // TODO

@@ -81,6 +81,7 @@ class Matrix {
     inline size_t cols() const;
     inline double* data();
     inline const double* data() const;
+    Matrix transpose() const;
 
   private:
     size_t m_cols;

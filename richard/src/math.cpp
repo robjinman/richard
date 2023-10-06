@@ -22,7 +22,10 @@ Vector::Vector(Vector&& mv)
 
 Vector::Vector(size_t size)
   : m_size(size)
-  , m_data(new double[size]) {}
+  , m_data(new double[size]) {
+
+  memset(m_data.get(), 0, size * sizeof(double));
+}
 
 Vector::Vector(const Vector& cpy)
   : m_size(cpy.m_size)
@@ -199,6 +202,7 @@ Matrix::Matrix(size_t cols, size_t rows)
   , m_rows(rows) {
 
   m_data.reset(new double[cols * rows]);
+  memset(m_data.get(), 0, cols * rows * sizeof(double));
 }
 
 Vector Matrix::operator*(const Vector& rhs) const {
@@ -253,6 +257,16 @@ Vector Matrix::transposeMultiply(const Vector& rhs) const {
     v[c] = sum;
   }
   return v;
+}
+
+Matrix Matrix::transpose() const {
+  Matrix m(m_rows, m_cols);
+  for (size_t c = 0; c < m_cols; ++c) {
+    for (size_t r = 0; r < m_rows; ++r) {
+      m.set(r, c, at(c, r));
+    }
+  }
+  return m;
 }
 
 void Matrix::zero() {
