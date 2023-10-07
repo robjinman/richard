@@ -199,16 +199,6 @@ std::array<size_t, 2> NeuralNetImpl::inputSize() const {
   return m_params.numInputs;
 }
 
-std::ostream& operator<<(std::ostream& os, LayerType layerType) {
-  switch (layerType) {
-    case LayerType::DENSE: os << "DENSE"; break;
-    case LayerType::CONVOLUTIONAL: os << "CONVOLUTIONAL"; break;
-    case LayerType::OUTPUT: os << "OUTPUT"; break;
-    case LayerType::MAX_POOLING: os << "MAX_POOLING"; break;
-  }
-  return os;
-}
-
 double NeuralNetImpl::feedForward(const Vector& x, const Vector& y) {
   const Vector* A = &x;
   for (auto& layer : m_layers) {
@@ -280,6 +270,9 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
 
     cost = cost / samplesProcessed;
     std::cout << ", cost = " << cost << std::endl;
+
+    //std::cout << "Filter: \n";
+    //std::cout << m_layers[0]->W();
 
     if (std::isnan(cost)) {
       exit(1); // TODO

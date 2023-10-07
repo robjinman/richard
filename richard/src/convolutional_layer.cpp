@@ -17,7 +17,6 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW,
   m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<double>();
 
   m_W = Matrix(kernelSize[0], kernelSize[1]);
-
   m_W.randomize(1.0);
 
   std::default_random_engine gen;

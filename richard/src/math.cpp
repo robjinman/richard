@@ -116,7 +116,7 @@ std::ostream& operator<<(std::ostream& os, const Vector& v) {
   for (size_t i = 0; i < v.size(); ++i) {
     os << v[i] << " ";
   }
-  os << "]\n";
+  os << "]" << std::endl;
 
   return os;
 }
@@ -269,6 +269,12 @@ Matrix Matrix::transpose() const {
   return m;
 }
 
+void Matrix::fill(double x) {
+  for (size_t i = 0; i < m_rows * m_cols; ++i) {
+    m_data[i] = x;
+  }
+}
+
 void Matrix::zero() {
   memset(m_data.get(), 0, m_rows * m_cols * sizeof(double));
 }
@@ -280,4 +286,19 @@ void Matrix::randomize(double maxMagnitude) {
   for (size_t i = 0; i < m_rows * m_cols; ++i) {
     m_data[i] = dist(gen);
   }
+}
+
+std::ostream& operator<<(std::ostream& os, const Matrix& m) {
+  os << "[ ";
+  for (size_t i = 0; i < m.cols(); ++i) {
+    for (size_t j = 0; j < m.rows(); ++j) {
+      os << m.at(i, j) << " ";
+    }
+    if (i + 1 == m.cols()) {
+      os << "]";
+    }
+    os << std::endl;
+  }
+
+  return os;
 }

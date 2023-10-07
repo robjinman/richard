@@ -76,12 +76,15 @@ class Matrix {
     inline double at(size_t col, size_t row) const;
     inline void set(size_t col, size_t row, double x);
     void zero();
+    void fill(double x);
     void randomize(double maxMagnitude);
     inline size_t rows() const;
     inline size_t cols() const;
     inline double* data();
     inline const double* data() const;
     Matrix transpose() const;
+
+    friend std::ostream& operator<<(std::ostream& os, const Matrix& m);
 
   private:
     size_t m_cols;
