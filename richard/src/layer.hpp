@@ -38,7 +38,7 @@ enum class LayerType {
 class Layer {
   public:
     virtual LayerType type() const = 0;
-    virtual std::array<size_t, 2> outputSize() const = 0;
+    virtual std::array<size_t, 3> outputSize() const = 0;
     virtual const Vector& activations() const = 0;
     virtual const Vector& delta() const = 0;
     virtual void trainForward(const Vector& inputs) = 0;

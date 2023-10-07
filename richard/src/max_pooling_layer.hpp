@@ -4,10 +4,10 @@
 
 class MaxPoolingLayer : public Layer {
   public:
-    MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_t inputH);
+    MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_t inputH, size_t inputDepth);
 
     LayerType type() const override { return LayerType::MAX_POOLING; }
-    std::array<size_t, 2> outputSize() const override;
+    std::array<size_t, 3> outputSize() const override;
     const Vector& activations() const override;
     const Vector& delta() const override;
     void trainForward(const Vector& inputs) override;
@@ -24,5 +24,6 @@ class MaxPoolingLayer : public Layer {
     size_t m_regionH;
     size_t m_inputW;
     size_t m_inputH;
+    size_t m_inputDepth;
     Vector m_mask;
 };

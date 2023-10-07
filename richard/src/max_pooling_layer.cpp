@@ -2,12 +2,14 @@
 #include "max_pooling_layer.hpp"
 #include "exception.hpp"
 
-MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_t inputH)
+MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_t inputH,
+  size_t inputDepth)
   : m_Z(1)
   , m_delta(1)
   , m_inputW(inputW)
   , m_inputH(inputH)
-  , m_mask(inputW * inputH) {
+  , m_inputDepth(inputDepth)
+  , m_mask(inputW * inputH * inputDepth) {
 
   std::array<size_t, 2> regionSize = getOrThrow(obj, "regionSize").get<std::array<size_t, 2>>();
   m_regionW = regionSize[0];
@@ -23,8 +25,12 @@ const Matrix& MaxPoolingLayer::W() const {
   return m;
 }
 
-std::array<size_t, 2> MaxPoolingLayer::outputSize() const {
-  return { static_cast<size_t>(m_inputW / m_regionW), static_cast<size_t>(m_inputH / m_regionH) };
+std::array<size_t, 3> MaxPoolingLayer::outputSize() const {
+  return {
+    static_cast<size_t>(m_inputW / m_regionW),
+    static_cast<size_t>(m_inputH / m_regionH),
+    m_inputDepth
+  };
 }
 
 const Vector& MaxPoolingLayer::activations() const {
@@ -38,33 +44,33 @@ const Vector& MaxPoolingLayer::delta() const {
 void MaxPoolingLayer::trainForward(const Vector& inputs) {
   size_t outputW = m_inputW / m_regionW;
   size_t outputH = m_inputH / m_regionH;
-  m_Z = Vector(outputW * outputH);
+  m_Z = Vector(outputW * outputH * m_inputDepth);
 
-  //std::cout << "outputW: " << outputW << "\n";
-  //std::cout << "outputH: " << outputH << "\n";
-  //std::cout << "m_regionW: " << m_regionW << "\n";
-  //std::cout << "m_regionH: " << m_regionH << "\n";
+  for (size_t slice = 0; slice < m_inputDepth; ++slice) {
+    size_t inputOffset = slice * m_inputW * m_inputH;
+    size_t outputOffset = slice * outputW * outputH;
 
-  for (size_t y = 0; y < outputH; ++y) {
-    for (size_t x = 0; x < outputW; ++x) {
-      double largest = std::numeric_limits<double>::min();
-      size_t largestInputX = 0;
-      size_t largestInputY = 0;
-      for (size_t j = 0; j < m_regionH; ++j) {
-        for (size_t i = 0; i < m_regionW; ++i) {
-          size_t inputX = x * m_regionW + i;
-          size_t inputY = y * m_regionH + j;
-          double input = inputs[inputY * m_inputW + inputX];
-          if (input > largest) {
-            largest = input;
-            largestInputX = inputX;
-            largestInputY = inputY;
+    for (size_t y = 0; y < outputH; ++y) {
+      for (size_t x = 0; x < outputW; ++x) {
+        double largest = std::numeric_limits<double>::min();
+        size_t largestInputX = 0;
+        size_t largestInputY = 0;
+        for (size_t j = 0; j < m_regionH; ++j) {
+          for (size_t i = 0; i < m_regionW; ++i) {
+            size_t inputX = x * m_regionW + i;
+            size_t inputY = y * m_regionH + j;
+            double input = inputs[inputOffset + inputY * m_inputW + inputX];
+            if (input > largest) {
+              largest = input;
+              largestInputX = inputX;
+              largestInputY = inputY;
+            }
+            m_mask[inputOffset + inputY * m_inputW + inputX] = 0.0;
           }
-          m_mask[inputY * m_inputW + inputX] = 0.0;
         }
+        m_mask[inputOffset + largestInputY * m_inputW + largestInputX] = 1.0;
+        m_Z[outputOffset + y * outputW + x] = largest;
       }
-      m_mask[largestInputY * m_inputW + largestInputX] = 1.0;
-      m_Z[y * outputW + x] = largest;
     }
   }
 
@@ -75,22 +81,27 @@ void MaxPoolingLayer::trainForward(const Vector& inputs) {
 Vector MaxPoolingLayer::evalForward(const Vector& inputs) const {
   size_t outputW = m_inputW / m_regionW;
   size_t outputH = m_inputH / m_regionH;
-  Vector Z(outputW * outputH);
+  Vector Z(outputW * outputH * m_inputDepth);
 
-  for (size_t y = 0; y < outputH; ++y) {
-    for (size_t x = 0; x < outputW; ++x) {
-      double largest = std::numeric_limits<double>::min();
-      for (size_t j = 0; j < m_regionH; ++j) {
-        for (size_t i = 0; i < m_regionW; ++i) {
-          size_t inputX = x * m_regionW + i;
-          size_t inputY = y * m_regionH + j;
-          double input = inputs[inputY * m_inputW + inputX];
-          if (input > largest) {
-            largest = input;
+  for (size_t slice = 0; slice < m_inputDepth; ++slice) {
+    size_t inputOffset = slice * m_inputW * m_inputH;
+    size_t outputOffset = slice * outputW * outputH;
+
+    for (size_t y = 0; y < outputH; ++y) {
+      for (size_t x = 0; x < outputW; ++x) {
+        double largest = std::numeric_limits<double>::min();
+        for (size_t j = 0; j < m_regionH; ++j) {
+          for (size_t i = 0; i < m_regionW; ++i) {
+            size_t inputX = x * m_regionW + i;
+            size_t inputY = y * m_regionH + j;
+            double input = inputs[inputOffset + inputY * m_inputW + inputX];
+            if (input > largest) {
+              largest = input;
+            }
           }
         }
+        Z[outputOffset + y * outputW + x] = largest;
       }
-      Z[y * outputW + x] = largest;
     }
   }
 
@@ -98,24 +109,30 @@ Vector MaxPoolingLayer::evalForward(const Vector& inputs) const {
 }
 
 void MaxPoolingLayer::updateDelta(const Vector&, const Layer& nextLayer, size_t) {
-  m_delta = Vector(m_inputW * m_inputH);
+  m_delta = Vector(m_inputW * m_inputH * m_inputDepth);
 
   Vector delta = nextLayer.W().transposeMultiply(nextLayer.delta());
 
   size_t outputW = m_inputW / m_regionW;
   size_t outputH = m_inputH / m_regionH;
 
-  for (size_t y = 0; y < outputH; ++y) {
-    for (size_t x = 0; x < outputW; ++x) {
-      for (size_t j = 0; j < m_regionH; ++j) {
-        for (size_t i = 0; i < m_regionW; ++i) {
-          size_t inputX = x * m_regionW + i;
-          size_t inputY = y * m_regionH + j;
-          if (m_mask[inputY * m_inputW + inputX] != 0.0) {
-            m_delta[inputY * m_inputW + inputX] = delta[y * outputW + x];
-          }
-          else {
-            m_delta[inputY * m_inputW + inputX] = 0.0;
+  for (size_t slice = 0; slice < m_inputDepth; ++slice) {
+    size_t inputOffset = slice * m_inputW * m_inputH;
+    size_t outputOffset = slice * outputW * outputH;
+
+    for (size_t y = 0; y < outputH; ++y) {
+      for (size_t x = 0; x < outputW; ++x) {
+        for (size_t j = 0; j < m_regionH; ++j) {
+          for (size_t i = 0; i < m_regionW; ++i) {
+            size_t inputX = x * m_regionW + i;
+            size_t inputY = y * m_regionH + j;
+            if (m_mask[inputOffset + inputY * m_inputW + inputX] != 0.0) {
+              m_delta[inputOffset + inputY * m_inputW + inputX] =
+                delta[outputOffset + y * outputW + x];
+            }
+            else {
+              m_delta[inputOffset + inputY * m_inputW + inputX] = 0.0;
+            }
           }
         }
       }

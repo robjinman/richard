@@ -8,7 +8,7 @@ class ConvolutionalLayer : public Layer {
     ConvolutionalLayer(const nlohmann::json& obj, std::istream& fin, size_t inputW, size_t inputH);
 
     LayerType type() const override { return LayerType::CONVOLUTIONAL; }
-    std::array<size_t, 2> outputSize() const override;
+    std::array<size_t, 3> outputSize() const override;
     const Vector& activations() const override;
     const Vector& delta() const override;
     void trainForward(const Vector& inputs) override;
@@ -19,8 +19,16 @@ class ConvolutionalLayer : public Layer {
     const Matrix& W() const override;
 
   private:
-    Matrix m_W;
-    double m_b;
+    struct SliceParams {
+      SliceParams()
+        : W(1, 1)
+        , b(0.0) {}
+
+      Matrix W;
+      double b;
+    };
+
+    std::vector<SliceParams> m_slices;
     Vector m_Z;
     Vector m_A;
     Vector m_delta;
@@ -28,4 +36,7 @@ class ConvolutionalLayer : public Layer {
     size_t m_inputH;
     double m_learnRate;
     double m_learnRateDecay;
+
+  void forwardPass(const Vector& inputs, Vector& Z) const;
+  size_t sliceSize() const;
 };

@@ -71,8 +71,8 @@ Vector OutputLayer::evalForward(const Vector& x) const {
   return (m_W * x + m_B).transform(sigmoid);
 }
 
-std::array<size_t, 2> OutputLayer::outputSize() const {
-  return { m_B.size(), 1 };
+std::array<size_t, 3> OutputLayer::outputSize() const {
+  return { m_B.size(), 1, 1 };
 }
 
 void OutputLayer::trainForward(const Vector& inputs) {

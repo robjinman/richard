@@ -49,9 +49,9 @@ class NeuralNetImpl : public NeuralNet {
     nlohmann::json getConfig() const;
     OutputLayer& outputLayer();
     std::unique_ptr<Layer> constructLayer(const nlohmann::json& obj, std::istream& fin,
-      const std::array<size_t, 2>& prevLayerSize);
+      const std::array<size_t, 3>& prevLayerSize);
     std::unique_ptr<Layer> constructLayer(const nlohmann::json& obj,
-      const std::array<size_t, 2>& prevLayerSize);
+      const std::array<size_t, 3>& prevLayerSize);
 
     bool m_isTrained;
     Hyperparams m_params;
@@ -82,9 +82,9 @@ nlohmann::json Hyperparams::toJson() const {
 }
 
 std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj, std::istream& fin,
-  const std::array<size_t, 2>& prevLayerSize) {
+  const std::array<size_t, 3>& prevLayerSize) {
 
-  size_t numInputs = prevLayerSize[0] * prevLayerSize[1];
+  size_t numInputs = prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2];
 
   std::string type = getOrThrow(obj, "type");
   if (type == "dense") {
@@ -94,7 +94,8 @@ std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj, 
     return std::make_unique<ConvolutionalLayer>(obj, fin, prevLayerSize[0], prevLayerSize[1]);
   }
   else if (type == "maxPooling") {
-    return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize[0], prevLayerSize[1]);
+    return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize[0], prevLayerSize[1],
+      prevLayerSize[2]);
   }
   else {
     EXCEPTION("Don't know how to construct layer of type '" << type << "'");
@@ -102,9 +103,9 @@ std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj, 
 }
 
 std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj,
-  const std::array<size_t, 2>& prevLayerSize) {
+  const std::array<size_t, 3>& prevLayerSize) {
 
-  size_t numInputs = prevLayerSize[0] * prevLayerSize[1];
+  size_t numInputs = prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2];
 
   std::string type = getOrThrow(obj, "type");
   if (type == "dense") {
@@ -114,7 +115,8 @@ std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj,
     return std::make_unique<ConvolutionalLayer>(obj, prevLayerSize[0], prevLayerSize[1]);
   }
   else if (type == "maxPooling") {
-    return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize[0], prevLayerSize[1]);
+    return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize[0], prevLayerSize[1],
+      prevLayerSize[2]);
   }
   else {
     EXCEPTION("Don't know how to construct layer of type '" << type << "'");
@@ -125,7 +127,7 @@ NeuralNetImpl::NeuralNetImpl(const nlohmann::json& config)
   : m_isTrained(false)
   , m_params(getOrThrow(config, "hyperparams")) {
 
-  auto prevLayerSize = m_params.numInputs;
+  std::array<size_t, 3> prevLayerSize = { m_params.numInputs[0], m_params.numInputs[1], 1 };
   if (config.contains("hiddenLayers")) {
     auto layersJson = config["hiddenLayers"];
 
@@ -154,7 +156,7 @@ NeuralNetImpl::NeuralNetImpl(std::istream& fin) : m_isTrained(false) {
 
   m_params = Hyperparams(paramsJson);
 
-  auto prevLayerSize = m_params.numInputs;
+  std::array<size_t, 3> prevLayerSize = { m_params.numInputs[0], m_params.numInputs[1], 1 };
   for (auto& layerJson : layersJson) {
     m_layers.push_back(constructLayer(layerJson, fin, prevLayerSize));
     prevLayerSize = m_layers.back()->outputSize();

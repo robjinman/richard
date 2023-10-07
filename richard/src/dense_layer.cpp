@@ -43,8 +43,8 @@ void DenseLayer::writeToStream(std::ostream& fout) const {
   fout.write(reinterpret_cast<const char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
 }
 
-std::array<size_t, 2> DenseLayer::outputSize() const {
-  return { m_B.size(), 1 };
+std::array<size_t, 3> DenseLayer::outputSize() const {
+  return { m_B.size(), 1, 1 };
 }
 
 const Vector& DenseLayer::activations() const {
