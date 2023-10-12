@@ -34,16 +34,11 @@ OutputLayer::OutputLayer(const nlohmann::json& obj, std::istream& fin, size_t in
 
   m_W = Matrix(inputSize, size);
   fin.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
-
-  fin.read(reinterpret_cast<char*>(&m_learnRate), sizeof(double));
-  fin.read(reinterpret_cast<char*>(&m_learnRateDecay), sizeof(double));
 }
 
 void OutputLayer::writeToStream(std::ostream& fout) const {
   fout.write(reinterpret_cast<const char*>(m_B.data()), m_B.size() * sizeof(double));
   fout.write(reinterpret_cast<const char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
-  fout.write(reinterpret_cast<const char*>(&m_learnRate), sizeof(double));
-  fout.write(reinterpret_cast<const char*>(&m_learnRateDecay), sizeof(double));
 }
 
 const Vector& OutputLayer::activations() const {
