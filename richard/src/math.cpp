@@ -275,6 +275,14 @@ void Matrix::fill(double x) {
   }
 }
 
+double Matrix::sum() const {
+  double s = 0.0;
+  for (size_t i = 0; i < m_rows * m_cols; ++i) {
+    s += m_data[i];
+  }
+  return s;
+}
+
 void Matrix::zero() {
   memset(m_data.get(), 0, m_rows * m_cols * sizeof(double));
 }

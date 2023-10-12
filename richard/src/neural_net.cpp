@@ -91,7 +91,8 @@ std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj, 
     return std::make_unique<DenseLayer>(obj, fin, numInputs);
   }
   else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(obj, fin, prevLayerSize[0], prevLayerSize[1]);
+    return std::make_unique<ConvolutionalLayer>(obj, fin, prevLayerSize[0], prevLayerSize[1],
+      prevLayerSize[2]);
   }
   else if (type == "maxPooling") {
     return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize[0], prevLayerSize[1],
@@ -112,7 +113,8 @@ std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj,
     return std::make_unique<DenseLayer>(obj, numInputs);
   }
   else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(obj, prevLayerSize[0], prevLayerSize[1]);
+    return std::make_unique<ConvolutionalLayer>(obj, prevLayerSize[0], prevLayerSize[1],
+      prevLayerSize[2]);
   }
   else if (type == "maxPooling") {
     return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize[0], prevLayerSize[1],
@@ -244,6 +246,8 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
         const Vector& y = trainingData.classOutputVector(sample.label);
 
         cost += feedForward(x, y);
+        //std::cout << "Expected: " << y;
+        //std::cout << "Actual: " << outputLayer().activations() << "\n";
 
         for (int l = static_cast<int>(m_layers.size()) - 1; l >= 0; --l) {
           if (l == static_cast<int>(m_layers.size()) - 1) {
@@ -341,4 +345,15 @@ std::unique_ptr<NeuralNet> createNeuralNet(const nlohmann::json& config) {
 
 std::unique_ptr<NeuralNet> createNeuralNet(std::istream& fin) {
   return std::make_unique<NeuralNetImpl>(fin);
+}
+
+// TODO: Move this?
+std::ostream& operator<<(std::ostream& os, LayerType layerType) {
+  switch (layerType) {
+    case LayerType::DENSE: os << "DENSE"; break;
+    case LayerType::CONVOLUTIONAL: os << "CONVOLUTIONAL"; break;
+    case LayerType::OUTPUT: os << "OUTPUT"; break;
+    case LayerType::MAX_POOLING: os << "MAX_POOLING"; break;
+  }
+  return os;
 }

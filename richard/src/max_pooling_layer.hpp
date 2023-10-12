@@ -26,4 +26,8 @@ class MaxPoolingLayer : public Layer {
     size_t m_inputH;
     size_t m_inputDepth;
     Vector m_mask;
+
+    void backpropFromDenseLayer(const Layer& nextLayer);
+    void backpropFromConvLayer(const Layer& nextLayer);
+    void padDelta(const Vector& delta);
 };

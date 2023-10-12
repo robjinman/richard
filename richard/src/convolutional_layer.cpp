@@ -4,12 +4,14 @@
 #include "max_pooling_layer.hpp"
 #include "exception.hpp"
 
-ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW, size_t inputH)
+ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW, size_t inputH,
+  size_t inputDepth)
   : m_Z(1)
   , m_A(1)
   , m_delta(1)
   , m_inputW(inputW)
-  , m_inputH(inputH) {
+  , m_inputH(inputH)
+  , m_inputDepth(inputDepth) {
 
   std::array<size_t, 2> kernelSize = getOrThrow(obj, "kernelSize").get<std::array<size_t, 2>>();
   m_learnRate = getOrThrow(obj, "learnRate").get<double>();
@@ -32,12 +34,13 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW,
 }
 
 ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& fin, size_t inputW,
-  size_t inputH)
+  size_t inputH, size_t inputDepth)
   : m_Z(1)
   , m_A(1)
   , m_delta(1)
   , m_inputW(inputW)
-  , m_inputH(inputH) {
+  , m_inputH(inputH)
+  , m_inputDepth(inputDepth) {
 
   std::array<size_t, 2> kernelSize = getOrThrow(obj, "kernelSize").get<std::array<size_t, 2>>();
   m_learnRate = getOrThrow(obj, "learnRate").get<double>();
@@ -67,38 +70,45 @@ const Vector& ConvolutionalLayer::delta() const {
 
 std::array<size_t, 3> ConvolutionalLayer::outputSize() const {
   ASSERT(!m_slices.empty());
-  return { m_inputW - m_slices[0].W.cols(), m_inputH - m_slices[0].W.rows(), m_slices.size() };
+  return {
+    m_inputW - m_slices[0].W.cols() + 1,
+    m_inputH - m_slices[0].W.rows() + 1,
+    m_slices.size() * m_inputDepth
+  };
 }
 
-size_t ConvolutionalLayer::sliceSize() const {
-  size_t featureMapW = outputSize()[0];
-  size_t featureMapH = outputSize()[1];
-
-  return featureMapW * featureMapH;
+size_t ConvolutionalLayer::numOutputs() const {
+  auto os = outputSize();
+  return os[0] * os[1] * os[2];
 }
 
 void ConvolutionalLayer::forwardPass(const Vector& inputs, Vector& Z) const {
   size_t featureMapW = outputSize()[0];
   size_t featureMapH = outputSize()[1];
 
+  size_t depth = m_slices.size();
   size_t sliceSize = featureMapW * featureMapH;
 
-  for (size_t slice = 0; slice < m_slices.size(); ++slice) {
-    size_t sliceOffset = slice * sliceSize;
-    const Matrix& W = m_slices[slice].W;
-    double b = m_slices[slice].b;
+  for (size_t inputSlice = 0; inputSlice < m_inputDepth; ++inputSlice) {
+    size_t inputOffset = m_inputW * m_inputH * inputSlice;
 
-    for (size_t ymin = 0; ymin < featureMapH; ++ymin) {
-      for (size_t xmin = 0; xmin < featureMapW; ++xmin) {
-        Z[sliceOffset + ymin * featureMapW + xmin] = b;
+    for (size_t slice = 0; slice < m_slices.size(); ++slice) {
+      size_t outputOffset = inputSlice * depth * sliceSize + slice * sliceSize;
+      const Matrix& W = m_slices[slice].W;
+      double b = m_slices[slice].b;
 
-        for (size_t j = 0; j < W.rows(); ++j) {
-          for (size_t i = 0; i < W.cols(); ++i) {
-            size_t inputX = xmin + i;
-            size_t inputY = ymin + j;
+      for (size_t ymin = 0; ymin < featureMapH; ++ymin) {
+        for (size_t xmin = 0; xmin < featureMapW; ++xmin) {
+          Z[outputOffset + ymin * featureMapW + xmin] = b;
 
-            Z[sliceOffset + ymin * featureMapW + xmin] +=
-              W.at(i, j) * inputs[inputY * m_inputW + inputX];
+          for (size_t j = 0; j < W.rows(); ++j) {
+            for (size_t i = 0; i < W.cols(); ++i) {
+              size_t inputX = xmin + i;
+              size_t inputY = ymin + j;
+
+              Z[outputOffset + ymin * featureMapW + xmin] +=
+                W.at(i, j) * inputs[inputOffset + inputY * m_inputW + inputX];
+            }
           }
         }
       }
@@ -107,11 +117,11 @@ void ConvolutionalLayer::forwardPass(const Vector& inputs, Vector& Z) const {
 }
 
 void ConvolutionalLayer::trainForward(const Vector& inputs) {
-  size_t sz = sliceSize();
+  size_t sz = numOutputs();
 
-  m_Z = Vector(sz * m_slices.size());
-  m_A = Vector(sz * m_slices.size());
-  m_delta = Vector(sz * m_slices.size());
+  m_Z = Vector(sz);
+  m_A = Vector(sz);
+  m_delta = Vector(sz);
 
   forwardPass(inputs, m_Z);
 
@@ -119,9 +129,7 @@ void ConvolutionalLayer::trainForward(const Vector& inputs) {
 }
 
 Vector ConvolutionalLayer::evalForward(const Vector& inputs) const {
-  size_t sz = sliceSize();
-
-  Vector Z(sz * m_slices.size());
+  Vector Z(numOutputs());
 
   forwardPass(inputs, Z);
 
@@ -130,7 +138,7 @@ Vector ConvolutionalLayer::evalForward(const Vector& inputs) const {
 
 void ConvolutionalLayer::updateDelta(const Vector& layerInputs, const Layer& nextLayer,
   size_t epoch) {
-  
+
   TRUE_OR_THROW(nextLayer.type() == LayerType::MAX_POOLING,
     "Expect max pooling after convolutional layer");
 
@@ -139,29 +147,33 @@ void ConvolutionalLayer::updateDelta(const Vector& layerInputs, const Layer& nex
 
   size_t featureMapW = outputSize()[0];
   size_t featureMapH = outputSize()[1];
+  size_t depth = m_slices.size();
   size_t sliceSize = featureMapW * featureMapH;
 
   double learnRate = m_learnRate * pow(m_learnRateDecay, epoch) / (featureMapW * featureMapH);
 
-  for (size_t slice = 0; slice < m_slices.size(); ++slice) {
-    size_t sliceOffset = slice * sliceSize;
-    Matrix& W = m_slices[slice].W;
-    double& b = m_slices[slice].b;
+  // Total number of feature maps is m_inputDepth * depth
+  for (size_t inputSlice = 0; inputSlice < m_inputDepth; ++inputSlice) {
+    for (size_t slice = 0; slice < depth; ++slice) {
+      size_t sliceOffset = inputSlice * depth * sliceSize + slice * sliceSize;
+      Matrix& W = m_slices[slice].W;
+      double& b = m_slices[slice].b;
 
-    for (size_t ymin = 0; ymin < featureMapH; ++ymin) {
-      for (size_t xmin = 0; xmin < featureMapW; ++xmin) {
-        size_t idx = sliceOffset + ymin * featureMapW + xmin;
+      for (size_t ymin = 0; ymin < featureMapH; ++ymin) {
+        for (size_t xmin = 0; xmin < featureMapW; ++xmin) {
+          size_t idx = sliceOffset + ymin * featureMapW + xmin;
 
-        m_delta[idx] = nextLayerDelta[idx];
+          m_delta[idx] = nextLayerDelta[idx];
 
-        for (size_t j = 0; j < W.rows(); ++j) {
-          for (size_t i = 0; i < W.cols(); ++i) {
-            size_t inputX = xmin + i;
-            size_t inputY = ymin + j;
-            double dw = layerInputs[inputY * m_inputW + inputX] * m_delta[idx] * learnRate;
+          for (size_t j = 0; j < W.rows(); ++j) {
+            for (size_t i = 0; i < W.cols(); ++i) {
+              size_t inputX = xmin + i;
+              size_t inputY = ymin + j;
+              double dw = layerInputs[inputY * m_inputW + inputX] * m_delta[idx] * learnRate;
 
-            W.set(j, i, W.at(j, i) - dw);
-            b = b - m_delta[idx] * learnRate;
+              W.set(j, i, W.at(j, i) - dw);
+              b = b - m_delta[idx] * learnRate;
+            }
           }
         }
       }
@@ -195,4 +207,18 @@ void ConvolutionalLayer::writeToStream(std::ostream& fout) const {
 const Matrix& ConvolutionalLayer::W() const {
   assert(false);
   return m_slices[0].W;
+}
+
+size_t ConvolutionalLayer::depth() const {
+  return m_slices.size();
+}
+
+const Matrix& ConvolutionalLayer::kernel(size_t i) const {
+  assert(i < m_slices.size());
+  return m_slices[i].W;
+}
+
+std::array<size_t, 2> ConvolutionalLayer::kernelSize() const {
+  assert(m_slices.size() > 0);
+  return { m_slices[0].W.cols(), m_slices[0].W.rows() };
 }

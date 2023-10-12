@@ -78,6 +78,7 @@ class Matrix {
     void zero();
     void fill(double x);
     void randomize(double maxMagnitude);
+    double sum() const;
     inline size_t rows() const;
     inline size_t cols() const;
     inline double* data();

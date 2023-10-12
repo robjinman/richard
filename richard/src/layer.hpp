@@ -50,3 +50,5 @@ class Layer {
 
     virtual ~Layer() {}
 };
+
+std::ostream& operator<<(std::ostream& os, LayerType layerType);
