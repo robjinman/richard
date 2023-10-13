@@ -24,6 +24,9 @@ class Classifier {
     const std::vector<std::string> classLabels() const;
     const DataStats& trainingDataStats() const;
 
+    // Called from another thread
+    void abort();
+
     static const nlohmann::json& defaultConfig();
 
   private:

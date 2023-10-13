@@ -178,3 +178,7 @@ const DataStats& Classifier::trainingDataStats() const {
   TRUE_OR_THROW(m_trainingDataStats != nullptr, "No stats for training set");
   return *m_trainingDataStats;
 }
+
+void Classifier::abort() {
+  m_neuralNet->abort();
+}

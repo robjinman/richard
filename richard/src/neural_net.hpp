@@ -17,6 +17,9 @@ class NeuralNet {
     virtual void train(LabelledDataSet& data) = 0;
     virtual Vector evaluate(const Vector& inputs) const = 0;
 
+    // Called from another thread
+    virtual void abort() = 0;
+
     static const nlohmann::json& defaultConfig();
 
     virtual ~NeuralNet() {}

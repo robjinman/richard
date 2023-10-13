@@ -3,6 +3,7 @@
 #include <fstream>
 #include <algorithm>
 #include <sstream>
+#include <atomic>
 #include "neural_net.hpp"
 #include "util.hpp"
 #include "exception.hpp"
@@ -44,6 +45,8 @@ class NeuralNetImpl : public NeuralNet {
     void train(LabelledDataSet& data) override;
     Vector evaluate(const Vector& inputs) const override;
 
+    void abort() override;
+
   private:
     double feedForward(const Vector& x, const Vector& y);
     nlohmann::json getConfig() const;
@@ -56,6 +59,7 @@ class NeuralNetImpl : public NeuralNet {
     bool m_isTrained;
     Hyperparams m_params;
     std::vector<std::unique_ptr<Layer>> m_layers;
+    std::atomic<bool> m_abort;
 };
 
 Hyperparams::Hyperparams()
@@ -79,6 +83,10 @@ nlohmann::json Hyperparams::toJson() const {
   obj["maxBatchSize"] = maxBatchSize;
 
   return obj;
+}
+
+void NeuralNetImpl::abort() {
+  m_abort = true;
 }
 
 std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj, std::istream& fin,
@@ -229,7 +237,12 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
 
   const size_t N = 500; // TODO
 
+  m_abort = false;
   for (size_t epoch = 0; epoch < m_params.epochs; ++epoch) {
+    if (m_abort) {
+      break;
+    }
+
     std::cout << "Epoch " << epoch + 1 << "/" << m_params.epochs;
     double cost = 0.0;
     size_t samplesProcessed = 0;

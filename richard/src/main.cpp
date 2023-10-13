@@ -2,6 +2,9 @@
 #include <chrono>
 #include <filesystem>
 #include <algorithm>
+#include <thread>
+#include <atomic>
+#include <mutex>
 #include <boost/program_options.hpp>
 #include "training_data_set.hpp"
 #include "test_data_set.hpp"
@@ -55,12 +58,10 @@ void optionChoice(const po::variables_map& vm, const std::vector<std::string>& c
   }
 }
 
-void trainClassifier(const std::string& networkFile, const std::string& samplesPath,
-  const nlohmann::json& config) {
+void trainClassifier(Classifier& classifier, const std::string& networkFile,
+  const std::string& samplesPath) {
 
   std::cout << "Training classifier" << std::endl;
-
-  Classifier classifier(config);
 
   std::unique_ptr<DataLoader> loader = nullptr;
   if (std::filesystem::is_directory(samplesPath)) {
@@ -79,9 +80,7 @@ void trainClassifier(const std::string& networkFile, const std::string& samplesP
   classifier.toFile(networkFile);
 }
 
-void testClassifier(const std::string& networkFile, const std::string& samplesPath) {
-  Classifier classifier(networkFile);
-
+void testClassifier(Classifier& classifier, const std::string& samplesPath) {
   std::cout << "Testing classifier" << std::endl;
 
   std::unique_ptr<DataLoader> loader = nullptr;
@@ -109,6 +108,43 @@ void testClassifier(const std::string& networkFile, const std::string& samplesPa
 nlohmann::json loadConfig(const std::string& configFile) {
   std::ifstream f(configFile);
   return nlohmann::json::parse(f);
+}
+
+class StdinMonitor {
+  public:
+    StdinMonitor();
+    void onKey(char c, std::function<void()> handler);
+
+  private:
+    std::mutex m_mutex;
+    std::map<char, std::function<void()>> m_handlers;
+
+    void waitForInput();
+};
+
+void StdinMonitor::onKey(char c, std::function<void()> handler) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  m_handlers[c] = handler;
+}
+
+StdinMonitor::StdinMonitor() {
+  std::thread t(&StdinMonitor::waitForInput, this);
+  t.detach();
+}
+
+void StdinMonitor::waitForInput() {
+  while (true) {
+    char c = '\0';
+    std::cin >> c;
+
+    {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      auto i = m_handlers.find(c);
+      if (i != m_handlers.end()) {
+        i->second();
+      }
+    }
+  }
 }
 
 }
@@ -161,16 +197,23 @@ int main(int argc, char** argv) {
 
     po::notify(vm);
 
+    StdinMonitor stdinMonitor;
+
     const auto t1 = high_resolution_clock::now();
 
     if (trainingMode) {
       std::string configFile = vm["config"].as<std::string>();
       nlohmann::json config = loadConfig(configFile);
 
-      trainClassifier(networkFile, samplesPath, getOrThrow(config, "classifier"));
+      Classifier classifier(getOrThrow(config, "classifier"));
+
+      stdinMonitor.onKey('q', [&]() { classifier.abort(); });
+
+      trainClassifier(classifier, networkFile, samplesPath);
     }
     else {
-      testClassifier(networkFile, samplesPath);
+      Classifier classifier(networkFile);
+      testClassifier(classifier, samplesPath);
     }
 
     const auto t2 = high_resolution_clock::now();
