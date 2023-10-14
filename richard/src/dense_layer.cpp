@@ -32,10 +32,9 @@ DenseLayer::DenseLayer(const nlohmann::json& obj, size_t inputSize)
   m_dropoutRate = getOrThrow(obj, "dropoutRate").get<double>();
 
   m_B = Vector(numNeurons);
-  m_B.randomize(1.0);
 
   m_W = Matrix(inputSize, numNeurons);
-  m_W.randomize(1.0);
+  m_W.randomize(0.5);
 }
 
 void DenseLayer::writeToStream(std::ostream& fout) const {

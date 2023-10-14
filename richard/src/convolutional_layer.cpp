@@ -19,16 +19,13 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW,
   m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<double>();
   size_t depth = getOrThrow(obj, "depth").get<size_t>();
 
-  std::default_random_engine gen;
-  std::uniform_real_distribution<double> dist(-1.0, 1.0);
-
   for (size_t i = 0; i < depth; ++i) {
     SliceParams slice;
 
     slice.W = Matrix(kernelSize[0], kernelSize[1]);
-    slice.W.randomize(1.0);
+    slice.W.randomize(0.05);
 
-    slice.b = dist(gen);
+    slice.b = 0.0;
 
     m_slices.push_back(slice);
   }

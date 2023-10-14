@@ -18,7 +18,7 @@ class Vector {
     inline bool operator!=(const Vector& rhs) const;
     void zero();
     void normalize();
-    void randomize(double maxMagnitude);
+    void randomize(double standardDeviation);
     double magnitude() const;
     double squareMagnitude() const;
     double dot(const Vector& rhs) const;
@@ -77,7 +77,7 @@ class Matrix {
     inline void set(size_t col, size_t row, double x);
     void zero();
     void fill(double x);
-    void randomize(double maxMagnitude);
+    void randomize(double standardDeviation);
     double sum() const;
     inline size_t rows() const;
     inline size_t cols() const;

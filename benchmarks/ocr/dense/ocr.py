@@ -8,7 +8,7 @@ input_shape = (28, 28, 1)
 
 # Load the data and split it between train and test sets
 num_training_samples = 1000
-num_test_samples = 100
+num_test_samples = 1000
 (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
 x_train = x_train[:num_training_samples,:,:]
 y_train = y_train[:num_training_samples]
@@ -30,14 +30,19 @@ print(x_test.shape[0], "test samples")
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
+initializer = keras.initializers.RandomNormal(mean=0., stddev=0.1)
+
 model = keras.Sequential(
     [
         keras.Input(shape=input_shape),
         layers.Flatten(),
-        layers.Dense(300, activation="sigmoid"),
-        layers.Dense(80, activation="sigmoid"),
+        layers.Dense(300, activation="sigmoid", kernel_initializer=initializer,
+            bias_initializer="zeros"),
+        layers.Dense(80, activation="sigmoid", kernel_initializer=initializer,
+            bias_initializer="zeros"),
         #layers.Dropout(0.5),
-        layers.Dense(num_classes, activation="sigmoid"),
+        layers.Dense(num_classes, activation="sigmoid", kernel_initializer=initializer,
+            bias_initializer="zeros"),
     ]
 )
 
@@ -46,7 +51,7 @@ model.summary()
 batch_size = 1
 epochs = 30
 
-optimizer = keras.optimizers.SGD(learning_rate=0.8)
+optimizer = keras.optimizers.SGD(learning_rate=0.7)
 print("Learn rate = ", optimizer.learning_rate)
 
 model.compile(loss="mean_squared_error", optimizer=optimizer, metrics=["accuracy"])

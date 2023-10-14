@@ -30,25 +30,25 @@ print(x_test.shape[0], "test samples")
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
+initializer = keras.initializers.RandomNormal(mean=0., stddev=0.05)
+
 model = keras.Sequential(
     [
         keras.Input(shape=input_shape),
-        layers.Conv2D(1, kernel_size=(5, 5), activation="relu"),
+        layers.Conv2D(16, kernel_size=(5, 5), activation="relu",
+            kernel_initializer=initializer, bias_initializer="zeros"),
         layers.MaxPooling2D(pool_size=(2, 2)),
-        layers.Conv2D(1, kernel_size=(5, 5), activation="relu"),
-        layers.MaxPooling2D(pool_size=(2, 2)),
-        #layers.Conv2D(64, kernel_size=(5, 5), activation="relu"),
-        #layers.MaxPooling2D(pool_size=(2, 2)),
         layers.Flatten(),
         #layers.Dropout(0.5),
-        layers.Dense(num_classes, activation="sigmoid"),
+        layers.Dense(num_classes, activation="sigmoid", kernel_initializer=initializer,
+            bias_initializer="zeros"),
     ]
 )
 
 model.summary()
 
 batch_size = 1
-epochs = 50
+epochs = 30
 
 optimizer = keras.optimizers.SGD(learning_rate=0.01)
 print("Learn rate = ", optimizer.learning_rate)

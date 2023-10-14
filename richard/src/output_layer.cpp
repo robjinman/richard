@@ -12,10 +12,9 @@ OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize)
   m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<double>();
 
   m_B = Vector(size);
-  m_B.randomize(1.0);
 
   m_W = Matrix(inputSize, size);
-  m_W.randomize(1.0);
+  m_W.randomize(0.5);
 }
 
 OutputLayer::OutputLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize)
