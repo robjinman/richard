@@ -1,5 +1,6 @@
 #include <iostream> // TODO
 #include <random>
+#include <omp.h>
 #include "convolutional_layer.hpp"
 #include "max_pooling_layer.hpp"
 #include "exception.hpp"
@@ -89,6 +90,7 @@ void ConvolutionalLayer::forwardPass(const Vector& inputs, Vector& Z) const {
   size_t depth = m_slices.size();
   size_t sliceSize = featureMapW * featureMapH;
 
+  #pragma omp parallel for
   for (size_t inputSlice = 0; inputSlice < m_inputDepth; ++inputSlice) {
     size_t inputOffset = m_inputW * m_inputH * inputSlice;
 

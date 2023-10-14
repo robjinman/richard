@@ -17,6 +17,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost 1.56 REQUIRED COMPONENTS program_options)
+find_package(OpenMP)
 
 include(FetchContent)
 
@@ -49,6 +50,7 @@ target_compile_options(${RICHARD_LIB_NAME}
 target_link_libraries(${RICHARD_LIB_NAME}
   PUBLIC
   Boost::program_options
+  OpenMP::OpenMP_CXX
   nlohmann_json::nlohmann_json)
 
 add_executable(richard "${PROJECT_SOURCE_DIR}/src/main.cpp")

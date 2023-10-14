@@ -1,4 +1,5 @@
 #include <iostream> // TODO
+#include <omp.h>
 #include "max_pooling_layer.hpp"
 #include "convolutional_layer.hpp"
 #include "exception.hpp"
@@ -49,6 +50,7 @@ void MaxPoolingLayer::trainForward(const Vector& inputs) {
   size_t outputH = m_inputH / m_regionH;
   m_Z = Vector(outputW * outputH * m_inputDepth);
 
+  #pragma omp parallel for
   for (size_t slice = 0; slice < m_inputDepth; ++slice) {
     size_t inputOffset = slice * m_inputW * m_inputH;
     size_t outputOffset = slice * outputW * outputH;
@@ -86,6 +88,7 @@ Vector MaxPoolingLayer::evalForward(const Vector& inputs) const {
   size_t outputH = m_inputH / m_regionH;
   Vector Z(outputW * outputH * m_inputDepth);
 
+  #pragma omp parallel for
   for (size_t slice = 0; slice < m_inputDepth; ++slice) {
     size_t inputOffset = slice * m_inputW * m_inputH;
     size_t outputOffset = slice * outputW * outputH;
@@ -117,6 +120,7 @@ void MaxPoolingLayer::padDelta(const Vector& delta) {
   size_t outputH = m_inputH / m_regionH;
 
   m_delta = Vector(m_inputW * m_inputH * m_inputDepth);
+  #pragma omp parallel for
   for (size_t slice = 0; slice < m_inputDepth; ++slice) {
     size_t inputOffset = slice * m_inputW * m_inputH;
     size_t outputOffset = slice * outputW * outputH;
@@ -163,7 +167,7 @@ void MaxPoolingLayer::backpropFromConvLayer(const Layer& nextLayer) {
   size_t fmSize = fmW * fmH;
 
   Vector delta(outputW * outputH * m_inputDepth);
-
+  #pragma omp parallel for
   for (size_t slice = 0; slice < m_inputDepth; ++slice) {
     size_t sliceOffset = slice * sliceSize;
 

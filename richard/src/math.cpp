@@ -1,5 +1,6 @@
 #include <cstring>
 #include <random>
+#include <omp.h>
 #include "math.hpp"
 #include "util.hpp"
 
@@ -105,6 +106,7 @@ Vector Vector::hadamard(const Vector& rhs) const {
   ASSERT(rhs.size() == m_size);
 
   Vector v(m_size);
+  #pragma omp parallel for
   for (size_t i = 0; i < m_size; ++i) {
     v[i] = m_data[i] * rhs[i];
   }
@@ -125,6 +127,7 @@ Vector Vector::operator+(const Vector& rhs) const {
   ASSERT(rhs.size() == m_size);
 
   Vector v(m_size);
+  #pragma omp parallel for
   for (size_t i = 0; i < m_size; ++i) {
     v[i] = m_data[i] + rhs[i];
   }
@@ -135,6 +138,7 @@ Vector Vector::operator-(const Vector& rhs) const {
   ASSERT(rhs.size() == m_size);
 
   Vector v(m_size);
+  #pragma omp parallel for
   for (size_t i = 0; i < m_size; ++i) {
     v[i] = m_data[i] - rhs[i];
   }
@@ -143,6 +147,7 @@ Vector Vector::operator-(const Vector& rhs) const {
 
 Vector Vector::operator*(double s) const {
   Vector v(m_size);
+  #pragma omp parallel for
   for (size_t i = 0; i < m_size; ++i) {
     v[i] = m_data[i] * s;
   }
@@ -151,6 +156,7 @@ Vector Vector::operator*(double s) const {
 
 Vector Vector::operator+(double s) const {
   Vector v(m_size);
+  #pragma omp parallel for
   for (size_t i = 0; i < m_size; ++i) {
     v[i] = m_data[i] + s;
   }
@@ -159,6 +165,7 @@ Vector Vector::operator+(double s) const {
 
 Vector Vector::operator-(double s) const {
   Vector v(m_size);
+  #pragma omp parallel for
   for (size_t i = 0; i < m_size; ++i) {
     v[i] = m_data[i] - s;
   }
@@ -191,6 +198,7 @@ bool Vector::operator==(const Vector& rhs) const {
 
 Vector Vector::transform(const std::function<double(double)>& f) const {
   Vector v(m_size);
+  #pragma omp parallel for
   for (size_t i = 0; i < m_size; ++i) {
     v[i] = f(m_data[i]);
   }
@@ -209,6 +217,7 @@ Vector Matrix::operator*(const Vector& rhs) const {
   ASSERT(rhs.size() == m_cols);
 
   Vector v(m_rows);
+  #pragma omp parallel for
   for (size_t r = 0; r < m_rows; ++r) {
     double sum = 0.0;
     for (size_t c = 0; c < m_cols; ++c) {
@@ -249,6 +258,7 @@ Vector Matrix::transposeMultiply(const Vector& rhs) const {
   ASSERT(rhs.size() == m_rows);
 
   Vector v(m_cols);
+  #pragma omp parallel for
   for (size_t c = 0; c < m_cols; ++c) {
     double sum = 0.0;
     for (size_t r = 0; r < m_rows; ++r) {
