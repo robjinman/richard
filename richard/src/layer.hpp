@@ -20,6 +20,10 @@ const ActivationFn relu = [](double x) -> double {
   return x < 0.0 ? 0.0 : x;
 };
 
+const ActivationFn reluPrime = [](double x) -> double {
+  return x < 0.0 ? 0.0 : 1.0;
+};
+
 // Partial derivatives of quadraticCost with respect to the activations
 const CostDerivativesFn quadraticCostDerivatives = [](const Vector& actual,
                                                       const Vector& expected) -> Vector {

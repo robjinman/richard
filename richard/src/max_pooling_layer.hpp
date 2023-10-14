@@ -17,6 +17,10 @@ class MaxPoolingLayer : public Layer {
     void writeToStream(std::ostream&) const override {}
     const Matrix& W() const override;
 
+    // Exposed for testing
+    void padDelta(const Vector& delta, const Vector& mask, Vector& paddedDelta) const;
+    const Vector& mask() const;
+
   private:
     Vector m_Z;
     Vector m_delta;
@@ -29,5 +33,4 @@ class MaxPoolingLayer : public Layer {
 
     void backpropFromDenseLayer(const Layer& nextLayer);
     void backpropFromConvLayer(const Layer& nextLayer);
-    void padDelta(const Vector& delta);
 };

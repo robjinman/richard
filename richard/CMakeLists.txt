@@ -50,7 +50,7 @@ target_compile_options(${RICHARD_LIB_NAME}
 target_link_libraries(${RICHARD_LIB_NAME}
   PUBLIC
   Boost::program_options
-  OpenMP::OpenMP_CXX
+  #OpenMP::OpenMP_CXX
   nlohmann_json::nlohmann_json)
 
 add_executable(richard "${PROJECT_SOURCE_DIR}/src/main.cpp")

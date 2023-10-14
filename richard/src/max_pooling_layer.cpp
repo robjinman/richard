@@ -21,6 +21,8 @@ MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_
     "Region width " << m_regionW << " does not divide input width " << inputW);
   TRUE_OR_THROW(inputH % m_regionH == 0,
     "Region height " << m_regionH << " does not divide input height " << inputH);
+
+  m_delta = Vector(m_inputW * m_inputH * m_inputDepth);
 }
 
 const Matrix& MaxPoolingLayer::W() const {
@@ -115,11 +117,10 @@ Vector MaxPoolingLayer::evalForward(const Vector& inputs) const {
 }
 
 // Pad the delta to the input size using the mask for ease of consumption by the previous layer
-void MaxPoolingLayer::padDelta(const Vector& delta) {
+void MaxPoolingLayer::padDelta(const Vector& delta, const Vector& mask, Vector& paddedDelta) const {
   size_t outputW = m_inputW / m_regionW;
   size_t outputH = m_inputH / m_regionH;
 
-  m_delta = Vector(m_inputW * m_inputH * m_inputDepth);
   #pragma omp parallel for
   for (size_t slice = 0; slice < m_inputDepth; ++slice) {
     size_t inputOffset = slice * m_inputW * m_inputH;
@@ -131,12 +132,12 @@ void MaxPoolingLayer::padDelta(const Vector& delta) {
           for (size_t i = 0; i < m_regionW; ++i) {
             size_t inputX = x * m_regionW + i;
             size_t inputY = y * m_regionH + j;
-            if (m_mask[inputOffset + inputY * m_inputW + inputX] != 0.0) {
-              m_delta[inputOffset + inputY * m_inputW + inputX] =
+            if (mask[inputOffset + inputY * m_inputW + inputX] != 0.0) {
+              paddedDelta[inputOffset + inputY * m_inputW + inputX] =
                 delta[outputOffset + y * outputW + x];
             }
             else {
-              m_delta[inputOffset + inputY * m_inputW + inputX] = 0.0;
+              paddedDelta[inputOffset + inputY * m_inputW + inputX] = 0.0;
             }
           }
         }
@@ -146,8 +147,10 @@ void MaxPoolingLayer::padDelta(const Vector& delta) {
 }
 
 void MaxPoolingLayer::backpropFromDenseLayer(const Layer& nextLayer) {
-  Vector delta = nextLayer.W().transposeMultiply(nextLayer.delta());
-  padDelta(delta);
+  Vector delta = nextLayer.W().transposeMultiply(nextLayer.delta())
+                              .hadamard(m_Z.transform(reluPrime));
+
+  padDelta(delta, m_mask, m_delta);
 }
 
 void MaxPoolingLayer::backpropFromConvLayer(const Layer& nextLayer) {
@@ -182,7 +185,7 @@ void MaxPoolingLayer::backpropFromConvLayer(const Layer& nextLayer) {
               size_t x = fmX + i;
               size_t y = fmY + j;
               delta[sliceOffset + y * outputW + x] +=
-                kernel.at(i, j) * convDelta[fmOffset + fmY * fmW + fmX];
+                kernel.at(i, j) * reluPrime(convDelta[fmOffset + fmY * fmW + fmX]);
             }
           }
         }
@@ -190,11 +193,12 @@ void MaxPoolingLayer::backpropFromConvLayer(const Layer& nextLayer) {
     }
   }
 
-  padDelta(delta);
+  padDelta(delta, m_mask, m_delta);
 }
 
 void MaxPoolingLayer::updateDelta(const Vector&, const Layer& nextLayer, size_t) {
   switch (nextLayer.type()) {
+    case LayerType::OUTPUT:
     case LayerType::DENSE:
       backpropFromDenseLayer(nextLayer);
       break;
@@ -214,4 +218,8 @@ nlohmann::json MaxPoolingLayer::getConfig() const {
   config["type"] = "maxPooling";
   config["regionSize"] = std::array<size_t, 2>({ m_regionW, m_regionH });
   return config;
+}
+
+const Vector& MaxPoolingLayer::mask() const {
+  return m_mask;
 }

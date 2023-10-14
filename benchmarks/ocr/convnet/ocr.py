@@ -7,7 +7,13 @@ num_classes = 10
 input_shape = (28, 28, 1)
 
 # Load the data and split it between train and test sets
+num_training_samples = 1000
+num_test_samples = 1000
 (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
+x_train = x_train[:num_training_samples,:,:]
+y_train = y_train[:num_training_samples]
+x_test = x_test[:num_test_samples,:,:]
+y_test = y_test[:num_test_samples]
 
 # Scale images to the [0, 1] range
 x_train = x_train.astype("float32") / 255
@@ -27,22 +33,27 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 model = keras.Sequential(
     [
         keras.Input(shape=input_shape),
-        layers.Conv2D(32, kernel_size=(3, 3), activation="relu"),
+        layers.Conv2D(1, kernel_size=(5, 5), activation="relu"),
         layers.MaxPooling2D(pool_size=(2, 2)),
-        layers.Conv2D(64, kernel_size=(3, 3), activation="relu"),
+        layers.Conv2D(1, kernel_size=(5, 5), activation="relu"),
         layers.MaxPooling2D(pool_size=(2, 2)),
+        #layers.Conv2D(64, kernel_size=(5, 5), activation="relu"),
+        #layers.MaxPooling2D(pool_size=(2, 2)),
         layers.Flatten(),
-        layers.Dropout(0.5),
-        layers.Dense(num_classes, activation="softmax"),
+        #layers.Dropout(0.5),
+        layers.Dense(num_classes, activation="sigmoid"),
     ]
 )
 
 model.summary()
 
-batch_size = 128
-epochs = 15
+batch_size = 1
+epochs = 50
 
-model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+optimizer = keras.optimizers.SGD(learning_rate=0.01)
+print("Learn rate = ", optimizer.learning_rate)
+
+model.compile(loss="mean_squared_error", optimizer=optimizer, metrics=["accuracy"])
 
 model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.1)
 

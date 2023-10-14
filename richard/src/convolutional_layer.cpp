@@ -152,7 +152,8 @@ void ConvolutionalLayer::updateDelta(const Vector& layerInputs, const Layer& nex
   size_t depth = m_slices.size();
   size_t sliceSize = featureMapW * featureMapH;
 
-  double learnRate = m_learnRate * pow(m_learnRateDecay, epoch) / (featureMapW * featureMapH);
+  double learnRate = m_learnRate * pow(m_learnRateDecay, epoch) /
+    (m_inputDepth * depth * featureMapW * featureMapH);
 
   // Total number of feature maps is m_inputDepth * depth
   for (size_t inputSlice = 0; inputSlice < m_inputDepth; ++inputSlice) {
@@ -173,7 +174,7 @@ void ConvolutionalLayer::updateDelta(const Vector& layerInputs, const Layer& nex
               size_t inputY = ymin + j;
               double dw = layerInputs[inputY * m_inputW + inputX] * m_delta[idx] * learnRate;
 
-              W.set(j, i, W.at(j, i) - dw);
+              W.set(i, j, W.at(i, j) - dw);
               b = b - m_delta[idx] * learnRate;
             }
           }
