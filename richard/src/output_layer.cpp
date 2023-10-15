@@ -1,3 +1,4 @@
+#include <iostream> // TODO
 #include "output_layer.hpp"
 
 OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize)
@@ -14,7 +15,7 @@ OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize)
   m_B = Vector(size);
 
   m_W = Matrix(inputSize, size);
-  m_W.randomize(0.5);
+  m_W.randomize(0.1);
 }
 
 OutputLayer::OutputLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize)

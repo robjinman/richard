@@ -20,6 +20,8 @@ class MaxPoolingLayer : public Layer {
     // Exposed for testing
     void padDelta(const Vector& delta, const Vector& mask, Vector& paddedDelta) const;
     const Vector& mask() const;
+    void backpropFromConvLayer(const std::vector<LayerParams>& convParams, const Vector& convDelta,
+      Vector& delta);
 
   private:
     Vector m_Z;
@@ -31,6 +33,5 @@ class MaxPoolingLayer : public Layer {
     size_t m_inputDepth;
     Vector m_mask;
 
-    void backpropFromDenseLayer(const Layer& nextLayer);
-    void backpropFromConvLayer(const Layer& nextLayer);
+    void backpropFromDenseLayer(const Layer& nextLayer, Vector& delta);
 };

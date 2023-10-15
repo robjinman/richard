@@ -50,9 +50,6 @@ x_test = x_test / 255
 # Make sure images have shape (28, 28, 1)
 x_train = np.expand_dims(x_train, -1)
 x_test = np.expand_dims(x_test, -1)
-print("x_train shape:", x_train.shape)
-print(x_train.shape[0], "train samples")
-print(x_test.shape[0], "test samples")
 
 # convert class vectors to binary class matrices
 y_train = keras.utils.to_categorical(y_train, num_classes)
@@ -82,7 +79,6 @@ batch_size = 1
 epochs = 30
 
 optimizer = keras.optimizers.SGD(learning_rate=0.7)
-print("Learn rate = ", optimizer.learning_rate)
 
 model.compile(loss="mean_squared_error", optimizer=optimizer, metrics=["accuracy"])
 

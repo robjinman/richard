@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "layer.hpp"
 
 class ConvolutionalLayer : public Layer {
@@ -20,21 +21,17 @@ class ConvolutionalLayer : public Layer {
     // Don't use. Use kernel() instead.
     const Matrix& W() const override;
 
-    const Matrix& kernel(size_t i) const;
     std::array<size_t, 2> kernelSize() const;
     size_t depth() const;
 
+    // Exposed for testing
+    void forwardPass(const Vector& inputs, Vector& Z) const;
+    void setWeights(const std::vector<Matrix>& weights);
+    void setBiases(const std::vector<double>& biases);
+    const std::vector<LayerParams>& params() const;
+
   private:
-    struct SliceParams {
-      SliceParams()
-        : W(1, 1)
-        , b(0.0) {}
-
-      Matrix W;
-      double b;
-    };
-
-    std::vector<SliceParams> m_slices;
+    std::vector<LayerParams> m_slices;
     Vector m_Z;
     Vector m_A;
     Vector m_delta;
@@ -44,6 +41,5 @@ class ConvolutionalLayer : public Layer {
     double m_learnRate;
     double m_learnRateDecay;
 
-  void forwardPass(const Vector& inputs, Vector& Z) const;
-  size_t numOutputs() const;
+    size_t numOutputs() const;
 };

@@ -66,3 +66,10 @@ TEST_F(VectorTest, dotProduct) {
 
   ASSERT_EQ(32, a.dot(b));
 }
+
+TEST_F(VectorTest, elementPlusEquals) {
+  Vector a{1, 2, 3};
+  a[1] += 11;
+
+  ASSERT_EQ(a[1], 13);
+}

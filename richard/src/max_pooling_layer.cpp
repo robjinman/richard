@@ -22,6 +22,7 @@ MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_
   TRUE_OR_THROW(inputH % m_regionH == 0,
     "Region height " << m_regionH << " does not divide input height " << inputH);
 
+  // Delta is padded to the input size
   m_delta = Vector(m_inputW * m_inputH * m_inputDepth);
 }
 
@@ -124,7 +125,6 @@ void MaxPoolingLayer::padDelta(const Vector& delta, const Vector& mask, Vector& 
   #pragma omp parallel for
   for (size_t slice = 0; slice < m_inputDepth; ++slice) {
     size_t inputOffset = slice * m_inputW * m_inputH;
-    size_t outputOffset = slice * outputW * outputH;
 
     for (size_t y = 0; y < outputH; ++y) {
       for (size_t x = 0; x < outputW; ++x) {
@@ -133,8 +133,7 @@ void MaxPoolingLayer::padDelta(const Vector& delta, const Vector& mask, Vector& 
             size_t inputX = x * m_regionW + i;
             size_t inputY = y * m_regionH + j;
             if (mask[inputOffset + inputY * m_inputW + inputX] != 0.0) {
-              paddedDelta[inputOffset + inputY * m_inputW + inputX] =
-                delta[outputOffset + y * outputW + x];
+              paddedDelta[inputOffset + inputY * m_inputW + inputX] = delta[y * outputW + x];
             }
             else {
               paddedDelta[inputOffset + inputY * m_inputW + inputX] = 0.0;
@@ -146,68 +145,68 @@ void MaxPoolingLayer::padDelta(const Vector& delta, const Vector& mask, Vector& 
   }
 }
 
-void MaxPoolingLayer::backpropFromDenseLayer(const Layer& nextLayer) {
-  Vector delta = nextLayer.W().transposeMultiply(nextLayer.delta())
-                              .hadamard(m_Z.transform(reluPrime));
-
-  padDelta(delta, m_mask, m_delta);
+void MaxPoolingLayer::backpropFromDenseLayer(const Layer& nextLayer, Vector& delta) {
+  delta = nextLayer.W().transposeMultiply(nextLayer.delta());
 }
 
-void MaxPoolingLayer::backpropFromConvLayer(const Layer& nextLayer) {
-  const auto& convLayer = dynamic_cast<const ConvolutionalLayer&>(nextLayer);
-  auto kSz = convLayer.kernelSize();
-  const Vector& convDelta = nextLayer.delta();
-  size_t convLayerDepth = convLayer.depth();
-  size_t kW = kSz[0];
-  size_t kH = kSz[1];
+void MaxPoolingLayer::backpropFromConvLayer(const std::vector<LayerParams>& convParams,
+  const Vector& convDelta, Vector& delta) {
+
+  size_t convLayerDepth = convParams.size();
+  size_t kW = convParams[0].W.cols();
+  size_t kH = convParams[0].W.rows();
+  //double kSz_rp = 1.0 / (kW * kH);
 
   size_t outputW = m_inputW / m_regionW;
   size_t outputH = m_inputH / m_regionH;
-  size_t sliceSize = outputW * outputH;
 
   size_t fmW = outputW - kW + 1;
   size_t fmH = outputH - kH + 1;
   size_t fmSize = fmW * fmH;
 
-  Vector delta(outputW * outputH * m_inputDepth);
-  #pragma omp parallel for
-  for (size_t slice = 0; slice < m_inputDepth; ++slice) {
-    size_t sliceOffset = slice * sliceSize;
+  for (size_t fm = 0; fm < convLayerDepth; ++fm) {
+    const Matrix& kernel = convParams[fm].W;
+    size_t fmOffset = fm * fmSize;
 
-    for (size_t fm = 0; fm < convLayerDepth; ++fm) {
-      const Matrix& kernel = convLayer.kernel(fm);
-      size_t fmOffset = slice * convLayerDepth * fmSize + fm * fmSize;
-
-      for (size_t fmY = 0; fmY < fmH; ++fmY) {
-        for (size_t fmX = 0; fmX < fmW; ++fmX) {
-          for (size_t j = 0; j < kH; ++j) {
-            for (size_t i = 0; i < kW; ++i) {
-              size_t x = fmX + i;
-              size_t y = fmY + j;
-              delta[sliceOffset + y * outputW + x] +=
-                kernel.at(i, j) * reluPrime(convDelta[fmOffset + fmY * fmW + fmX]);
-            }
+    for (size_t fmY = 0; fmY < fmH; ++fmY) {
+      for (size_t fmX = 0; fmX < fmW; ++fmX) {
+        for (size_t j = 0; j < kH; ++j) {
+          for (size_t i = 0; i < kW; ++i) {
+            size_t x = fmX + i;
+            size_t y = fmY + j;
+            delta[y * outputW + x] +=
+              kernel.at(i, j) * convDelta[fmOffset + fmY * fmW + fmX];
           }
         }
       }
     }
   }
-
-  padDelta(delta, m_mask, m_delta);
 }
 
 void MaxPoolingLayer::updateDelta(const Vector&, const Layer& nextLayer, size_t) {
+  size_t outputW = m_inputW / m_regionW;
+  size_t outputH = m_inputH / m_regionH;
+
+  // TODO: Make member variable
+  Vector delta(outputW * outputH);
+
   switch (nextLayer.type()) {
     case LayerType::OUTPUT:
-    case LayerType::DENSE:
-      backpropFromDenseLayer(nextLayer);
+    case LayerType::DENSE: {
+      backpropFromDenseLayer(nextLayer, delta);
       break;
-    case LayerType::CONVOLUTIONAL:
-      backpropFromConvLayer(nextLayer);
+    }
+    case LayerType::CONVOLUTIONAL: {
+      const auto& convLayer = dynamic_cast<const ConvolutionalLayer&>(nextLayer);
+      backpropFromConvLayer(convLayer.params(), convLayer.delta(), delta);
       break;
-    default:
+    }
+    default: {
       EXCEPTION("Expected layer of type DENSE or CONVOLUTIONAL, got " << nextLayer.type());
+    }
   }
+
+  padDelta(delta, m_mask, m_delta);
 
   //std::cout << "Max pooling delta: \n";
   //std::cout << m_delta;

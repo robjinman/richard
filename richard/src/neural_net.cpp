@@ -150,7 +150,7 @@ NeuralNetImpl::NeuralNetImpl(const nlohmann::json& config)
 
   auto outLayerJson = config["outputLayer"];
   m_layers.push_back(std::make_unique<OutputLayer>(outLayerJson,
-    prevLayerSize[0] * prevLayerSize[1]));
+    prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2]));
 }
 
 NeuralNetImpl::NeuralNetImpl(std::istream& fin) : m_isTrained(false) {
@@ -173,7 +173,7 @@ NeuralNetImpl::NeuralNetImpl(std::istream& fin) : m_isTrained(false) {
     prevLayerSize = m_layers.back()->outputSize();
   }
   m_layers.push_back(std::make_unique<OutputLayer>(outLayerJson, fin,
-    prevLayerSize[0] * prevLayerSize[1]));
+    prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2]));
 
   m_isTrained = true;
 }
@@ -244,7 +244,7 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
       break;
     }
 
-    std::cout << "Epoch " << epoch + 1 << "/" << m_params.epochs;
+    std::cout << "Epoch " << epoch + 1 << "/" << m_params.epochs << std::endl;
     double cost = 0.0;
     size_t samplesProcessed = 0;
 
@@ -275,6 +275,9 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
           }
         }
 
+        std::cout << (samplesProcessed % 100 == 0 ? std::to_string(samplesProcessed) : ".")
+          << std::flush;
+
         ++samplesProcessed;
         if (samplesProcessed >= m_params.maxBatchSize) {
           break;
@@ -289,7 +292,7 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
     }
 
     cost = cost / samplesProcessed;
-    std::cout << ", cost = " << cost << std::endl;
+    std::cout << "\n, cost = " << cost << std::endl;
 
     //std::cout << "Filter: \n";
     //std::cout << m_layers[0]->W();

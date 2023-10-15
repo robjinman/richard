@@ -213,21 +213,6 @@ Matrix::Matrix(size_t cols, size_t rows)
   memset(m_data.get(), 0, cols * rows * sizeof(double));
 }
 
-Vector Matrix::operator*(const Vector& rhs) const {
-  ASSERT(rhs.size() == m_cols);
-
-  Vector v(m_rows);
-  #pragma omp parallel for
-  for (size_t r = 0; r < m_rows; ++r) {
-    double sum = 0.0;
-    for (size_t c = 0; c < m_cols; ++c) {
-      sum += at(c, r) * rhs[c];
-    }
-    v[r] = sum;
-  }
-  return v;
-}
-
 Matrix::Matrix(const Matrix& cpy)
   : m_cols(cpy.m_cols)
   , m_rows(cpy.m_rows) {
@@ -245,6 +230,26 @@ Matrix::Matrix(Matrix&& mv)
   mv.m_cols = 0;
 }
 
+Matrix::Matrix(std::initializer_list<std::initializer_list<double>> data) {
+  m_cols = data.size();
+  ASSERT(m_cols > 0);
+
+  size_t r = 0;
+  for (auto row : data) {
+    if (r == 0) {
+      m_rows = row.size();
+      m_data.reset(new double[m_rows * m_cols]);
+    }
+
+    size_t c = 0;
+    for (double value : row) {
+      m_data[r * m_cols + c] = value;
+      ++c;
+    }
+    ++r;
+  }
+}
+
 Matrix& Matrix::operator=(const Matrix& rhs) {
   m_cols = rhs.m_cols;
   m_rows = rhs.m_rows;
@@ -252,6 +257,21 @@ Matrix& Matrix::operator=(const Matrix& rhs) {
   memcpy(m_data.get(), rhs.m_data.get(), m_rows * m_cols * sizeof(double));
 
   return *this;
+}
+
+Vector Matrix::operator*(const Vector& rhs) const {
+  ASSERT(rhs.size() == m_cols);
+
+  Vector v(m_rows);
+  #pragma omp parallel for
+  for (size_t r = 0; r < m_rows; ++r) {
+    double sum = 0.0;
+    for (size_t c = 0; c < m_cols; ++c) {
+      sum += at(c, r) * rhs[c];
+    }
+    v[r] = sum;
+  }
+  return v;
 }
 
 Vector Matrix::transposeMultiply(const Vector& rhs) const {

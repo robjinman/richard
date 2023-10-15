@@ -34,7 +34,7 @@ DenseLayer::DenseLayer(const nlohmann::json& obj, size_t inputSize)
   m_B = Vector(numNeurons);
 
   m_W = Matrix(inputSize, numNeurons);
-  m_W.randomize(0.5);
+  m_W.randomize(0.1);
 }
 
 void DenseLayer::writeToStream(std::ostream& fout) const {

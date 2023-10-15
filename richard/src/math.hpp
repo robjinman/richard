@@ -69,6 +69,7 @@ class Matrix {
     Matrix(size_t cols, size_t rows);
     Matrix(const Matrix& cpy);
     Matrix(Matrix&& mv);
+    explicit Matrix(std::initializer_list<std::initializer_list<double>> data);
 
     Matrix& operator=(const Matrix& rhs);
     Vector operator*(const Vector& rhs) const;

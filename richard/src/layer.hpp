@@ -39,6 +39,15 @@ enum class LayerType {
   OUTPUT
 };
 
+struct LayerParams {
+  LayerParams()
+    : W(1, 1)
+    , b(0.0) {}
+
+  Matrix W;
+  double b;
+};
+
 class Layer {
   public:
     virtual LayerType type() const = 0;
