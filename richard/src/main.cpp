@@ -149,11 +149,11 @@ void StdinMonitor::waitForInput() {
 
 }
 
-// richard --train --samples ../data/ocr/train.csv --config ../data/ocr/config.json --network ../data/ocr/network
-// richard --eval --samples ../data/ocr/test.csv --network ../data/ocr/network
+// richard --train --samples ../../data/ocr/train.csv --config ../../data/ocr/config.json --network ../../data/ocr/network
+// richard --eval --samples ../../data/ocr/test.csv --network ../../data/ocr/network
 
-// richard --train --samples ../data/catdog/train --config ../data/catdog/config.json --network ../data/catdog/network
-// richard --eval --samples ../data/catdog/test --network ../data/catdog/network
+// richard --train --samples ../../data/catdog/train --config ../../data/catdog/config.json --network ../../data/catdog/network
+// richard --eval --samples ../../data/catdog/test --network ../../data/catdog/network
 
 int main(int argc, char** argv) {
   try {
