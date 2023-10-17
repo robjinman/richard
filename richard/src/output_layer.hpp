@@ -9,15 +9,21 @@ class OutputLayer : public Layer {
 
     LayerType type() const override { return LayerType::OUTPUT; }
     std::array<size_t, 3> outputSize() const override;
-    const Vector& activations() const override;
-    const Vector& delta() const override;
-    void trainForward(const Vector& inputs) override;
-    Vector evalForward(const Vector& inputs) const override;
-    void updateDelta(const Vector&, const Layer&, size_t) override { assert(false); }
-    void updateDelta(const Vector& layerInputs, const Vector& y, size_t epoch);
+    const DataArray& activations() const override;
+    const DataArray& delta() const override;
+    void trainForward(const DataArray& inputs) override;
+    DataArray evalForward(const DataArray& inputs) const override;
+    void updateDelta(const DataArray&, const Layer&, size_t) override { assert(false); }
+    void updateDelta(const DataArray& inputs, const DataArray& y, size_t epoch);
     nlohmann::json getConfig() const override;
     void writeToStream(std::ostream& fout) const override;
     const Matrix& W() const override;
+
+    // Exposed for testing
+    //
+    void setWeights(const Matrix& W) override;
+    void setBiases(const Vector& B) override;
+    void setActivationFn(ActivationFn f, ActivationFn fPrime);
 
   private:
     Matrix m_W;
@@ -27,4 +33,6 @@ class OutputLayer : public Layer {
     Vector m_delta;
     double m_learnRate;
     double m_learnRateDecay;
+    ActivationFn m_activationFn;
+    ActivationFn m_activationFnPrime;
 };

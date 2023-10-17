@@ -44,12 +44,17 @@ class NeuralNetImpl : public NeuralNet {
     std::array<size_t, 2> inputSize() const override;
     void writeToStream(std::ostream& s) const override;
     void train(LabelledDataSet& data) override;
-    Vector evaluate(const Vector& inputs) const override;
+    VectorPtr evaluate(const Array3& inputs) const override;
 
     void abort() override;
 
+    // Exposed for testing
+    //
+    void setWeights(const std::vector<Matrix>& weights) override;
+    void setBiases(const std::vector<Vector>& biases) override;
+
   private:
-    double feedForward(const Vector& x, const Vector& y);
+    double feedForward(const Array3& x, const Vector& y);
     nlohmann::json getConfig() const;
     OutputLayer& outputLayer();
     std::unique_ptr<Layer> constructLayer(const nlohmann::json& obj, std::istream& fin,
@@ -88,6 +93,20 @@ nlohmann::json Hyperparams::toJson() const {
 
 void NeuralNetImpl::abort() {
   m_abort = true;
+}
+
+void NeuralNetImpl::setWeights(const std::vector<Matrix>& weights) {
+  assert(m_layers.size() == weights.size());
+  for (size_t i = 0; i < m_layers.size(); ++i) {
+    m_layers[i]->setWeights(weights[i]);
+  }
+}
+
+void NeuralNetImpl::setBiases(const std::vector<Vector>& biases) {
+  assert(m_layers.size() == biases.size());
+  for (size_t i = 0; i < m_layers.size(); ++i) {
+    m_layers[i]->setBiases(biases[i]);
+  }
 }
 
 std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj, std::istream& fin,
@@ -212,19 +231,16 @@ std::array<size_t, 2> NeuralNetImpl::inputSize() const {
   return m_params.numInputs;
 }
 
-double NeuralNetImpl::feedForward(const Vector& x, const Vector& y) {
-  const Vector* A = &x;
+double NeuralNetImpl::feedForward(const Array3& x, const Vector& y) {
+  const DataArray* A = &x.storage();
   for (auto& layer : m_layers) {
-    //std::cout << "Layer type: " << layer->type() << "\n";
-    //std::cout << "In: \n";
-    //std::cout << *A;
     layer->trainForward(*A);
-    //std::cout << "Out: \n";
     A = &layer->activations();
-    //std::cout << *A;
   }
 
-  return quadradicCost(*A, y);
+  ConstVectorPtr outputs = Vector::createShallow(*A);
+
+  return quadradicCost(*outputs, y);
 }
 
 OutputLayer& NeuralNetImpl::outputLayer() {
@@ -256,19 +272,18 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
 
       for (size_t i = 0; i < samples.size(); ++i) {
         const auto& sample = samples[i];
-        const Vector& x = sample.data;
+        const Array3& x = sample.data;
         const Vector& y = trainingData.classOutputVector(sample.label);
 
         cost += feedForward(x, y);
-        //std::cout << "Expected: " << y;
-        //std::cout << "Actual: " << outputLayer().activations() << "\n";
 
         for (int l = static_cast<int>(m_layers.size()) - 1; l >= 0; --l) {
           if (l == static_cast<int>(m_layers.size()) - 1) {
-            outputLayer().updateDelta(m_layers[m_layers.size() - 2]->activations(), y, epoch);
+            outputLayer().updateDelta(m_layers[m_layers.size() - 2]->activations(), y.storage(),
+              epoch);
           }
           else if (l == 0) {
-            m_layers[l]->updateDelta(x, *m_layers[l + 1], epoch);
+            m_layers[l]->updateDelta(x.storage(), *m_layers[l + 1], epoch);
           }
           else {
             m_layers[l]->updateDelta(m_layers[l - 1]->activations(), *m_layers[l + 1], epoch);
@@ -291,9 +306,6 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
     cost = cost / samplesProcessed;
     std::cout << ", cost = " << cost << std::endl;
 
-    //std::cout << "Filter: \n";
-    //std::cout << m_layers[0]->W();
-
     if (std::isnan(cost)) {
       exit(1); // TODO
     }
@@ -304,13 +316,14 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
   m_isTrained = true;
 }
 
-Vector NeuralNetImpl::evaluate(const Vector& x) const {
-  Vector A = x;
-  for (const auto& layer : m_layers) {
-    A = layer->evalForward(A);
+VectorPtr NeuralNetImpl::evaluate(const Array3& x) const {
+  DataArray A;
+
+  for (size_t i = 0; i < m_layers.size(); ++i) {
+    A = m_layers[i]->evalForward(i == 0 ? x.storage() : A);
   }
 
-  return A;
+  return std::make_unique<Vector>(A);
 }
 
 }

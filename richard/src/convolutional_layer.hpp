@@ -11,11 +11,11 @@ class ConvolutionalLayer : public Layer {
 
     LayerType type() const override { return LayerType::CONVOLUTIONAL; }
     std::array<size_t, 3> outputSize() const override;
-    const Vector& activations() const override;
-    const Vector& delta() const override;
-    void trainForward(const Vector& inputs) override;
-    Vector evalForward(const Vector& inputs) const override;
-    void updateDelta(const Vector& layerInputs, const Layer& nextLayer, size_t epoch) override;
+    const DataArray& activations() const override;
+    const DataArray& delta() const override;
+    void trainForward(const DataArray& inputs) override;
+    DataArray evalForward(const DataArray& inputs) const override;
+    void updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) override;
     nlohmann::json getConfig() const override;
     void writeToStream(std::ostream& fout) const override;
     // Don't use. Use kernel() instead.
@@ -25,16 +25,29 @@ class ConvolutionalLayer : public Layer {
     size_t depth() const;
 
     // Exposed for testing
-    void forwardPass(const Vector& inputs, Vector& Z) const;
-    void setWeights(const std::vector<Matrix>& weights);
-    void setBiases(const std::vector<double>& biases);
-    const std::vector<LayerParams>& params() const;
+    //
+
+    struct Filter {
+      Filter()
+        : K(1, 1, 1)
+        , b(0.0) {}
+
+      Kernel K;
+      double b;
+    };
+
+    void forwardPass(const Array3& inputs, Array3& Z) const;
+    //void setWeights(const std::vector<Matrix>& weights);
+    //void setBiases(const std::vector<double>& biases);
+    const std::vector<Filter>& filters() const;
+    void setWeights(const Matrix&) override { assert(false); } // TODO
+    void setBiases(const Vector&) override { assert(false); }
 
   private:
-    std::vector<LayerParams> m_slices;
-    Vector m_Z;
-    Vector m_A;
-    Vector m_delta;
+    std::vector<Filter> m_filters;
+    Array3 m_Z;
+    Array3 m_A;
+    Array3 m_delta;
     size_t m_inputW;
     size_t m_inputH;
     size_t m_inputDepth;

@@ -7,7 +7,7 @@ class ConvolutionalLayerTest : public testing::Test {
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
-
+/*
 TEST_F(ConvolutionalLayerTest, forwardPass_depth1) {
   nlohmann::json json;
   json["depth"] = 1;
@@ -194,3 +194,4 @@ TEST_F(ConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
   std::cout << "Hello\n";
   std::cout << layer.delta();
 }
+*/

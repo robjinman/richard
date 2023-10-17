@@ -1,6 +1,7 @@
 #pragma once
 
 #include "layer.hpp"
+#include "convolutional_layer.hpp"
 
 class MaxPoolingLayer : public Layer {
   public:
@@ -8,30 +9,32 @@ class MaxPoolingLayer : public Layer {
 
     LayerType type() const override { return LayerType::MAX_POOLING; }
     std::array<size_t, 3> outputSize() const override;
-    const Vector& activations() const override;
-    const Vector& delta() const override;
-    void trainForward(const Vector& inputs) override;
-    Vector evalForward(const Vector& inputs) const override;
-    void updateDelta(const Vector& layerInputs, const Layer& nextLayer, size_t epoch) override;
+    const DataArray& activations() const override;
+    const DataArray& delta() const override;
+    void trainForward(const DataArray& inputs) override;
+    DataArray evalForward(const DataArray& inputs) const override;
+    void updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) override;
     nlohmann::json getConfig() const override;
     void writeToStream(std::ostream&) const override {}
     const Matrix& W() const override;
 
     // Exposed for testing
-    void padDelta(const Vector& delta, const Vector& mask, Vector& paddedDelta) const;
-    const Vector& mask() const;
-    void backpropFromConvLayer(const std::vector<LayerParams>& convParams, const Vector& convDelta,
-      Vector& delta);
+    void padDelta(const Array3& delta, const Array3& mask, Array3& paddedDelta) const;
+    const Array3& mask() const;
+    void backpropFromConvLayer(const std::vector<ConvolutionalLayer::Filter>& filters,
+      const Vector& convDelta, Array3& delta);
+    void setWeights(const Matrix&) override { assert(false); }
+    void setBiases(const Vector&) override { assert(false); }
 
   private:
-    Vector m_Z;
-    Vector m_delta;
+    Array3 m_Z;
+    Array3 m_delta;
     size_t m_regionW;
     size_t m_regionH;
     size_t m_inputW;
     size_t m_inputH;
     size_t m_inputDepth;
-    Vector m_mask;
+    Array3 m_mask;
 
     void backpropFromDenseLayer(const Layer& nextLayer, Vector& delta);
 };

@@ -1,4 +1,3 @@
-#include <iostream> // TODO
 #include "output_layer.hpp"
 
 OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize)
@@ -6,7 +5,9 @@ OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize)
   , m_B(1)
   , m_Z(1)
   , m_A(1)
-  , m_delta(1) {
+  , m_delta(1)
+  , m_activationFn(sigmoid)
+  , m_activationFnPrime(sigmoidPrime) {
 
   size_t size = getOrThrow(obj, "size").get<size_t>();
   m_learnRate = getOrThrow(obj, "learnRate").get<double>();
@@ -23,7 +24,9 @@ OutputLayer::OutputLayer(const nlohmann::json& obj, std::istream& fin, size_t in
   , m_B(1)
   , m_Z(1)
   , m_A(1)
-  , m_delta(1) {
+  , m_delta(1)
+  , m_activationFn(sigmoid)
+  , m_activationFnPrime(sigmoidPrime) {
 
   size_t size = getOrThrow(obj, "size").get<size_t>();
   m_learnRate = getOrThrow(obj, "learnRate").get<double>();
@@ -41,12 +44,12 @@ void OutputLayer::writeToStream(std::ostream& fout) const {
   fout.write(reinterpret_cast<const char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
 }
 
-const Vector& OutputLayer::activations() const {
-  return m_A;
+const DataArray& OutputLayer::activations() const {
+  return m_A.storage();
 }
 
-const Vector& OutputLayer::delta() const {
-  return m_delta;
+const DataArray& OutputLayer::delta() const {
+  return m_delta.storage();
 }
 
 const Matrix& OutputLayer::W() const {
@@ -62,31 +65,55 @@ nlohmann::json OutputLayer::getConfig() const {
   return config;
 }
 
-Vector OutputLayer::evalForward(const Vector& x) const {
-  return (m_W * x + m_B).transform(sigmoid);
+DataArray OutputLayer::evalForward(const DataArray& inputs) const {
+  ConstVectorPtr pX = Vector::createShallow(inputs);
+  const Vector& x = *pX;
+
+  Vector y = (m_W * x + m_B).computeTransform(m_activationFn);
+
+  return y.storage();
 }
 
 std::array<size_t, 3> OutputLayer::outputSize() const {
   return { m_B.size(), 1, 1 };
 }
 
-void OutputLayer::trainForward(const Vector& inputs) {
-  m_Z = m_W * inputs + m_B;
-  m_A = m_Z.transform(sigmoid);
+void OutputLayer::trainForward(const DataArray& inputs) {
+  ConstVectorPtr pX = Vector::createShallow(inputs);
+  const Vector& x = *pX;
+
+  m_Z = m_W * x + m_B;
+  m_A = m_Z.computeTransform(m_activationFn);
 }
 
-void OutputLayer::updateDelta(const Vector& layerInputs, const Vector& y, size_t epoch) {
+void OutputLayer::updateDelta(const DataArray& inputs, const DataArray& outputs, size_t epoch) {
+  ConstVectorPtr pY = Vector::createShallow(outputs);
+  const Vector& y = *pY;
+
   Vector deltaC = quadraticCostDerivatives(m_A, y);
-  m_delta = m_Z.transform(sigmoidPrime).hadamard(deltaC);
+  m_delta = m_Z.computeTransform(m_activationFnPrime).hadamard(deltaC);
 
   double learnRate = m_learnRate * pow(m_learnRateDecay, epoch);
 
   for (size_t j = 0; j < m_W.rows(); j++) {
     for (size_t k = 0; k < m_W.cols(); k++) {
-      double dw = layerInputs[k] * m_delta[j] * learnRate;
+      double dw = inputs[k] * m_delta[j] * learnRate;
       m_W.set(k, j, m_W.at(k, j) - dw);
     }
   }
 
   m_B = m_B - m_delta * learnRate;
+}
+
+void OutputLayer::setWeights(const Matrix& W) {
+  m_W = W;
+}
+
+void OutputLayer::setBiases(const Vector& B) {
+  m_B = B;
+}
+
+void OutputLayer::setActivationFn(ActivationFn f, ActivationFn fPrime) {
+  m_activationFn = f;
+  m_activationFnPrime = fPrime;
 }

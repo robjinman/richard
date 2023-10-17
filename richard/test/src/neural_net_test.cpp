@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include <neural_net.hpp>
+#include <training_data_set.hpp>
 
 class NeuralNetTest : public testing::Test {
   public:
@@ -7,25 +9,83 @@ class NeuralNetTest : public testing::Test {
     virtual void TearDown() override {}
 };
 
-TEST_F(NeuralNetTest, evaluate) {/*
-  nlohmann::json config;
-  nlohmann::json paramsJson;
-  paramsJson["numInputs"] = 1;
-  paramsJson["numOutputs"] = 1;
-  config["hyperparams"] = paramsJson;
+class MockLabelledDataSet : public LabelledDataSet {
+  public:
+    MockLabelledDataSet(const std::vector<std::string>& labels)
+      : LabelledDataSet(labels) {}
+
+    MOCK_METHOD(size_t, loadSamples, (std::vector<Sample>& samples, size_t n), (override));
+    MOCK_METHOD(void, seekToBeginning, (), (override));
+};
+
+TEST_F(NeuralNetTest, evaluate) {
+  const std::string configString =     ""
+  "{                                    "
+  "  \"hyperparams\": {                 "
+  "      \"numInputs\": [3, 1],         "
+  "      \"epochs\": 1,                 "
+  "      \"maxBatchSize\": 1            "
+  "  },                                 "
+  "  \"hiddenLayers\": [                "
+  "      {                              "
+  "          \"type\": \"dense\",       "
+  "          \"size\": 4,               "
+  "          \"learnRate\": 0.1,        "
+  "          \"learnRateDecay\": 1.0,   "
+  "          \"dropoutRate\": 0.0       "
+  "      },                             "
+  "      {                              "
+  "          \"type\": \"dense\",       "
+  "          \"size\": 5,               "
+  "          \"learnRate\": 0.1,        "
+  "          \"learnRateDecay\": 1.0,   "
+  "          \"dropoutRate\": 0.0       "
+  "      }                              "
+  "  ],                                 "
+  "  \"outputLayer\": {                 "
+  "      \"size\": 2,                   "
+  "      \"learnRate\": 0.1,            "
+  "      \"learnRateDecay\": 1.0        "
+  "  }                                  "
+  "}                                    ";
+
+  nlohmann::json config = nlohmann::json::parse(configString);
   std::unique_ptr<NeuralNet> net = createNeuralNet(config);
 
-  Matrix W(1, 1);
-  W.set(0, 0, 12.3);
+  Sample sample("a", Array3({{{ 0.5, 0.3, 0.7 }}}));
+  auto loadSample = [&sample](std::vector<Sample>& samples, size_t) {
+    samples.push_back(sample);
+    return 1;
+  };
 
-  Vector B(1);
-  B[0] = 23.4;
+  testing::NiceMock<MockLabelledDataSet> dataSet(std::vector<std::string>({ "a", "b" }));
+  ON_CALL(dataSet, loadSamples).WillByDefault(testing::Invoke(loadSample));
 
-  net->setWeights({W});
-  net->setBiases({B});
+  Matrix W0({
+    { 0.2, 0.3, 0.4 },
+    { 0.5, 0.4, 0.3 },
+    { 0.6, 0.7, 0.1 },
+    { 0.2, 0.9, 0.8 }
+  });
+  Vector B0({ 0.4, 0.1, 0.2, 0.5 });
 
-  Vector X({45.6});
-  Vector Y = net->evaluate(X);
-*/
-  //ASSERT_EQ(X[0] * W.at(0, 0) + B[0], Y[0]); // TODO: apply sigmoid
+  Matrix W1({
+    { 0.4, 0.3, 0.1, 0.3 },
+    { 0.2, 0.4, 0.3, 0.8 },
+    { 0.7, 0.4, 0.9, 0.2 },
+    { 0.6, 0.1, 0.6, 0.5 },
+    { 0.8, 0.7, 0.2, 0.1 }
+  });
+  Vector B1({ 0.2, 0.3, 0.1, 0.2, 0.6 });
+
+  Matrix W2({
+    { 0.1, 0.4, 0.5, 0.2, 0.8 },
+    { 0.9, 0.8, 0.6, 0.1, 0.7 }
+  });
+  Vector B2({ 0.6, 0.8 });
+
+  net->setWeights({ W0, W1, W2 });
+  net->setBiases({ B0, B1, B2 });
+
+  net->train(dataSet);
 }

@@ -1,11 +1,14 @@
 #include "dense_layer.hpp"
+#include "util.hpp"
 
 DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize)
   : m_W(1, 1)
   , m_B(1)
   , m_Z(1)
   , m_A(1)
-  , m_delta(1) {
+  , m_delta(1)
+  , m_activationFn(sigmoid)
+  , m_activationFnPrime(sigmoidPrime) {
 
   size_t numNeurons = getOrThrow(obj, "size").get<size_t>();
   m_learnRate = getOrThrow(obj, "learnRate").get<double>();
@@ -24,7 +27,9 @@ DenseLayer::DenseLayer(const nlohmann::json& obj, size_t inputSize)
   , m_B(1)
   , m_Z(1)
   , m_A(1)
-  , m_delta(1) {
+  , m_delta(1)
+  , m_activationFn(sigmoid)
+  , m_activationFnPrime(sigmoidPrime) {
 
   size_t numNeurons = getOrThrow(obj, "size").get<size_t>();
   m_learnRate = getOrThrow(obj, "learnRate").get<double>();
@@ -32,8 +37,8 @@ DenseLayer::DenseLayer(const nlohmann::json& obj, size_t inputSize)
   m_dropoutRate = getOrThrow(obj, "dropoutRate").get<double>();
 
   m_B = Vector(numNeurons);
-
   m_W = Matrix(inputSize, numNeurons);
+
   m_W.randomize(0.1);
 }
 
@@ -46,12 +51,12 @@ std::array<size_t, 3> DenseLayer::outputSize() const {
   return { m_B.size(), 1, 1 };
 }
 
-const Vector& DenseLayer::activations() const {
-  return m_A;
+const DataArray& DenseLayer::activations() const {
+  return m_A.storage();
 }
 
-const Vector& DenseLayer::delta() const {
-  return m_delta;
+const DataArray& DenseLayer::delta() const {
+  return m_delta.storage();
 }
 
 const Matrix& DenseLayer::W() const {
@@ -68,17 +73,25 @@ nlohmann::json DenseLayer::getConfig() const {
   return config;
 }
 
-Vector DenseLayer::evalForward(const Vector& x) const {
-  return (m_W * x + m_B).transform(sigmoid);
+DataArray DenseLayer::evalForward(const DataArray& inputs) const {
+  ConstVectorPtr pX = Vector::createShallow(inputs);
+  const Vector& x = *pX;
+
+  Vector y = (m_W * x + m_B).computeTransform(m_activationFn);
+
+  return y.storage();
 }
 
-void DenseLayer::trainForward(const Vector& inputs) {
+void DenseLayer::trainForward(const DataArray& inputs) {
   auto shouldDrop = [this]() {
     return rand() / (RAND_MAX + 1.0) < m_dropoutRate;
   };
 
-  m_Z = m_W * inputs + m_B;
-  m_A = m_Z.transform(sigmoid);
+  ConstVectorPtr pX = Vector::createShallow(inputs);
+  const Vector& x = *pX;
+
+  m_Z = m_W * x + m_B;
+  m_A = m_Z.computeTransform(m_activationFn);
 
   for (size_t a = 0; a < m_A.size(); ++a) {
     if (shouldDrop()) {
@@ -87,18 +100,33 @@ void DenseLayer::trainForward(const Vector& inputs) {
   }
 }
 
-void DenseLayer::updateDelta(const Vector& layerInputs, const Layer& nextLayer, size_t epoch) {
-  m_delta = nextLayer.W().transposeMultiply(nextLayer.delta())
-                         .hadamard(m_Z.transform(sigmoidPrime));
+void DenseLayer::updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) {
+  ConstVectorPtr pNextDelta = Vector::createShallow(nextLayer.delta());
+
+  m_delta = nextLayer.W().transposeMultiply(*pNextDelta)
+                         .hadamard(m_Z.computeTransform(m_activationFnPrime));
 
   double learnRate = m_learnRate * pow(m_learnRateDecay, epoch);
 
   for (size_t j = 0; j < m_W.rows(); j++) {
     for (size_t k = 0; k < m_W.cols(); k++) {
-      double dw = layerInputs[k] * m_delta[j] * learnRate;
+      double dw = inputs[k] * m_delta[j] * learnRate;
       m_W.set(k, j, m_W.at(k, j) - dw);
     }
   }
 
   m_B = m_B - m_delta * learnRate;
+}
+
+void DenseLayer::setWeights(const Matrix& W) {
+  m_W = W;
+}
+
+void DenseLayer::setBiases(const Vector& B) {
+  m_B = B;
+}
+
+void DenseLayer::setActivationFn(ActivationFn f, ActivationFn fPrime) {
+  m_activationFn = f;
+  m_activationFnPrime = fPrime;
 }

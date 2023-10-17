@@ -41,11 +41,18 @@ size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples, size_t N) {
       const auto& entry = *cursor.i;
       if (std::filesystem::is_regular_file(entry)) {
         Bitmap image = loadBitmap(entry.path().string());
-        Vector v(image.numElements() / 3);
+        size_t imgW = image.size()[0];
+        size_t imgH = image.size()[1];
+        size_t channels = image.size()[2];
 
-        // TODO: Currently assume 3 colour channels and average them
-        for (size_t i = 0; i < image.numElements(); i += 3) {
-          v[i / 3] = static_cast<double>(image.data[i] + image.data[i + 1] + image.data[i + 2]) / 3.0;
+        Array3 v(imgW, imgH, channels);
+
+        for (size_t j = 0; j < imgH; ++j) {
+          for (size_t i = 0; i < imgW; ++i) {
+            for (size_t k = 0; k < channels; ++k) {
+              v.set(i, j, k, image[j][i][k]);
+            }
+          }
         }
 
         samples.emplace_back(cursor.label, v);

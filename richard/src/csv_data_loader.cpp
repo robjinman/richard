@@ -20,12 +20,16 @@ void CsvDataLoader::seekToBeginning() {
 }
 
 size_t CsvDataLoader::loadSamples(std::vector<Sample>& samples, size_t N) {
+  return loadSamples(m_fin, samples, N);
+}
+
+size_t CsvDataLoader::loadSamples(std::istream& stream, std::vector<Sample>& samples, size_t N) {
   size_t numSamples = 0;
   std::string line;
-  while (std::getline(m_fin, line)) {
+  while (std::getline(stream, line)) {
     std::stringstream ss{line};
     std::string label = "_";
-    Vector sample(m_inputSize);
+    Vector v(m_inputSize);
 
     for (size_t i = 0; ss.good(); ++i) {
       if (i > m_inputSize) {
@@ -40,11 +44,13 @@ size_t CsvDataLoader::loadSamples(std::vector<Sample>& samples, size_t N) {
       }
       else {
         double value = std::stod(token);
-        sample[i - 1] = value;
+        v[i - 1] = value;
       }
     }
 
-    samples.emplace_back(label, sample);
+    Array3 asArr3(std::move(v.storage()), v.size(), 1, 1);
+
+    samples.emplace_back(label, asArr3);
     ++numSamples;
 
     if (numSamples >= N) {

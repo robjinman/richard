@@ -4,12 +4,12 @@
 #include "math.hpp"
 
 struct Sample {
-  Sample(const std::string& label, const Vector& data)
+  Sample(const std::string& label, const Array3& data)
     : label(label)
     , data(data) {}
 
   std::string label; // TODO: Replace with reference/pointer/id
-  Vector data;
+  Array3 data;
 };
 
 class DataLoader {

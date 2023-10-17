@@ -23,16 +23,17 @@ size_t TestDataSet::loadSamples(std::vector<Sample>& samples, size_t n) {
     const Vector& min = m_trainingDataStats.min;
     const Vector& max = m_trainingDataStats.max;
 
-    for (auto& sample : samples) {
-      for (size_t i = 0; i < sample.data.size(); ++i) {/*
+    for (auto& sample : samples) {/*
+      for (size_t i = 0; i < sample.data.size(); ++i) {
         if (max[i] > 0.0) {
           sample.data[i] = (sample.data[i] - min[i]) / (max[i] - min[i]);
         }
         else {
           sample.data[i] = 0.0;
-        }*/
-        sample.data[i] = sample.data[i] / 255.0;
-      }
+        }
+      }*/
+      // TODO
+      sample.data /= 255.0;
     }
   }
 

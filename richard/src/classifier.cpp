@@ -6,6 +6,7 @@
 #include "exception.hpp"
 #include "training_data_set.hpp"
 #include "test_data_set.hpp"
+#include "util.hpp"
 
 namespace {
 
@@ -149,10 +150,10 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
       TRUE_OR_THROW(sample.data.size() == netInputSize,
         "Expected sample of size " << netInputSize << ", got " << sample.data.size());
 
-      Vector actual = m_neuralNet->evaluate(sample.data);
+      std::unique_ptr<Vector> actual = m_neuralNet->evaluate(sample.data);
       Vector expected = testData.classOutputVector(sample.label);
 
-      if (outputsMatch(actual, expected)) {
+      if (outputsMatch(*actual, expected)) {
         ++results.good;
         std::cout << "1" << std::flush;
       }
@@ -161,7 +162,7 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
         std::cout << "0" << std::flush;
       }
 
-      totalCost += costFn(actual, expected);
+      totalCost += costFn(*actual, expected);
       ++totalSamples;
     }
     samples.clear();

@@ -9,14 +9,20 @@ class DenseLayer : public Layer {
 
     LayerType type() const override { return LayerType::DENSE; }
     std::array<size_t, 3> outputSize() const override;
-    const Vector& activations() const override;
-    const Vector& delta() const override;
-    void trainForward(const Vector& inputs) override;
-    Vector evalForward(const Vector& inputs) const override;
-    void updateDelta(const Vector& layerInputs, const Layer& nextLayer, size_t epoch) override;
+    const DataArray& activations() const override;
+    const DataArray& delta() const override;
+    void trainForward(const DataArray& inputs) override;
+    DataArray evalForward(const DataArray& inputs) const override;
+    void updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) override;
     nlohmann::json getConfig() const override;
     void writeToStream(std::ostream& fout) const override;
     const Matrix& W() const override;
+
+    // Exposed for testing
+    //
+    void setWeights(const Matrix& W) override;
+    void setBiases(const Vector& B) override;
+    void setActivationFn(ActivationFn f, ActivationFn fPrime);
 
   private:
     Matrix m_W;
@@ -27,4 +33,6 @@ class DenseLayer : public Layer {
     double m_learnRate;
     double m_learnRateDecay;
     double m_dropoutRate;
+    ActivationFn m_activationFn;
+    ActivationFn m_activationFnPrime;
 };

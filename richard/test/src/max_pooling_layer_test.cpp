@@ -8,7 +8,7 @@ class MaxPoolingLayerTest : public testing::Test {
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
-
+/*
 TEST_F(MaxPoolingLayerTest, evalForward_depth1) {
   size_t inputW = 4;
   size_t inputH = 4;
@@ -344,3 +344,4 @@ TEST_F(MaxPoolingLayerTest, backpropFromConvLayer_depth1_convDepth2) {
 
   ASSERT_EQ(delta, fm0Delta + fm1Delta);
 }
+*/

@@ -1,17 +1,16 @@
 #include <iostream> // TODO
-#include <omp.h>
 #include "max_pooling_layer.hpp"
 #include "convolutional_layer.hpp"
 #include "exception.hpp"
 
 MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_t inputH,
   size_t inputDepth)
-  : m_Z(1)
-  , m_delta(1)
+  : m_Z(inputW, inputH, inputDepth)
+  , m_delta(inputW, inputH, inputDepth)
   , m_inputW(inputW)
   , m_inputH(inputH)
   , m_inputDepth(inputDepth)
-  , m_mask(inputW * inputH * inputDepth) {
+  , m_mask(inputW, inputH, inputDepth) {
 
   std::array<size_t, 2> regionSize = getOrThrow(obj, "regionSize").get<std::array<size_t, 2>>();
   m_regionW = regionSize[0];
@@ -21,9 +20,6 @@ MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_
     "Region width " << m_regionW << " does not divide input width " << inputW);
   TRUE_OR_THROW(inputH % m_regionH == 0,
     "Region height " << m_regionH << " does not divide input height " << inputH);
-
-  // Delta is padded to the input size
-  m_delta = Vector(m_inputW * m_inputH * m_inputDepth);
 }
 
 const Matrix& MaxPoolingLayer::W() const {
@@ -40,24 +36,23 @@ std::array<size_t, 3> MaxPoolingLayer::outputSize() const {
   };
 }
 
-const Vector& MaxPoolingLayer::activations() const {
-  return m_Z;
+const DataArray& MaxPoolingLayer::activations() const {
+  return m_Z.storage();
 }
 
-const Vector& MaxPoolingLayer::delta() const {
-  return m_delta;
+const DataArray& MaxPoolingLayer::delta() const {
+  return m_delta.storage();
 }
 
-void MaxPoolingLayer::trainForward(const Vector& inputs) {
+void MaxPoolingLayer::trainForward(const DataArray& inputs) {/*
+  TRUE_OR_THROW(inputs.dimensions() == 3, "Max pooling layer expects 3D input");
+  const Array3 image = dynamic_cast<const Array3&>(inputs);
+
   size_t outputW = m_inputW / m_regionW;
   size_t outputH = m_inputH / m_regionH;
-  m_Z = Vector(outputW * outputH * m_inputDepth);
 
   #pragma omp parallel for
-  for (size_t slice = 0; slice < m_inputDepth; ++slice) {
-    size_t inputOffset = slice * m_inputW * m_inputH;
-    size_t outputOffset = slice * outputW * outputH;
-
+  for (size_t z = 0; z < m_inputDepth; ++z) {
     for (size_t y = 0; y < outputH; ++y) {
       for (size_t x = 0; x < outputW; ++x) {
         double largest = std::numeric_limits<double>::min();
@@ -65,37 +60,34 @@ void MaxPoolingLayer::trainForward(const Vector& inputs) {
         size_t largestInputY = 0;
         for (size_t j = 0; j < m_regionH; ++j) {
           for (size_t i = 0; i < m_regionW; ++i) {
-            size_t inputX = x * m_regionW + i;
-            size_t inputY = y * m_regionH + j;
-            double input = inputs[inputOffset + inputY * m_inputW + inputX];
+            size_t imgX = x * m_regionW + i;
+            size_t imgY = y * m_regionH + j;
+            double input = image.at(imgX, imgY, z);
             if (input > largest) {
               largest = input;
-              largestInputX = inputX;
-              largestInputY = inputY;
+              largestInputX = imgX;
+              largestInputY = imgY;
             }
-            m_mask[inputOffset + inputY * m_inputW + inputX] = 0.0;
+            m_mask[imgX, imgY, z] = 0.0;
           }
         }
-        m_mask[inputOffset + largestInputY * m_inputW + largestInputX] = 1.0;
-        m_Z[outputOffset + y * outputW + x] = largest;
+        m_mask.set(largestInputX, largestInputY, z, 1.0);
+        m_Z.set(x, y, z, largest);
       }
     }
-  }
-
-  //std::cout << "Mask\n";
-  //std::cout << m_mask;
+  }*/
 }
 
-Vector MaxPoolingLayer::evalForward(const Vector& inputs) const {
+DataArray MaxPoolingLayer::evalForward(const DataArray& inputs) const {/*
+  TRUE_OR_THROW(inputs.dimensions() == 3, "Max pooling layer expects 3D input");
+  const Array3 image = dynamic_cast<const Array3&>(inputs);
+
   size_t outputW = m_inputW / m_regionW;
   size_t outputH = m_inputH / m_regionH;
-  Vector Z(outputW * outputH * m_inputDepth);
+  Array3Ptr Z = std::make_unique<Array3>(outputW, outputH, m_inputDepth);
 
   #pragma omp parallel for
-  for (size_t slice = 0; slice < m_inputDepth; ++slice) {
-    size_t inputOffset = slice * m_inputW * m_inputH;
-    size_t outputOffset = slice * outputW * outputH;
-
+  for (size_t z = 0; z < m_inputDepth; ++z) {
     for (size_t y = 0; y < outputH; ++y) {
       for (size_t x = 0; x < outputW; ++x) {
         double largest = std::numeric_limits<double>::min();
@@ -103,35 +95,33 @@ Vector MaxPoolingLayer::evalForward(const Vector& inputs) const {
           for (size_t i = 0; i < m_regionW; ++i) {
             size_t inputX = x * m_regionW + i;
             size_t inputY = y * m_regionH + j;
-            double input = inputs[inputOffset + inputY * m_inputW + inputX];
+            double input = image.at(inputX, inputY, z);
             if (input > largest) {
               largest = input;
             }
           }
         }
-        Z[outputOffset + y * outputW + x] = largest;
+        Z->set(x, y, z, largest);
       }
     }
   }
 
-  return Z;
+  return Z;*/
 }
 
 // Pad the delta to the input size using the mask for ease of consumption by the previous layer
-void MaxPoolingLayer::padDelta(const Vector& delta, const Vector& mask, Vector& paddedDelta) const {
+void MaxPoolingLayer::padDelta(const Array3& delta, const Array3& mask, Array3& paddedDelta) const {/*
   size_t outputW = m_inputW / m_regionW;
   size_t outputH = m_inputH / m_regionH;
 
   #pragma omp parallel for
-  for (size_t slice = 0; slice < m_inputDepth; ++slice) {
-    size_t inputOffset = slice * m_inputW * m_inputH;
-
+  for (size_t z = 0; z < m_inputDepth; ++z) {
     for (size_t y = 0; y < outputH; ++y) {
       for (size_t x = 0; x < outputW; ++x) {
         for (size_t j = 0; j < m_regionH; ++j) {
           for (size_t i = 0; i < m_regionW; ++i) {
-            size_t inputX = x * m_regionW + i;
-            size_t inputY = y * m_regionH + j;
+            size_t imgX = x * m_regionW + i;
+            size_t imgY = y * m_regionH + j;
             if (mask[inputOffset + inputY * m_inputW + inputX] != 0.0) {
               paddedDelta[inputOffset + inputY * m_inputW + inputX] = delta[y * outputW + x];
             }
@@ -142,16 +132,18 @@ void MaxPoolingLayer::padDelta(const Vector& delta, const Vector& mask, Vector& 
         }
       }
     }
-  }
+  }*/
 }
 
 void MaxPoolingLayer::backpropFromDenseLayer(const Layer& nextLayer, Vector& delta) {
-  delta = nextLayer.W().transposeMultiply(nextLayer.delta());
+  ConstVectorPtr pNextDelta = Vector::createShallow(nextLayer.delta());
+  delta = nextLayer.W().transposeMultiply(*pNextDelta);
 }
 
-void MaxPoolingLayer::backpropFromConvLayer(const std::vector<LayerParams>& convParams,
-  const Vector& convDelta, Vector& delta) {
-
+// TODO
+void MaxPoolingLayer::backpropFromConvLayer(const std::vector<ConvolutionalLayer::Filter>& filters,
+  const Vector& convDelta, Array3& delta) {
+/*
   size_t convLayerDepth = convParams.size();
   size_t kW = convParams[0].W.cols();
   size_t kH = convParams[0].W.rows();
@@ -180,10 +172,11 @@ void MaxPoolingLayer::backpropFromConvLayer(const std::vector<LayerParams>& conv
         }
       }
     }
-  }
+  }*/
 }
 
-void MaxPoolingLayer::updateDelta(const Vector&, const Layer& nextLayer, size_t) {
+// TODO
+void MaxPoolingLayer::updateDelta(const DataArray&, const Layer& nextLayer, size_t) {/*
   size_t outputW = m_inputW / m_regionW;
   size_t outputH = m_inputH / m_regionH;
 
@@ -210,6 +203,7 @@ void MaxPoolingLayer::updateDelta(const Vector&, const Layer& nextLayer, size_t)
 
   //std::cout << "Max pooling delta: \n";
   //std::cout << m_delta;
+  */
 }
 
 nlohmann::json MaxPoolingLayer::getConfig() const {
@@ -219,6 +213,6 @@ nlohmann::json MaxPoolingLayer::getConfig() const {
   return config;
 }
 
-const Vector& MaxPoolingLayer::mask() const {
+const Array3& MaxPoolingLayer::mask() const {
   return m_mask;
 }

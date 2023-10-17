@@ -28,7 +28,7 @@ size_t TrainingDataSet::loadSamples(std::vector<Sample>& samples, size_t n) {
     if (m_stats != nullptr) {
       Vector& min = m_stats->min;
       Vector& max = m_stats->max;
-
+/*
       for (const Sample& sample : samples) {
         for (size_t i = 0; i < sample.data.size(); ++i) {
           double value = sample.data[i];
@@ -40,18 +40,18 @@ size_t TrainingDataSet::loadSamples(std::vector<Sample>& samples, size_t n) {
           }
         }
       }
-
-      for (auto& sample : samples) {
+*/
+      for (auto& sample : samples) {/*
         for (size_t i = 0; i < sample.data.size(); ++i) {
-          /*
           if (max[i] > 0.0) {
             sample.data[i] = (sample.data[i] - min[i]) / (max[i] - min[i]);
           }
           else {
             sample.data[i] = 0.0;
-          }*/
-          sample.data[i] = sample.data[i] / 255.0;
-        }
+          }
+        }*/
+        // TODO
+        sample.data /= 255.0;
       }
     }
   }
