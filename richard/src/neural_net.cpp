@@ -244,7 +244,7 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
       break;
     }
 
-    std::cout << "Epoch " << epoch + 1 << "/" << m_params.epochs << std::endl;
+    std::cout << "Epoch " << epoch + 1 << "/" << m_params.epochs;
     double cost = 0.0;
     size_t samplesProcessed = 0;
 
@@ -275,9 +275,6 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
           }
         }
 
-        std::cout << (samplesProcessed % 100 == 0 ? std::to_string(samplesProcessed) : ".")
-          << std::flush;
-
         ++samplesProcessed;
         if (samplesProcessed >= m_params.maxBatchSize) {
           break;
@@ -292,7 +289,7 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
     }
 
     cost = cost / samplesProcessed;
-    std::cout << "\n, cost = " << cost << std::endl;
+    std::cout << ", cost = " << cost << std::endl;
 
     //std::cout << "Filter: \n";
     //std::cout << m_layers[0]->W();
