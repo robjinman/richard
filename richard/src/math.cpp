@@ -100,6 +100,17 @@ DataArray& DataArray::operator=(DataArray&& rhs) {
   return *this;
 }
 
+DataArray DataArray::concat(const DataArray& A, const DataArray& B) {
+  DataArray C(A.size() + B.size());
+
+  void* ptr = C.m_data.get();
+  memcpy(ptr, A.m_data.get(), A.size() * sizeof(double));
+  ptr += A.size() * sizeof(double);
+  memcpy(ptr, B.m_data.get(), B.size() * sizeof(double));
+
+  return C;
+}
+
 std::ostream& operator<<(std::ostream& os, const DataArray& v) {
   os << "[ ";
   for (size_t i = 0; i < v.size(); ++i) {
@@ -400,9 +411,9 @@ Matrix& Matrix::operator=(const Matrix& rhs) {
     m_data = rhs.m_data;
   }
   else {
-    m_storage = DataArray(m_cols * m_rows);
+    m_storage = DataArray(size());
     m_data = m_storage.data();
-    memcpy(m_data, rhs.m_data, m_cols * m_rows * sizeof(double));
+    memcpy(m_data, rhs.m_data, size() * sizeof(double));
   }
 
   return *this;
@@ -442,11 +453,35 @@ Vector Matrix::operator*(const Vector& rhs) const {
   return v;
 }
 
+Matrix Matrix::operator+(const Matrix& rhs) const {
+  ASSERT(rhs.m_cols == m_cols);
+  ASSERT(rhs.m_rows == m_rows);
+
+  Matrix m(m_cols, m_rows);
+
+  for (size_t i = 0; i < size(); ++i) {
+    m.m_data[i] = m_data[i] + rhs.m_data[i];
+  }
+
+  return m;
+}
+
+Matrix Matrix::operator-(const Matrix& rhs) const {
+  ASSERT(rhs.m_cols == m_cols);
+  ASSERT(rhs.m_rows == m_rows);
+
+  Matrix m(m_cols, m_rows);
+
+  for (size_t i = 0; i < size(); ++i) {
+    m.m_data[i] = m_data[i] - rhs.m_data[i];
+  }
+
+  return m;
+}
+
 void Matrix::operator+=(double x) {
-  for (size_t c = 0; c < m_cols; ++c) {
-    for (size_t r = 0; r < m_rows; ++r) {
-      set(r, c, at(r, c) + x);
-    }
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] += x;
   }
 }
 
@@ -465,11 +500,11 @@ Vector Matrix::transposeMultiply(const Vector& rhs) const {
 }
 
 void Matrix::zero() {
-  memset(m_data, 0, m_cols * m_rows * sizeof(double));
+  memset(m_data, 0, size() * sizeof(double));
 }
 
 void Matrix::fill(double x) {
-  for (size_t i = 0; i < m_rows * m_cols; ++i) {
+  for (size_t i = 0; i < size(); ++i) {
     m_data[i] = x;
   }
 }
@@ -478,7 +513,7 @@ void Matrix::randomize(double standardDeviation) {
   std::default_random_engine gen;
   std::normal_distribution<double> dist(0.0, standardDeviation);
 
-  for (size_t i = 0; i < m_rows * m_cols; ++i) {
+  for (size_t i = 0; i < size(); ++i) {
     m_data[i] = dist(gen);
   }
 }
@@ -486,7 +521,7 @@ void Matrix::randomize(double standardDeviation) {
 double Matrix::sum() const {
   double s = 0.0;
 
-  for (size_t i = 0; i < m_cols * m_rows; ++i) {
+  for (size_t i = 0; i < size(); ++i) {
     s += m_data[i];
   }
 
@@ -508,7 +543,7 @@ bool Matrix::operator==(const Matrix& rhs) const {
     return false;
   }
 
-  return arraysEqual(m_data, rhs.m_data, m_cols * m_rows);
+  return arraysEqual(m_data, rhs.m_data, size());
 }
 
 MatrixPtr Matrix::createShallow(DataArray& data, size_t cols, size_t rows) {
@@ -627,7 +662,7 @@ bool Kernel::operator==(const Kernel& rhs) const {
     return false;
   }
 
-  return arraysEqual(m_data, rhs.m_data, m_W * m_H * m_D);
+  return arraysEqual(m_data, rhs.m_data, size());
 }
 
 Kernel& Kernel::operator=(const Kernel& rhs) {
@@ -640,9 +675,9 @@ Kernel& Kernel::operator=(const Kernel& rhs) {
     m_data = rhs.m_data;
   }
   else {
-    m_storage = DataArray(m_W * m_H * m_D);
+    m_storage = DataArray(size());
     m_data = m_storage.data();
-    memcpy(m_data, rhs.m_data, m_W * m_H * m_D * sizeof(double));
+    memcpy(m_data, rhs.m_data, size() * sizeof(double));
   }
 
   return *this;
@@ -671,11 +706,11 @@ Kernel& Kernel::operator=(Kernel&& rhs) {
 }
 
 void Kernel::zero() {
-  memset(m_data, 0, m_W * m_H * m_D * sizeof(double));
+  memset(m_data, 0, size() * sizeof(double));
 }
 
 void Kernel::fill(double x) {
-  for (size_t i = 0; i < m_W * m_H * m_D; ++i) {
+  for (size_t i = 0; i < size(); ++i) {
     m_data[i] = x;
   }
 }
@@ -684,14 +719,94 @@ void Kernel::randomize(double standardDeviation) {
   std::default_random_engine gen;
   std::normal_distribution<double> dist(0.0, standardDeviation);
 
-  for (size_t i = 0; i < m_W * m_H * m_D; ++i) {
+  for (size_t i = 0; i < size(); ++i) {
     m_data[i] = dist(gen);
   }
 }
 
+Kernel Kernel::operator+(const Kernel& rhs) const {
+  Kernel K(m_W, m_H, m_D);
+  for (size_t i = 0; i < size(); ++i) {
+    K.m_data[i] = m_data[i] + rhs.m_data[i];
+  }
+  return K;
+}
+
+Kernel Kernel::operator-(const Kernel& rhs) const {
+  Kernel K(m_W, m_H, m_D);
+  for (size_t i = 0; i < size(); ++i) {
+    K.m_data[i] = m_data[i] - rhs.m_data[i];
+  }
+  return K;
+}
+
+Kernel Kernel::operator+(double x) const {
+  Kernel K(m_W, m_H, m_D);
+  for (size_t i = 0; i < size(); ++i) {
+    K.m_data[i] = m_data[i] + x;
+  }
+  return K;
+}
+
+Kernel Kernel::operator-(double x) const {
+  Kernel K(m_W, m_H, m_D);
+  for (size_t i = 0; i < size(); ++i) {
+    K.m_data[i] = m_data[i] - x;
+  }
+  return K;
+}
+
+Kernel Kernel::operator*(double x) const {
+  Kernel K(m_W, m_H, m_D);
+  for (size_t i = 0; i < size(); ++i) {
+    K.m_data[i] = m_data[i] * x;
+  }
+  return K;
+}
+
+Kernel Kernel::operator/(double x) const {
+  Kernel K(m_W, m_H, m_D);
+  for (size_t i = 0; i < size(); ++i) {
+    K.m_data[i] = m_data[i] / x;
+  }
+  return K;
+}
+
+void Kernel::operator+=(double x) {
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] += x;
+  }
+}
+
+void Kernel::operator-=(double x) {
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] -= x;
+  }
+}
+
+void Kernel::operator*=(double x) {
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] *= x;
+  }
+}
+
 void Kernel::operator/=(double x) {
-  for (size_t i = 0; i < m_W * m_H * m_D; ++i) {
+  for (size_t i = 0; i < size(); ++i) {
     m_data[i] /= x;
+  }
+}
+
+Kernel Kernel::computeTransform(const std::function<double(double)>& f) const {
+  Kernel K(m_W, m_H, m_D);
+  for (size_t i = 0; i < size(); ++i) {
+    K.m_data[i] = f(m_data[i]);
+  }
+  return K;
+}
+
+void Kernel::transformInPlace(const std::function<double(double)>& f) {
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] = f(m_data[i]);
   }
 }
 

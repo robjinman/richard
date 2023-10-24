@@ -7,7 +7,7 @@ class ConvolutionalLayerTest : public testing::Test {
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
-/*
+
 TEST_F(ConvolutionalLayerTest, forwardPass_depth1) {
   nlohmann::json json;
   json["depth"] = 1;
@@ -17,29 +17,29 @@ TEST_F(ConvolutionalLayerTest, forwardPass_depth1) {
 
   ConvolutionalLayer layer(json, 3, 3, 1);
 
-  Matrix W({
-    { 5.0, 3.0 },
-    { 1.0, 2.0 }
-  });
-  layer.setWeights({ W });
-  layer.setBiases({ 7.0 });
+  ConvolutionalLayer::Filter filter;
+  filter.K = Kernel({{
+    { 5, 3 },
+    { 1, 2 }
+  }});
+  filter.b = 7;
+  layer.setFilters({ filter });
 
-  auto outputSize = layer.outputSize();
-  size_t numOutputs = outputSize[0] * outputSize[1] * outputSize[2];
-  Vector Z(numOutputs);
+  Array3 inputs({{
+    { 0, 1, 2 },
+    { 5, 6, 7 },
+    { 8, 7, 6 }
+  }});
 
-  Vector inputs({
-    0, 1, 2,
-    5, 6, 7,
-    8, 7, 6
-  });
+  Array3 Z(2, 2, 1);
 
   layer.forwardPass(inputs, Z);
 
-  ASSERT_EQ(Z, Vector({
-    27.0, 38.0,
-    72.0, 77.0
-  }));
+  Array3 expectedZ(2, 2, 1);
+  filter.K.convolve(inputs, *expectedZ.slice(0));
+  expectedZ += filter.b;
+
+  ASSERT_EQ(Z, expectedZ);
 }
 
 TEST_F(ConvolutionalLayerTest, forwardPass_depth2) {
@@ -51,36 +51,39 @@ TEST_F(ConvolutionalLayerTest, forwardPass_depth2) {
 
   ConvolutionalLayer layer(json, 3, 3, 1);
 
-  Matrix W0({
-    { 5.0, 3.0 },
-    { 1.0, 2.0 }
-  });
-  Matrix W1({
-    { 8.0, 4.0 },
-    { 5.0, 3.0 }
-  });
-  layer.setWeights({ W0, W1 });
-  layer.setBiases({ 7.0, 3.0 });
+  ConvolutionalLayer::Filter filter0;
+  filter0.K = Kernel({{
+    { 5, 3 },
+    { 1, 2 }
+  }});
+  filter0.b = 7;
 
-  auto outputSize = layer.outputSize();
-  size_t numOutputs = outputSize[0] * outputSize[1] * outputSize[2];
-  Vector Z(numOutputs);
+  ConvolutionalLayer::Filter filter1;
+  filter1.K = Kernel({{
+    { 8, 4 },
+    { 5, 3 }
+  }});
+  filter1.b = 3;
 
-  Vector inputs({
-    0, 1, 2,
-    5, 6, 7,
-    8, 7, 6
-  });
+  layer.setFilters({ filter0, filter1 });
+
+  Array3 Z(2, 2, 2);
+
+  Array3 inputs({{
+    { 0, 1, 2 },
+    { 5, 6, 7 },
+    { 8, 7, 6 }
+  }});
+
+  Array3 expectedZ(2, 2, 2);
+  filter0.K.convolve(inputs, *expectedZ.slice(0));
+  *expectedZ.slice(0) += filter0.b;
+  filter1.K.convolve(inputs, *expectedZ.slice(1));
+  *expectedZ.slice(1) += filter1.b;
 
   layer.forwardPass(inputs, Z);
 
-  ASSERT_EQ(Z, Vector({
-    27.0, 38.0,
-    72.0, 77.0,
-
-    50.0, 70.0,
-    128.0, 132.0
-  }));
+  ASSERT_EQ(Z, expectedZ);
 }
 
 TEST_F(ConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
@@ -92,46 +95,55 @@ TEST_F(ConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
 
   ConvolutionalLayer layer(json, 3, 3, 2);
 
-  Matrix W0({
-    { 5.0, 3.0 },
-    { 1.0, 2.0 }
+  ConvolutionalLayer::Filter filter0;
+  filter0.K = Kernel({
+    {
+      { 5, 3 },
+      { 1, 2 }
+    }, {
+      { 8, 4 },
+      { 5, 3 }
+    }
   });
-  Matrix W1({
-    { 8.0, 4.0 },
-    { 5.0, 3.0 }
+  filter0.b = 7;
+
+  ConvolutionalLayer::Filter filter1;
+  filter1.K = Kernel({
+    {
+      { 5, 3 },
+      { 1, 2 }
+    }, {
+      { 8, 4 },
+      { 5, 3 }
+    }
   });
-  layer.setWeights({ W0, W1 });
-  layer.setBiases({ 7.0, 3.0 });
+  filter1.b = 3;
 
-  auto outputSize = layer.outputSize();
-  size_t numOutputs = outputSize[0] * outputSize[1] * outputSize[2];
-  Vector Z(numOutputs);
+  layer.setFilters({ filter0, filter1 });
 
-  Vector inputs({
-    0, 1, 2,
-    5, 6, 7,
-    8, 7, 6,
+  Array3 Z(2, 2, 2);
 
-    5, 4, 3,
-    2, 1, 0,
-    1, 2, 5
+  Array3 inputs({
+    {
+      { 0, 1, 2 },
+      { 5, 6, 7 },
+      { 8, 7, 6 },
+    }, {
+      { 5, 4, 3 },
+      { 2, 1, 0 },
+      { 1, 2, 5 }
+    }
   });
+
+  Array3 expectedZ(2, 2, 2);
+  filter0.K.convolve(inputs, *expectedZ.slice(0));
+  *expectedZ.slice(0) += filter0.b;
+  filter1.K.convolve(inputs, *expectedZ.slice(1));
+  *expectedZ.slice(1) += filter1.b;
 
   layer.forwardPass(inputs, Z);
 
-  ASSERT_EQ(Z, Vector({
-    27.0, 38.0,
-    72.0, 77.0,
-
-    50.0, 70.0,
-    128.0, 132.0,
-
-    48.0, 37.0,
-    25.0, 24.0,
-
-    72.0, 52.0,
-    34.0, 36.0
-  }));
+  ASSERT_EQ(Z, expectedZ);
 }
 
 TEST_F(ConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
@@ -142,56 +154,62 @@ TEST_F(ConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
   json["learnRateDecay"] = 1.0;
 
   ConvolutionalLayer layer(json, 3, 3, 1);
-  MockLayer poolingLayer;
+  testing::NiceMock<MockLayer> poolingLayer;
 
-  auto outputSize = layer.outputSize();
-  size_t numOutputs = outputSize[0] * outputSize[1] * outputSize[2];
-  Vector Z(numOutputs);
+  ConvolutionalLayer::Filter filter0;
+  filter0.K = Kernel({{
+    { 5, 3 },
+    { 1, 2 }
+  }});
+  filter0.b = 7;
 
-  Matrix W0({
-    { 5.0, 3.0 },
-    { 1.0, 2.0 }
-  });
-  Matrix W1({
-    { 8.0, 4.0 },
-    { 5.0, 3.0 }
-  });
-  layer.setWeights({ W0, W1 });
-  layer.setBiases({ 7.0, 3.0 });
+  ConvolutionalLayer::Filter filter1;
+  filter1.K = Kernel({{
+    { 8, 4 },
+    { 5, 3 }
+  }});
+  filter1.b = 3;
 
-  Vector inputs({
-    0, 1, 2,
-    5, 6, 7,
-    8, 7, 6
+  layer.setFilters({ filter0, filter1 });
+
+  Array3 Z(2, 2, 2);
+
+  Array3 poolingLayerDelta({
+    {
+      { 7 }
+    }
   });
 
-  Vector poolingLayerDelta({
-    7
-  });
+  Array3 inputs({{
+    { 0, 1, 2 },
+    { 5, 6, 7 },
+    { 8, 7, 6 }
+  }});
+
+  Array3 expectedZ(2, 2, 2);
+  filter0.K.convolve(inputs, *expectedZ.slice(0));
+  *expectedZ.slice(0) += filter0.b;
+  filter1.K.convolve(inputs, *expectedZ.slice(1));
+  *expectedZ.slice(1) += filter1.b;
 
   layer.forwardPass(inputs, Z);
 
-  ASSERT_EQ(Z, Vector({
-    27.0, 38.0,
-    72.0, 77.0,
+  ASSERT_EQ(Z, expectedZ);
 
-    50.0, 70.0,
-    128.0, 132.0
-  }));
-
-  Vector paddedPoolingLayerDelta({
-    0, 0,
-    0, 7,
-
-    0, 0,
-    0, 7
+  Array3 paddedPoolingLayerDelta({
+    {
+      { 0, 0 },
+      { 0, 7 },
+    }, {
+      { 0, 0 },
+      { 0, 7 }
+    }
   });
 
-  ON_CALL(poolingLayer, delta).WillByDefault(testing::ReturnRef(paddedPoolingLayerDelta));
+  ON_CALL(poolingLayer, type).WillByDefault(testing::Return(LayerType::MAX_POOLING));
+  ON_CALL(poolingLayer, delta).WillByDefault(testing::ReturnRef(paddedPoolingLayerDelta.storage()));
 
-  layer.updateDelta(inputs, poolingLayer, 0);
+  layer.updateDelta(inputs.storage(), poolingLayer, 0);
 
-  std::cout << "Hello\n";
-  std::cout << layer.delta();
+  // TODO
 }
-*/

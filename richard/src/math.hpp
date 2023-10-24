@@ -25,10 +25,12 @@ class DataArray {
     inline double& operator[](size_t i);
     inline const double& operator[](size_t i) const;
 
+    static DataArray concat(const DataArray& A, const DataArray& B);
+
     friend std::ostream& operator<<(std::ostream& os, const DataArray& v);
 
   private:
-    std::unique_ptr<double> m_data;
+    std::unique_ptr<double[]> m_data;
     size_t m_size;
 };
 
@@ -247,6 +249,9 @@ class Matrix {
     double sum() const;
     Matrix transpose() const;
 
+    Matrix computeTransform(const std::function<double(double)>& f) const;
+    void transformInPlace(const std::function<double(double)>& f);
+
     // Returns shallow Vector
     inline VectorPtr slice(size_t row);
     inline ConstVectorPtr slice(size_t row) const;
@@ -382,6 +387,9 @@ class Kernel {
     void operator-=(double x);
     void operator*=(double x);
     void operator/=(double x);
+
+    Kernel computeTransform(const std::function<double(double)>& f) const;
+    void transformInPlace(const std::function<double(double)>& f);
 
     inline MatrixPtr slice(size_t z);
     inline ConstMatrixPtr slice(size_t z) const;

@@ -92,90 +92,86 @@ size_t ConvolutionalLayer::numOutputs() const {
   return os[0] * os[1] * os[2];
 }
 
-void ConvolutionalLayer::forwardPass(const Array3& inputs, Array3& Z) const {/*
+void ConvolutionalLayer::forwardPass(const Array3& inputs, Array3& Z) const {
   size_t depth = m_filters.size();
 
   for (size_t slice = 0; slice < depth; ++slice) {
-    Array2Ptr featureMap = Z.submatrix(slice);
+    Array2Ptr featureMap = Z.slice(slice);
 
     const Kernel& K = m_filters[slice].K;
     double b = m_filters[slice].b;
 
     K.convolve(inputs, *featureMap);
+
     (*featureMap) += b;
-  }*/
+  }
 }
 
-void ConvolutionalLayer::trainForward(const DataArray& inputs) {/*
-  TRUE_OR_THROW(inputs.dimensions() == 3, "Expected 3 dimensional input to convolutional layer");
-  const Array3& image = dynamic_cast<const Array3&>(inputs);
+void ConvolutionalLayer::trainForward(const DataArray& inputs) {
+  ConstArray3Ptr pX = Array3::createShallow(inputs, m_inputW, m_inputH, m_inputDepth);
+  const Array3& X = *pX;
 
-  forwardPass(image, m_Z);
+  forwardPass(X, m_Z);
 
-  m_A = m_Z;
-  m_A.transformInPlace(relu);*/
+  m_A = m_Z.computeTransform(relu);
 }
 
-DataArray ConvolutionalLayer::evalForward(const DataArray& inputs) const {/*
-  TRUE_OR_THROW(inputs.dimensions() == 3, "Expected 3 dimensional input to convolutional layer");
-  const Array3& image = dynamic_cast<const Array3&>(inputs);
+DataArray ConvolutionalLayer::evalForward(const DataArray& inputs) const {
+  ConstArray3Ptr pX = Array3::createShallow(inputs, m_inputW, m_inputH, m_inputDepth);
+  const Array3& X = *pX;
 
   auto sz = outputSize();
-  Array3Ptr Z = std::make_unique<Array3>(sz[0], sz[1], sz[2]);
+  Array3 Z(sz[0], sz[1], sz[2]);
 
-  forwardPass(image, *Z);
+  forwardPass(X, Z);
 
-  Z->transformInPlace(relu);
+  Z.transformInPlace(relu);
 
-  return Z;*/
+  return Z.storage();
 }
 
-// TODO
-void ConvolutionalLayer::updateDelta(const DataArray& inputs, const Layer& nextLayer,
-  size_t epoch) {/*
+void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& nextLayer,
+  size_t epoch) {
 
   TRUE_OR_THROW(nextLayer.type() == LayerType::MAX_POOLING,
     "Expect max pooling after convolutional layer");
 
-  const Vector& nextLayerDelta = nextLayer.delta();
-
-  size_t featureMapW = outputSize()[0];
-  size_t featureMapH = outputSize()[1];
+  size_t fmW = outputSize()[0];
+  size_t fmH = outputSize()[1];
   size_t depth = m_filters.size();
-  size_t sliceSize = featureMapW * featureMapH;
 
-  double learnRate = m_learnRate * pow(m_learnRateDecay, epoch) /
-    (m_inputDepth * depth * featureMapW * featureMapH);
+  ConstArray3Ptr pNextDelta = Array3::createShallow(nextLayer.delta(), fmW, fmH, depth);
+  const Array3& nextDelta = *pNextDelta;
 
-  for (size_t inputSlice = 0; inputSlice < m_inputDepth; ++inputSlice) {
-    for (size_t slice = 0; slice < depth; ++slice) {
-      size_t sliceOffset = inputSlice * depth * sliceSize + slice * sliceSize;
-      Matrix& W = m_slices[slice].W;
-      double& b = m_slices[slice].b;
+  ConstArray3Ptr pInputs = Array3::createShallow(layerInputs, m_inputW, m_inputH, m_inputDepth);
+  const Array3& inputs = *pInputs;
 
-      for (size_t ymin = 0; ymin < featureMapH; ++ymin) {
-        for (size_t xmin = 0; xmin < featureMapW; ++xmin) {
-          size_t idx = sliceOffset + ymin * featureMapW + xmin;
+  double learnRate = m_learnRate * pow(m_learnRateDecay, epoch) / (fmW * fmH);
 
-          m_delta[idx] = reluPrime(m_Z[idx]) * nextLayerDelta[idx];
+  for (size_t slice = 0; slice < depth; ++slice) {
+    Kernel& K = m_filters[slice].K;
+    double& b = m_filters[slice].b;
 
-          for (size_t j = 0; j < W.rows(); ++j) {
-            for (size_t i = 0; i < W.cols(); ++i) {
+    for (size_t ymin = 0; ymin < fmH; ++ymin) {
+      for (size_t xmin = 0; xmin < fmW; ++xmin) {
+        double delta = reluPrime(m_Z.at(xmin, ymin, slice)) * nextDelta.at(xmin, ymin, slice);
+        m_delta.set(xmin, ymin, slice, delta);
+
+        for (size_t z = 0; z < K.D(); ++z) {
+          for (size_t j = 0; j < K.H(); ++j) {
+            for (size_t i = 0; i < K.W(); ++i) {
               size_t inputX = xmin + i;
               size_t inputY = ymin + j;
-              double dw = layerInputs[inputY * m_inputW + inputX] * m_delta[idx] * learnRate;
+              double dw = inputs.at(inputX, inputY, z) * delta * learnRate;
 
-              W.set(i, j, W.at(i, j) - dw);
-              b = b - m_delta[idx] * learnRate;
+              K.set(i, j, z, K.at(i, j, z) - dw);
+              b = b - delta * learnRate;
             }
           }
         }
       }
     }
   }
-
-  //std::cout << "Convolutional delta: \n";
-  //std::cout << m_delta;*/
 }
 
 nlohmann::json ConvolutionalLayer::getConfig() const {
@@ -190,12 +186,11 @@ nlohmann::json ConvolutionalLayer::getConfig() const {
   return config;
 }
 
-void ConvolutionalLayer::writeToStream(std::ostream& fout) const {/*
-  for (const LayerParams& slice : m_slices) {
-    fout.write(reinterpret_cast<const char*>(&slice.b), sizeof(double));
-    fout.write(reinterpret_cast<const char*>(slice.W.data()),
-      slice.W.rows() * slice.W.cols() * sizeof(double));
-  }*/
+void ConvolutionalLayer::writeToStream(std::ostream& fout) const {
+  for (const Filter& filter : m_filters) {
+    fout.write(reinterpret_cast<const char*>(&filter.b), sizeof(double));
+    fout.write(reinterpret_cast<const char*>(filter.K.data()), filter.K.size() * sizeof(double));
+  }
 }
 
 const Matrix& ConvolutionalLayer::W() const {
@@ -217,20 +212,8 @@ std::array<size_t, 2> ConvolutionalLayer::kernelSize() const {
   return { m_filters[0].K.W(), m_filters[0].K.H() };
 }
 
-/*
 // For testing
-void ConvolutionalLayer::setWeights(const std::vector<Matrix>& weights) {
-  ASSERT(weights.size() == m_slices.size());
-  for (size_t i = 0; i < weights.size(); ++i) {
-    m_slices[i].W = weights[i];
-  }
+void ConvolutionalLayer::setFilters(const std::vector<ConvolutionalLayer::Filter>& filters) {
+  ASSERT(filters.size() == m_filters.size());
+  m_filters = filters;
 }
-
-// For testing
-void ConvolutionalLayer::setBiases(const std::vector<double>& biases) {
-  ASSERT(biases.size() == m_slices.size());
-  for (size_t i = 0; i < biases.size(); ++i) {
-    m_slices[i].b = biases[i];
-  }
-}
-*/

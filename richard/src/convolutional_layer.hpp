@@ -37,8 +37,7 @@ class ConvolutionalLayer : public Layer {
     };
 
     void forwardPass(const Array3& inputs, Array3& Z) const;
-    //void setWeights(const std::vector<Matrix>& weights);
-    //void setBiases(const std::vector<double>& biases);
+    void setFilters(const std::vector<Filter>& filters); // TODO
     const std::vector<Filter>& filters() const;
     void setWeights(const Matrix&) override { assert(false); } // TODO
     void setBiases(const Vector&) override { assert(false); }
