@@ -232,10 +232,10 @@ void ConvolutionalLayer::setFilters(const std::vector<ConvolutionalLayer::Filter
 void ConvolutionalLayer::setWeights(const std::vector<DataArray>& weights) {
   ASSERT(weights.size() == m_filters.size());
 
-  for (size_t i = 0; i < m_filters.size(); ++i) {
-    const Kernel& K = m_filters[i].K;
-    m_filters[i].K = Kernel(weights[i], K.W(), K.H(), K.D());
-  }
+  //for (size_t i = 0; i < m_filters.size(); ++i) {
+  //  const Kernel& K = m_filters[i].K;
+  //  m_filters[i].K = Kernel(weights[i], K.W(), K.H(), K.D());
+  //}
 }
 
 void ConvolutionalLayer::setBiases(const DataArray& biases) {

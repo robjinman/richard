@@ -386,13 +386,19 @@ Matrix::Matrix(const DataArray& data, size_t cols, size_t rows)
   : m_storage(data)
   , m_data(m_storage.data())
   , m_rows(rows)
-  , m_cols(cols) {}
+  , m_cols(cols) {
+
+  ASSERT(m_storage.size() == size());  
+}
 
 Matrix::Matrix(DataArray&& data, size_t cols, size_t rows)
   : m_storage(std::move(data))
   , m_data(m_storage.data())
   , m_rows(rows)
-  , m_cols(cols) {}
+  , m_cols(cols) {
+
+  ASSERT(m_storage.size() == size());  
+}
 
 Matrix::Matrix(const Matrix& cpy) {
   *this = cpy;
@@ -608,14 +614,20 @@ Kernel::Kernel(const DataArray& data, size_t W, size_t H, size_t D)
   , m_data(m_storage.data())
   , m_D(D)
   , m_H(H)
-  , m_W(W) {}
+  , m_W(W) {
+
+  ASSERT(m_storage.size() == size());    
+}
 
 Kernel::Kernel(DataArray&& data, size_t W, size_t H, size_t D)
   : m_storage(std::move(data))
   , m_data(m_storage.data())
   , m_D(D)
   , m_H(H)
-  , m_W(W) {}
+  , m_W(W) {
+
+  ASSERT(m_storage.size() == size());    
+}
 
 Kernel::Kernel(double* data, size_t W, size_t H, size_t D)
   : m_data(data)

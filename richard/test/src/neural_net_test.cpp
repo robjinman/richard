@@ -88,8 +88,10 @@ TEST_F(NeuralNetTest, evaluate) {
   net->setBiases({ B0.storage(), B1.storage(), B2.storage() });
 
   net->train(dataSet);
+  
+  // TODO: Add some assertions
 }
-/*
+
 TEST_F(NeuralNetTest, evaluateConv) {
   const std::string configString =       ""
   "{                                      "
@@ -101,14 +103,14 @@ TEST_F(NeuralNetTest, evaluateConv) {
   "  \"hiddenLayers\": [                  "
   "      {                                "
   "          \"type\": \"convolutional\", "
-  "          \"depth\": 2                 "
+  "          \"depth\": 2,                "
   "          \"kernelSize\": [2, 2],      "
   "          \"learnRate\": 0.1,          "
-  "          \"learnRateDecay\": 1.0,     "
+  "          \"learnRateDecay\": 1.0      "
   "      },                               "
   "      {                                "
   "          \"type\": \"maxPooling\",    "
-  "          \"regionSize\": [2, 2],      "
+  "          \"regionSize\": [2, 2]       "
   "      }                                "
   "  ],                                   "
   "  \"outputLayer\": {                   "
@@ -121,7 +123,13 @@ TEST_F(NeuralNetTest, evaluateConv) {
   nlohmann::json config = nlohmann::json::parse(configString);
   std::unique_ptr<NeuralNet> net = createNeuralNet(config);
 
-  Sample sample("a", Array3({{{ 0.5, 0.3, 0.7 }}}));
+  Sample sample("a", Array3({{
+    { 0.5, 0.4, 0.3, 0.9, 0.8 },
+    { 0.7, 0.6, 0.9, 0.2, 0.5 },
+    { 0.5, 0.5, 0.1, 0.6, 0.3 },
+    { 0.4, 0.1, 0.8, 0.2, 0.7 },
+    { 0.2, 0.3, 0.7, 0.1, 0.4 }
+   }}));
   auto loadSample = [&sample](std::vector<Sample>& samples, size_t) {
     samples.push_back(sample);
     return 1;
@@ -130,32 +138,37 @@ TEST_F(NeuralNetTest, evaluateConv) {
   testing::NiceMock<MockLabelledDataSet> dataSet(std::vector<std::string>({ "a", "b" }));
   ON_CALL(dataSet, loadSamples).WillByDefault(testing::Invoke(loadSample));
 
-  Matrix W0({
-    { 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3 },
-    { 0.6, 0.7, 0.1 },
-    { 0.2, 0.9, 0.8 }
+  Kernel convK0({
+    {
+      { 5, 3 },
+      { 1, 2 }
+    }, {
+      { 8, 4 },
+      { 5, 3 }
+    }
   });
-  Vector B0({ 0.4, 0.1, 0.2, 0.5 });
-
-  Matrix W1({
-    { 0.4, 0.3, 0.1, 0.3 },
-    { 0.2, 0.4, 0.3, 0.8 },
-    { 0.7, 0.4, 0.9, 0.2 },
-    { 0.6, 0.1, 0.6, 0.5 },
-    { 0.8, 0.7, 0.2, 0.1 }
+  Kernel convK1({
+    {
+      { 5, 3 },
+      { 1, 2 }
+    }, {
+      { 8, 4 },
+      { 5, 3 }
+    }
   });
-  Vector B1({ 0.2, 0.3, 0.1, 0.2, 0.6 });
+  Vector convB({ 7, 3 });
 
-  Matrix W2({
-    { 0.1, 0.4, 0.5, 0.2, 0.8 },
-    { 0.9, 0.8, 0.6, 0.1, 0.7 }
+  Matrix outW({
+    { 0.1, 0.4, 0.3, 0.2, 0.5, 0.2, 0.8, 0.1 },
+    { 0.9, 0.3, 0.1, 0.5, 0.8, 0.4, 0.4, 0.9 }
   });
-  Vector B2({ 0.6, 0.8 });
+  Vector outB({ 0.6, 0.8 });
 
-  net->setWeights({ W0, W1, W2 });
-  net->setBiases({ B0, B1, B2 });
-
+  net->setWeights({ { convK0.storage(), convK1.storage() }, {}, { outW.storage() } });
+  net->setBiases({ convB.storage(), {}, outB.storage() });
+  
   net->train(dataSet);
-}*/
+  
+  // TODO: Add some assertions
+}
 
