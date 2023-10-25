@@ -1,3 +1,4 @@
+#include <iostream> // TODO
 #include "max_pooling_layer.hpp"
 #include "convolutional_layer.hpp"
 #include "exception.hpp"
@@ -136,9 +137,9 @@ void MaxPoolingLayer::padDelta(const Array3& delta, const Array3& mask, Array3& 
   }
 }
 
-void MaxPoolingLayer::backpropFromDenseLayer(const Layer& nextLayer, Vector& delta) {
+void MaxPoolingLayer::backpropFromDenseLayer(const Layer& nextLayer, Array3& delta) {
   ConstVectorPtr pNextDelta = Vector::createShallow(nextLayer.delta());
-  delta = nextLayer.W().transposeMultiply(*pNextDelta);
+  delta.setData(std::move(nextLayer.W().transposeMultiply(*pNextDelta).storage()));
 }
 
 void MaxPoolingLayer::backpropFromConvLayer(const std::vector<ConvolutionalLayer::Filter>& filters,
@@ -184,8 +185,7 @@ void MaxPoolingLayer::updateDelta(const DataArray&, const Layer& nextLayer, size
   switch (nextLayer.type()) {
     case LayerType::OUTPUT:
     case LayerType::DENSE: {
-      VectorPtr pDeltaVec = Vector::createShallow(m_delta.storage());
-      backpropFromDenseLayer(nextLayer, *pDeltaVec);
+      backpropFromDenseLayer(nextLayer, m_delta);
       break;
     }
     case LayerType::CONVOLUTIONAL: {
@@ -199,6 +199,12 @@ void MaxPoolingLayer::updateDelta(const DataArray&, const Layer& nextLayer, size
   }
 
   padDelta(m_delta, m_mask, m_paddedDelta);
+
+  std::cout << "Max pooling layer delta:\n";
+  std::cout << m_delta;
+
+  std::cout << "Max pooling layer padded delta:\n";
+  std::cout << m_paddedDelta;
 }
 
 nlohmann::json MaxPoolingLayer::getConfig() const {

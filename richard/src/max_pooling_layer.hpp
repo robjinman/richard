@@ -23,8 +23,8 @@ class MaxPoolingLayer : public Layer {
     const Array3& mask() const;
     void backpropFromConvLayer(const std::vector<ConvolutionalLayer::Filter>& filters,
       const DataArray& convDelta, Array3& delta);
-    void setWeights(const Matrix&) override { assert(false); }
-    void setBiases(const Vector&) override { assert(false); }
+    void setWeights(const std::vector<DataArray>&) override { assert(false); }
+    void setBiases(const DataArray&) override { assert(false); }
 
   private:
     Array3 m_Z;
@@ -37,5 +37,6 @@ class MaxPoolingLayer : public Layer {
     size_t m_inputDepth;
     Array3 m_mask;
 
-    void backpropFromDenseLayer(const Layer& nextLayer, Vector& delta);
+    void backpropFromDenseLayer(const Layer& nextLayer, Array3& delta);
 };
+

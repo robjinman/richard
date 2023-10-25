@@ -50,8 +50,8 @@ class NeuralNetImpl : public NeuralNet {
 
     // Exposed for testing
     //
-    void setWeights(const std::vector<Matrix>& weights) override;
-    void setBiases(const std::vector<Vector>& biases) override;
+    void setWeights(const std::vector<std::vector<DataArray>>& weights) override;
+    void setBiases(const std::vector<DataArray>& biases) override;
 
   private:
     double feedForward(const Array3& x, const Vector& y);
@@ -93,20 +93,6 @@ nlohmann::json Hyperparams::toJson() const {
 
 void NeuralNetImpl::abort() {
   m_abort = true;
-}
-
-void NeuralNetImpl::setWeights(const std::vector<Matrix>& weights) {
-  assert(m_layers.size() == weights.size());
-  for (size_t i = 0; i < m_layers.size(); ++i) {
-    m_layers[i]->setWeights(weights[i]);
-  }
-}
-
-void NeuralNetImpl::setBiases(const std::vector<Vector>& biases) {
-  assert(m_layers.size() == biases.size());
-  for (size_t i = 0; i < m_layers.size(); ++i) {
-    m_layers[i]->setBiases(biases[i]);
-  }
 }
 
 std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj, std::istream& fin,
@@ -364,6 +350,28 @@ const nlohmann::json& NeuralNet::defaultConfig() {
   }
 
   return config;
+}
+
+void NeuralNetImpl::setWeights(const std::vector<std::vector<DataArray>>& weights) {
+  assert(m_layers.size() == weights.size());
+  for (size_t i = 0; i < m_layers.size(); ++i) {
+    if (m_layers[i]->type() == LayerType::MAX_POOLING) {
+      continue;
+    }
+
+    m_layers[i]->setWeights(weights[i]);
+  }
+}
+
+void NeuralNetImpl::setBiases(const std::vector<DataArray>& biases) {
+  assert(m_layers.size() == biases.size());
+  for (size_t i = 0; i < m_layers.size(); ++i) {
+    if (m_layers[i]->type() == LayerType::MAX_POOLING) {
+      continue;
+    }
+
+    m_layers[i]->setBiases(biases[i]);
+  }
 }
 
 std::unique_ptr<NeuralNet> createNeuralNet(const nlohmann::json& config) {

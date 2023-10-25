@@ -18,8 +18,8 @@ class MockLayer : public Layer {
     MOCK_METHOD(nlohmann::json, getConfig, (), (const, override));
     MOCK_METHOD(void, writeToStream, (std::ostream& fout), (const, override));
     MOCK_METHOD(const Matrix&, W, (), (const, override));
-    MOCK_METHOD(void, setWeights, (const Matrix&), (override));
-    MOCK_METHOD(void, setBiases, (const Vector&), (override));
+    MOCK_METHOD(void, setWeights, (const std::vector<DataArray>&), (override));
+    MOCK_METHOD(void, setBiases, (const DataArray&), (override));
 };
 
 /*

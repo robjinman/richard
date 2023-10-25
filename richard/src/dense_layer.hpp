@@ -20,8 +20,10 @@ class DenseLayer : public Layer {
 
     // Exposed for testing
     //
-    void setWeights(const Matrix& W) override;
-    void setBiases(const Vector& B) override;
+    void setWeights(const Matrix& weights);
+    void setBiases(const Vector& biases);
+    void setWeights(const std::vector<DataArray>& W) override;
+    void setBiases(const DataArray& B) override;
     void setActivationFn(ActivationFn f, ActivationFn fPrime);
 
   private:
@@ -36,3 +38,4 @@ class DenseLayer : public Layer {
     ActivationFn m_activationFn;
     ActivationFn m_activationFnPrime;
 };
+

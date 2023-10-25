@@ -36,5 +36,5 @@ TEST_F(OutputLayerTest, evalForward) {
 }
 
 TEST_F(OutputLayerTest, trainForward) {
-
+  // TODO
 }

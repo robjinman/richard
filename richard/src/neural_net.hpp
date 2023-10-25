@@ -27,9 +27,10 @@ class NeuralNet {
 
     // Exposed for testing
     //
-    virtual void setWeights(const std::vector<Matrix>& weights) = 0;
-    virtual void setBiases(const std::vector<Vector>& biases) = 0;
+    virtual void setWeights(const std::vector<std::vector<DataArray>>& weights) = 0;
+    virtual void setBiases(const std::vector<DataArray>& biases) = 0;
 };
 
 std::unique_ptr<NeuralNet> createNeuralNet(const nlohmann::json& config);
 std::unique_ptr<NeuralNet> createNeuralNet(std::istream& fin);
+

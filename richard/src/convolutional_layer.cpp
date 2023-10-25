@@ -146,7 +146,12 @@ void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& 
   ConstArray3Ptr pInputs = Array3::createShallow(layerInputs, m_inputW, m_inputH, m_inputDepth);
   const Array3& inputs = *pInputs;
 
-  double learnRate = m_learnRate * pow(m_learnRateDecay, epoch) / (fmW * fmH);
+  //std::cout << "Next delta:\n";
+  //std::cout << nextDelta;
+  //std::cout << "Inputs:\n";
+  //std::cout << inputs;
+
+  double learnRate = m_learnRate;// * pow(m_learnRateDecay, epoch) / (fmW * fmH);
 
   for (size_t slice = 0; slice < depth; ++slice) {
     Kernel& K = m_filters[slice].K;
@@ -156,6 +161,10 @@ void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& 
       for (size_t xmin = 0; xmin < fmW; ++xmin) {
         double delta = reluPrime(m_Z.at(xmin, ymin, slice)) * nextDelta.at(xmin, ymin, slice);
         m_delta.set(xmin, ymin, slice, delta);
+
+        //std::cout << "delta: " << delta << "\n";
+        //std::cout << m_Z.at(xmin, ymin, slice) << "\n";
+        //std::cout << nextDelta.at(xmin, ymin, slice) << "\n";
 
         for (size_t z = 0; z < K.D(); ++z) {
           for (size_t j = 0; j < K.H(); ++j) {
@@ -172,6 +181,9 @@ void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& 
       }
     }
   }
+
+  std::cout << "Convolutional layer delta:\n";
+  std::cout << m_delta;
 }
 
 nlohmann::json ConvolutionalLayer::getConfig() const {
@@ -212,8 +224,27 @@ std::array<size_t, 2> ConvolutionalLayer::kernelSize() const {
   return { m_filters[0].K.W(), m_filters[0].K.H() };
 }
 
-// For testing
 void ConvolutionalLayer::setFilters(const std::vector<ConvolutionalLayer::Filter>& filters) {
   ASSERT(filters.size() == m_filters.size());
   m_filters = filters;
 }
+
+void ConvolutionalLayer::setWeights(const std::vector<DataArray>& weights) {
+  ASSERT(weights.size() == m_filters.size());
+
+  for (size_t i = 0; i < m_filters.size(); ++i) {
+    const Kernel& K = m_filters[i].K;
+    m_filters[i].K = Kernel(weights[i], K.W(), K.H(), K.D());
+  }
+}
+
+void ConvolutionalLayer::setBiases(const DataArray& biases) {
+  ASSERT(biases.size() == m_filters.size());
+  ConstVectorPtr pB = Vector::createShallow(biases);
+  const Vector& B = *pB;
+  
+  for (size_t i = 0; i < m_filters.size(); ++i) {
+    m_filters[i].b = B[i];
+  }
+}
+

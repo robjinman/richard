@@ -2,6 +2,9 @@
 
 #include <stdexcept>
 #include <sstream>
+#include <cassert>
+
+#define ASSERT(X) assert(X)
 
 #define EXCEPTION(msg) \
 { \

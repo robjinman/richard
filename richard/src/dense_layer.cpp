@@ -1,3 +1,4 @@
+#include <iostream> // TODO
 #include "dense_layer.hpp"
 #include "util.hpp"
 
@@ -116,6 +117,9 @@ void DenseLayer::updateDelta(const DataArray& inputs, const Layer& nextLayer, si
   }
 
   m_B = m_B - m_delta * learnRate;
+
+  std::cout << "Dense layer delta:\n";
+  std::cout << m_delta;
 }
 
 void DenseLayer::setWeights(const Matrix& W) {
@@ -123,6 +127,16 @@ void DenseLayer::setWeights(const Matrix& W) {
 }
 
 void DenseLayer::setBiases(const Vector& B) {
+  m_B = B;
+}
+
+void DenseLayer::setWeights(const std::vector<DataArray>& W) {
+  ASSERT(W.size() == 1);
+
+  m_W = Matrix(W[0], m_W.cols(), m_W.rows());
+}
+
+void DenseLayer::setBiases(const DataArray& B) {
   m_B = B;
 }
 

@@ -5,6 +5,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <functional>
+#include "exception.hpp"
 
 class DataArray {
   public:
@@ -352,6 +353,8 @@ class Kernel {
     Kernel(const Kernel& cpy);
     Kernel(Kernel&& mv);
 
+    inline void setData(DataArray&& data);
+
     inline bool isShallow() const;
     inline const DataArray& storage() const;
     inline DataArray& storage();
@@ -414,6 +417,13 @@ class Kernel {
     size_t m_W;
 };
 
+inline void Kernel::setData(DataArray&& data) {
+  ASSERT(data.size() == size());
+
+  m_storage = std::move(data);
+  m_data = m_storage.data();
+}
+
 bool Kernel::isShallow() const {
   return m_storage.size() == 0;
 }
@@ -469,3 +479,4 @@ ConstMatrixPtr Kernel::slice(size_t z) const {
 bool Kernel::operator!=(const Kernel& rhs) const {
   return !(*this == rhs);
 }
+
