@@ -441,3 +441,4 @@ TEST_F(MaxPoolingLayerTest, backpropFromConvLayer_depth2_convDepth2) {
 
   ASSERT_EQ(delta, expectedDelta);
 }
+

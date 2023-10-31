@@ -142,16 +142,10 @@ TEST_F(NeuralNetTest, evaluateConv) {
     {
       { 5, 3 },
       { 1, 2 }
-    }, {
-      { 8, 4 },
-      { 5, 3 }
     }
   });
   Kernel convK1({
     {
-      { 5, 3 },
-      { 1, 2 }
-    }, {
       { 8, 4 },
       { 5, 3 }
     }
