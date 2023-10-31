@@ -103,9 +103,9 @@ DataArray& DataArray::operator=(DataArray&& rhs) {
 DataArray DataArray::concat(const DataArray& A, const DataArray& B) {
   DataArray C(A.size() + B.size());
 
-  void* ptr = C.m_data.get();
+  double* ptr = C.m_data.get();
   memcpy(ptr, A.m_data.get(), A.size() * sizeof(double));
-  ptr += A.size() * sizeof(double);
+  ptr += A.size();
   memcpy(ptr, B.m_data.get(), B.size() * sizeof(double));
 
   return C;
@@ -151,52 +151,59 @@ Vector::Vector(DataArray&& data)
   , m_data(m_storage.data())
   , m_size(m_storage.size()) {}
 
-Vector::Vector(const Vector& cpy) {
-  *this = cpy;
+Vector::Vector(const Vector& cpy)
+  : m_storage(cpy.m_size)
+  , m_data(m_storage.data())
+  , m_size(cpy.m_size) {
+
+  memcpy(m_data, cpy.m_data, m_size * sizeof(double));
 }
 
 Vector::Vector(Vector&& mv) {
-  *this = std::move(mv);
+  m_size = mv.m_size;
+
+  if (mv.isShallow()) {
+    m_storage = DataArray(m_size);
+    m_data = m_storage.data();
+    memcpy(m_data, mv.m_data, m_size * sizeof(double));
+  }
+  else {
+    m_storage = std::move(mv.m_storage);
+    m_data = m_storage.data();
+    
+    mv.m_data = nullptr;
+    mv.m_size = 0;
+  }
 }
 
 Vector& Vector::operator=(const Vector& rhs) {
-  m_size = rhs.m_size;
-
-  if (rhs.isShallow()) {
-    m_storage = DataArray();
-    m_data = rhs.m_data;
+  if (isShallow()) {
+    ASSERT(rhs.size() == m_size);
   }
   else {
+    m_size = rhs.m_size;
     m_storage = DataArray(m_size);
     m_data = m_storage.data();
-    memcpy(m_data, rhs.m_data, m_size * sizeof(double));
   }
+
+  memcpy(m_data, rhs.m_data, m_size * sizeof(double));
 
   return *this;
 }
 
 Vector& Vector::operator=(Vector&& rhs) {
-  m_size = rhs.m_size;
+  if (isShallow() || rhs.isShallow()) {
+    return this->operator=(rhs);
+  }
 
-  if (rhs.isShallow()) {
-    m_storage = DataArray();
-    m_data = rhs.m_data;
-  }
-  else {
-    m_storage = std::move(rhs.m_storage);
-    m_data = m_storage.data();
-  }
+  m_size = rhs.m_size;
+  m_storage = std::move(rhs.m_storage);
+  m_data = m_storage.data();
 
   rhs.m_data = nullptr;
   rhs.m_size = 0;
 
   return *this;
-}
-
-VectorPtr Vector::clone() const {
-  VectorPtr cpy(new Vector(m_size));
-  memcpy(cpy->m_data, m_data, m_size * sizeof(double));
-  return cpy;
 }
 
 bool Vector::operator==(const Vector& rhs) const {
@@ -400,43 +407,59 @@ Matrix::Matrix(DataArray&& data, size_t cols, size_t rows)
   ASSERT(m_storage.size() == size());  
 }
 
-Matrix::Matrix(const Matrix& cpy) {
-  *this = cpy;
+Matrix::Matrix(const Matrix& cpy)
+  : m_storage(cpy.size())
+  , m_data(m_storage.data())
+  , m_rows(cpy.m_rows)
+  , m_cols(cpy.m_cols) {
+
+  memcpy(m_data, cpy.m_data, m_cols * m_rows * sizeof(double));
 }
 
 Matrix::Matrix(Matrix&& mv) {
-  *this = std::move(mv);
+  m_cols = mv.m_cols;
+  m_rows = mv.m_rows;
+
+  if (mv.isShallow()) {
+    m_storage = DataArray(m_cols * m_rows);
+    m_data = m_storage.data();
+    memcpy(m_data, mv.m_data, m_cols * m_rows * sizeof(double));
+  }
+  else {
+    m_storage = std::move(mv.m_storage);
+    m_data = m_storage.data();
+    
+    mv.m_data = nullptr;
+    mv.m_cols = 0;
+    mv.m_rows = 0;
+  }
 }
 
 Matrix& Matrix::operator=(const Matrix& rhs) {
-  m_cols = rhs.m_cols;
-  m_rows = rhs.m_rows;
-
-  if (rhs.isShallow()) {
-    m_storage = DataArray();
-    m_data = rhs.m_data;
+  if (isShallow()) {
+    ASSERT(rhs.m_cols == m_cols && rhs.m_rows == m_rows);
   }
   else {
-    m_storage = DataArray(size());
+    m_cols = rhs.m_cols;
+    m_rows = rhs.m_rows;
+    m_storage = DataArray(m_cols * m_rows);
     m_data = m_storage.data();
-    memcpy(m_data, rhs.m_data, size() * sizeof(double));
   }
+
+  memcpy(m_data, rhs.m_data, m_cols * m_rows * sizeof(double));
 
   return *this;
 }
 
 Matrix& Matrix::operator=(Matrix&& rhs) {
+  if (isShallow() || rhs.isShallow()) {
+    return this->operator=(rhs);
+  }
+
   m_cols = rhs.m_cols;
   m_rows = rhs.m_rows;
-
-  if (rhs.isShallow()) {
-    m_storage = DataArray();
-    m_data = rhs.m_data;
-  }
-  else {
-    m_storage = std::move(rhs.m_storage);
-    m_data = m_storage.data();
-  }
+  m_storage = std::move(rhs.m_storage);
+  m_data = m_storage.data();
 
   rhs.m_data = nullptr;
   rhs.m_cols = 0;
@@ -635,12 +658,35 @@ Kernel::Kernel(double* data, size_t W, size_t H, size_t D)
   , m_H(H)
   , m_W(W) {}
 
-Kernel::Kernel(const Kernel& cpy) {
-  *this = cpy;
+Kernel::Kernel(const Kernel& cpy)
+  : m_storage(cpy.size())
+  , m_data(m_storage.data())
+  , m_D(cpy.m_D)
+  , m_H(cpy.m_H)
+  , m_W(cpy.m_W) {
+
+  memcpy(m_data, cpy.m_data, m_W * m_H * m_D * sizeof(double));
 }
 
 Kernel::Kernel(Kernel&& mv) {
-  *this = std::move(mv);
+  m_W = mv.m_W;
+  m_H = mv.m_H;
+  m_D = mv.m_D;
+
+  if (mv.isShallow()) {
+    m_storage = DataArray(m_W * m_H * m_D);
+    m_data = m_storage.data();
+    memcpy(m_data, mv.m_data, m_W * m_H * m_D * sizeof(double));
+  }
+  else {
+    m_storage = std::move(mv.m_storage);
+    m_data = m_storage.data();
+    
+    mv.m_data = nullptr;
+    mv.m_W = 0;
+    mv.m_H = 0;
+    mv.m_D = 0;
+  }
 }
 
 void Kernel::convolve(const Array3& image, Array2& featureMap) const {
@@ -678,36 +724,32 @@ bool Kernel::operator==(const Kernel& rhs) const {
 }
 
 Kernel& Kernel::operator=(const Kernel& rhs) {
-  m_W = rhs.m_W;
-  m_H = rhs.m_H;
-  m_D = rhs.m_D;
-
-  if (rhs.isShallow()) {
-    m_storage = DataArray();
-    m_data = rhs.m_data;
+  if (isShallow()) {
+    ASSERT(rhs.m_W == m_W && rhs.m_H == m_H && rhs.m_D == m_D);
   }
   else {
-    m_storage = DataArray(size());
+    m_W = rhs.m_W;
+    m_H = rhs.m_H;
+    m_D = rhs.m_D;
+    m_storage = DataArray(m_W * m_H * m_D);
     m_data = m_storage.data();
-    memcpy(m_data, rhs.m_data, size() * sizeof(double));
   }
+
+  memcpy(m_data, rhs.m_data, m_W * m_H * m_D * sizeof(double));
 
   return *this;
 }
 
 Kernel& Kernel::operator=(Kernel&& rhs) {
+  if (isShallow() || rhs.isShallow()) {
+    return this->operator=(rhs);
+  }
+
   m_W = rhs.m_W;
   m_H = rhs.m_H;
   m_D = rhs.m_D;
-
-  if (rhs.isShallow()) {
-    m_storage = DataArray();
-    m_data = rhs.m_data;
-  }
-  else {
-    m_storage = std::move(rhs.m_storage);
-    m_data = m_storage.data();
-  }
+  m_storage = std::move(rhs.m_storage);
+  m_data = m_storage.data();
 
   rhs.m_data = nullptr;
   rhs.m_W = 0;

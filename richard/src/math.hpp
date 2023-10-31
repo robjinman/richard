@@ -70,8 +70,6 @@ class Vector {
     explicit Vector(size_t length);
     Vector(const DataArray& data);
     Vector(DataArray&& data);
-
-    // Copying a shallow Vector creates another shallow Vector. Use clone() to make a deep-copy.
     Vector(const Vector& cpy);
     Vector(Vector&& mv);
 
@@ -82,11 +80,8 @@ class Vector {
     inline double* data();
     inline const double* data() const;
 
-    // Copying a shallow Vector creates another shallow Vector. Use clone() to make a deep-copy.
     Vector& operator=(const Vector& rhs);
     Vector& operator=(Vector&& rhs);
-
-    VectorPtr clone() const;
 
     inline double& operator[](size_t i);
     inline const double& operator[](size_t i) const;
@@ -200,8 +195,6 @@ class Matrix {
     Matrix(size_t cols, size_t rows);
     Matrix(const DataArray& data, size_t cols, size_t rows);
     Matrix(DataArray&& data, size_t cols, size_t rows);
-
-    // Copying a shallow Matrix creates another shallow Matrix. Use clone() to make a deep-copy.
     Matrix(const Matrix& cpy);
     Matrix(Matrix&& mv);
 
@@ -222,7 +215,6 @@ class Matrix {
     inline size_t W() const;
     inline size_t H() const;
 
-    // Copying a shallow Matrix creates another shallow Matrix. Use clone() to make a deep-copy.
     Matrix& operator=(const Matrix& rhs);
     Matrix& operator=(Matrix&& rhs);
 
@@ -348,8 +340,6 @@ class Kernel {
     Kernel(size_t W, size_t H, size_t D);
     Kernel(const DataArray& data, size_t W, size_t H, size_t D);
     Kernel(DataArray&& data, size_t W, size_t H, size_t D);
-
-    // Copying a shallow Kernel creates another shallow Kernel. Use clone() to make a deep-copy.
     Kernel(const Kernel& cpy);
     Kernel(Kernel&& mv);
 
@@ -409,7 +399,7 @@ class Kernel {
 
   private:
     Kernel(double* data, size_t W, size_t H, size_t D);
-  
+
     DataArray m_storage;
     double* m_data;
     size_t m_D;

@@ -18,7 +18,43 @@ TEST_F(MathTest, arrayEquality) {
   ASSERT_EQ(a, d);
 }
 
-TEST_F(MathTest, arrayCopyAssignment) {
+TEST_F(MathTest, arrayCopyConstructor) {
+  Array a({ 1, 2, 3 });
+  Array b(a);
+  
+  ASSERT_EQ(b, Array({ 1, 2, 3 }));
+}
+
+TEST_F(MathTest, arrayCopyConstructorRhsShallow) {
+  Array a({ 1, 2, 3, 4, 5 });
+  ConstArrayPtr b = a.subvector(1, 3);
+
+  Array c(*b);
+
+  ASSERT_EQ(c, Array({ 2, 3, 4 }));
+}
+
+TEST_F(MathTest, arrayMoveConstuctor) {
+  Array a({ 1, 2, 3 });
+  Array b(std::move(a));
+
+  ASSERT_EQ(b, Array({ 1, 2, 3 }));
+  ASSERT_EQ(a.size(), 0);
+}
+
+TEST_F(MathTest, arrayMoveConstructorRhsShallow) {
+  Array a({ 1, 2, 3, 4, 5 });
+  ArrayPtr pB = a.subvector(1, 3);
+  Array& b = *pB;
+
+  // b isn't moved because it's shallow
+  Array c(std::move(b));
+
+  ASSERT_EQ(c, Array({ 2, 3, 4 }));
+  ASSERT_EQ(b.size(), 3); // Didn't actually move b
+}
+
+TEST_F(MathTest, arrayAssignment) {
   Array a(1);
 
   {
@@ -29,9 +65,9 @@ TEST_F(MathTest, arrayCopyAssignment) {
   ASSERT_EQ(a, Array({ 1, 2, 3, 4 }));
 }
 
-TEST_F(MathTest, arrayCopyAssignmentShallow) {
+TEST_F(MathTest, arrayAssignmentRhsShallow) {
   Array b({ 1, 2, 3, 4 });
-  ArrayPtr c = b.subvector(0, 4);
+  ConstArrayPtr c = b.subvector(0, 4);
 
   Array a(1);
   a = *c;
@@ -39,47 +75,70 @@ TEST_F(MathTest, arrayCopyAssignmentShallow) {
   ASSERT_EQ(a, Array({ 1, 2, 3, 4 }));
 }
 
-TEST_F(MathTest, arrayMoveAssignment) {
+TEST_F(MathTest, arrayAssignmentRhsShallowMismatchedSizes) {
+  // TODO
+}
+
+TEST_F(MathTest, arrayAssignmentRhsShallowRValue) {
+  Array b({ 1, 2, 3, 4 });
+  ArrayPtr c = b.subvector(0, 4);
+
+  Array a(1);
+  // When RHS is shallow, this should perform a copy, not a move, even when RHS is an r-value
+  a = std::move(*c);
+
+  ASSERT_EQ(a, Array({ 1, 2, 3, 4 }));
+
+  // c is still valid and unchanged
+  ASSERT_EQ(*c, Array({ 1, 2, 3, 4 }));
+
+  // b is still valid and unchanged
+  ASSERT_EQ(b, Array({ 1, 2, 3, 4 }));
+}
+
+TEST_F(MathTest, arrayAssignmentLhsShallow) {
+  Array a({ 1, 2, 3, 4, 5 });
+  ArrayPtr pB = a.subvector(1, 3);
+  Array& b = *pB;
+
+  Array c({ 9, 9, 9 });
+  b = c;
+
+  ASSERT_EQ(a, Vector({ 1, 9, 9, 9, 5 }));
+  ASSERT_EQ(b, Vector({ 9, 9, 9 }));
+  ASSERT_EQ(c, Vector({ 9, 9, 9 }));
+}
+
+TEST_F(MathTest, arrayAssignmentLhsShallowMismatchedSizes) {
+  // TODO
+}
+
+TEST_F(MathTest, arrayAssignmentLhsShallowRhsRValue) {
+  Array a({ 1, 2, 3, 4, 5 });
+  ArrayPtr pB = a.subvector(1, 3);
+  Array& b = *pB;
+
+  Array c({ 9, 9, 9 });
+  // Not actually moved because LHS is shallow
+  b = std::move(c);
+
+  ASSERT_EQ(a, Vector({ 1, 9, 9, 9, 5 }));
+  ASSERT_EQ(b, Vector({ 9, 9, 9 }));
+  ASSERT_EQ(c, Vector({ 9, 9, 9 })); // c wasn't actually moved
+}
+
+TEST_F(MathTest, arrayAssignmentRhsRValue) {
   Array a(1);
 
   {
     Array b({ 1, 2, 3, 4 });
     a = std::move(b);
 
+    // b's data has been moved, so b is now empty
     ASSERT_EQ(b.size(), 0);
   }
 
   ASSERT_EQ(a, Array({ 1, 2, 3, 4 }));
-}
-
-TEST_F(MathTest, arrayMoveAssignmentShallow) {
-  Array a(1);
-  Array b({ 1, 2, 3, 4 });
-
-  {
-    ArrayPtr c = b.subvector(0, 4);
-    a = std::move(*c);
-
-    ASSERT_EQ(c->size(), 0);
-  }
-
-  a[2] = 9;
-
-  ASSERT_EQ(a, Array({ 1, 2, 9, 4 }));
-  ASSERT_EQ(b, Array({ 1, 2, 9, 4 }));
-}
-
-TEST_F(MathTest, shallowArrayAssignment) {
-  Array a({ 1, 2, 3, 4 });
-  ArrayPtr b = a.subvector(0, 4);
-
-  // After this, b is no longer a shallow vector pointing to a
-  *b = Vector({ 5, 6, 7, 8 });
-
-  (*b)[2] = 100;
-
-  ASSERT_EQ(a, Array({ 1, 2, 3, 4 }));
-  ASSERT_EQ(*b, Array({ 5, 6, 100, 8 }));
 }
 
 TEST_F(MathTest, vectorElementPlusEquals) {
@@ -94,6 +153,255 @@ TEST_F(MathTest, vectorDotProduct) {
   Vector b{4, 5, 6};
 
   ASSERT_EQ(32, a.dot(b));
+}
+
+TEST_F(MathTest, array2CopyConstructor) {
+  Array2 a({
+    { 1, 2 },
+    { 3, 4 }
+  });
+
+  Array2 b(a);
+
+  ASSERT_EQ(b, Array2({
+    { 1, 2 },
+    { 3, 4 }
+  }));
+}
+
+TEST_F(MathTest, array2CopyConstructorRhsShallow) {
+  Vector a({ 1, 2, 3, 4 });
+  Array2Ptr b = Array2::createShallow(a.storage(), 2, 2);
+
+  Array2 c(*b);
+
+  ASSERT_EQ(c, Array2({
+    { 1, 2 },
+    { 3, 4 }
+  }));
+}
+
+TEST_F(MathTest, array2MoveConstuctor) {
+  Array2 a({
+    { 1, 2 },
+    { 3, 4 }
+  });
+
+  Array2 b(std::move(a));
+
+  ASSERT_EQ(b, Array2({
+    { 1, 2 },
+    { 3, 4 }
+  }));
+
+  ASSERT_EQ(a.size(), 0);
+}
+
+TEST_F(MathTest, array2MoveConstructorRhsShallow) {
+  Vector a({ 1, 2, 3, 4 });
+  Array2Ptr pB = Array2::createShallow(a.storage(), 2, 2);
+  Array2& b = *pB;
+
+  Array2 c(std::move(b));
+
+  ASSERT_EQ(c, Array2({
+    { 1, 2 },
+    { 3, 4 }
+  }));
+  
+  ASSERT_EQ(b, Array2({ // Didn't actually move b
+    { 1, 2 },
+    { 3, 4 }
+  }));
+}
+
+TEST_F(MathTest, array2Assignment) {
+  Array2 a(1, 1);
+
+  {
+    Array2 b({
+      { 1, 2 },
+      { 3, 4 }
+    });
+    a = b;
+  }
+
+  ASSERT_EQ(a, Array2({
+    { 1, 2 },
+    { 3, 4 }
+  }));
+}
+
+TEST_F(MathTest, array2AssignmentRhsShallow) {
+  Array3 b({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  });
+  ConstArray2Ptr c = b.slice(1);
+
+  Array2 a(1, 1);
+  a = *c;
+
+  ASSERT_EQ(a, Array2({
+    { 5, 6 },
+    { 7, 8 }
+  }));
+}
+
+TEST_F(MathTest, array2AssignmentRhsShallowMismatchedSizes) {
+  // TODO
+}
+
+TEST_F(MathTest, array2AssignmentRhsShallowRValue) {
+  Array3 b({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  });
+  ConstArray2Ptr c = b.slice(1);
+
+  Array2 a(1, 1);
+  // When RHS is shallow, this should perform a copy, not a move, even when RHS is an r-value
+  a = std::move(*c);
+
+  ASSERT_EQ(a, Array2({
+    { 5, 6 },
+    { 7, 8 }
+  }));
+
+  // c is still valid and unchanged
+  ASSERT_EQ(*c, Array2({
+    { 5, 6 },
+    { 7, 8 }
+  }));
+
+  // b is still valid and unchanged
+  ASSERT_EQ(b, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  }));
+}
+
+TEST_F(MathTest, array2AssignmentLhsShallow) {
+  Array3 a({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  });
+  Array2Ptr pB = a.slice(1);
+  Array2& b = *pB;
+
+  Array2 c({
+    { 9, 9 },
+    { 9, 9 }
+  });
+  b = c;
+
+  ASSERT_EQ(a, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 9, 9 },
+      { 9, 9 }
+    }
+  }));
+  ASSERT_EQ(b, Array2({
+    { 9, 9 },
+    { 9, 9 }
+  }));
+  ASSERT_EQ(c, Array2({
+    { 9, 9 },
+    { 9, 9 }
+  }));
+}
+
+TEST_F(MathTest, array2AssignmentLhsShallowMismatchedSizes) {
+  // TODO
+}
+
+TEST_F(MathTest, array2AssignmentLhsShallowRhsRValue) {
+  Array3 a({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  });
+  Array2Ptr pB = a.slice(1);
+  Array2& b = *pB;
+
+  Array2 c({
+    { 9, 9 },
+    { 9, 9 }
+  });
+  // Not actually moved because LHS is shallow
+  b = std::move(c);
+
+  ASSERT_EQ(a, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 9, 9 },
+      { 9, 9 }
+    }
+  }));
+  ASSERT_EQ(b, Array2({ // Wasn't actually moved
+    { 9, 9 },
+    { 9, 9 }
+  }));
+  ASSERT_EQ(c, Array2({
+    { 9, 9 },
+    { 9, 9 }
+  }));
+}
+
+TEST_F(MathTest, array2AssignmentRhsRValue) {
+  Array2 a(1, 1);
+
+  {
+    Array2 b({
+      { 1, 2 },
+      { 3, 4 }
+    });
+    a = std::move(b);
+
+    // b's data has been moved, so b is now empty
+    ASSERT_EQ(b.size(), 0);
+  }
+
+  ASSERT_EQ(a, Array2({
+      { 1, 2 },
+      { 3, 4 }
+    }));
 }
 
 TEST_F(MathTest, array2Equality) {
@@ -135,16 +443,306 @@ TEST_F(MathTest, array2ElementAccess) {
   ASSERT_EQ(arr2.at(1, 2), 1);
 }
 
+TEST_F(MathTest, array3CopyConstructor) {
+  Array3 a({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  });
+
+  Array3 b(a);
+
+  ASSERT_EQ(b, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  }));
+}
+
+TEST_F(MathTest, array3CopyConstructorRhsShallow) {
+  Vector a({ 1, 2, 3, 4, 5, 6, 7, 8 });
+  Array3Ptr b = Array3::createShallow(a.storage(), 2, 2, 2);
+
+  Array3 c(*b);
+
+  ASSERT_EQ(c, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  }));
+}
+
+TEST_F(MathTest, array3MoveConstuctor) {
+  Array3 a({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  });
+
+  Array3 b(std::move(a));
+
+  ASSERT_EQ(b, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  }));
+
+  ASSERT_EQ(a.size(), 0);
+}
+
+TEST_F(MathTest, array3MoveConstructorRhsShallow) {
+  Vector a({ 1, 2, 3, 4, 5, 6, 7, 8 });
+  Array3Ptr pB = Array3::createShallow(a.storage(), 2, 2, 2);
+  Array3& b = *pB;
+
+  Array3 c(std::move(b));
+
+  ASSERT_EQ(c, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  }));
+  
+  ASSERT_EQ(b, Array3({ // Didn't actually move b
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  }));
+}
+
+TEST_F(MathTest, array3Assignment) {
+  Array3 a(1, 1, 1);
+
+  {
+    Array3 b({
+      {
+        { 1, 2 },
+        { 3, 4 }
+      },
+      {
+        { 5, 6 },
+        { 7, 8 }
+      }
+    });
+    a = b;
+  }
+
+  ASSERT_EQ(a, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  }));
+}
+
+TEST_F(MathTest, array3AssignmentRhsShallow) {
+  Vector v({ 1, 2, 3, 4, 5, 6, 7, 8 });  
+  
+  ConstArray3Ptr c = Array3::createShallow(v.storage(), 2, 2, 2);
+
+  Array3 a(1, 1, 1);
+  a = *c;
+
+  ASSERT_EQ(a, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  }));
+}
+
+TEST_F(MathTest, array3AssignmentRhsShallowMismatchedSizes) {
+  // TODO
+}
+
+TEST_F(MathTest, array3AssignmentRhsShallowRValue) {
+  Vector b({ 1, 2, 3, 4, 5, 6, 7, 8 });
+  ConstArray3Ptr c = Array3::createShallow(b.storage(), 2, 2, 2);
+
+  Array3 a(1, 1, 1);
+  // When RHS is shallow, this should perform a copy, not a move, even when RHS is an r-value
+  a = std::move(*c);
+
+  ASSERT_EQ(a, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  }));
+
+  // c is still valid and unchanged
+  ASSERT_EQ(*c, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  }));
+
+  // b is still valid and unchanged
+  ASSERT_EQ(b, Vector({ 1, 2, 3, 4, 5, 6, 7, 8 }));
+}
+
+TEST_F(MathTest, array3AssignmentLhsShallow) {
+  Vector a({ 1, 2, 3, 4, 5, 6, 7, 8 });
+  Array3Ptr pB = Array3::createShallow(a.storage(), 2, 2, 2);
+  Array3& b = *pB;
+
+  Array3 c({
+    {
+      { 9, 9 },
+      { 9, 9 }
+    },
+    {
+      { 9, 9 },
+      { 9, 9 }
+    }
+  });
+  b = c;
+
+  ASSERT_EQ(a, Vector({ 9, 9, 9, 9, 9, 9, 9, 9 }));
+  ASSERT_EQ(b, c);
+}
+
+TEST_F(MathTest, array3AssignmentLhsShallowMismatchedSizes) {
+  // TODO
+}
+
+TEST_F(MathTest, array3AssignmentLhsShallowRhsRValue) {
+  Vector a({ 1, 2, 3, 4, 5, 6, 7, 8 });
+  Array3Ptr pB = Array3::createShallow(a.storage(), 2, 2, 2);
+  Array3& b = *pB;
+
+  Array3 c({
+    {
+      { 9, 9 },
+      { 9, 9 }
+    },
+    {
+      { 9, 9 },
+      { 9, 9 }
+    }
+  });
+  // Not actually moved because LHS is shallow
+  b = std::move(c);
+
+  ASSERT_EQ(a, Vector({ 9, 9, 9, 9, 9, 9, 9, 9 }));
+  ASSERT_EQ(b, Array3({
+    {
+      { 9, 9 },
+      { 9, 9 }
+    },
+    {
+      { 9, 9 },
+      { 9, 9 }
+    }
+  }));
+  ASSERT_EQ(c, Array3({ // Wasn't actually moved
+    {
+      { 9, 9 },
+      { 9, 9 }
+    },
+    {
+      { 9, 9 },
+      { 9, 9 }
+    }
+  }));
+}
+
+TEST_F(MathTest, array3AssignmentRhsRValue) {
+  Array3 a(1, 1, 1);
+
+  {
+    Array3 b({
+      {
+        { 1, 2 },
+        { 3, 4 }
+      },
+      {
+        { 5, 6 },
+        { 7, 8 }
+      }
+    });
+    a = std::move(b);
+    
+    ASSERT_EQ(b.size(), 0);
+  }
+
+  ASSERT_EQ(a, Array3({
+    {
+      { 1, 2 },
+      { 3, 4 }
+    },
+    {
+      { 5, 6 },
+      { 7, 8 }
+    }
+  }));
+}
+
 TEST_F(MathTest, array3ElementAccess) {
-  Array3 arr3({{
-    { 3, 4 },
-    { 7, 2 },
-    { 9, 1 }
-  }, {
-    { 1, 0 },
-    { 6, 9 },
-    { 4, 8 }
-  }});
+  Array3 arr3({
+    {
+      { 3, 4 },
+      { 7, 2 },
+      { 9, 1 }
+    },
+    {
+      { 1, 0 },
+      { 6, 9 },
+      { 4, 8 }
+    }
+  });
 
   ASSERT_EQ(arr3.at(0, 0, 0), 3);
   ASSERT_EQ(arr3.at(1, 0, 0), 4);
