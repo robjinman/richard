@@ -118,8 +118,8 @@ void DenseLayer::updateDelta(const DataArray& inputs, const Layer& nextLayer, si
 
   m_B = m_B - m_delta * learnRate;
 
-  std::cout << "Dense layer delta:\n";
-  std::cout << m_delta;
+  //std::cout << "Dense layer delta:\n";
+  //std::cout << m_delta;
 }
 
 void DenseLayer::setWeights(const Matrix& W) {

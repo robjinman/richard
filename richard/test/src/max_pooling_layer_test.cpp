@@ -71,6 +71,46 @@ TEST_F(MaxPoolingLayerTest, evalForward_depth2) {
   }));
 }
 
+TEST_F(MaxPoolingLayerTest, trainForward_1x1_depth1) {
+  size_t inputW = 4;
+  size_t inputH = 4;
+  size_t inputDepth = 1;
+
+  nlohmann::json json;
+  json["regionSize"] = std::array<size_t, 2>{ 1, 1 };
+
+  MaxPoolingLayer layer(json, inputW, inputH, inputDepth);
+
+  Array2 inputs({
+    { 0, 1, 2, 3 },
+    { 4, 5, 6, 7 },
+    { 8, 9, 0, 1 },
+    { 2, 3, 4, 5 }
+  });
+
+  layer.trainForward(inputs.storage());
+
+  Array2 A(layer.activations(), 4, 4);
+
+  ASSERT_EQ(A, Array2({
+    { 0, 1, 2, 3 },
+    { 4, 5, 6, 7 },
+    { 8, 9, 0, 1 },
+    { 2, 3, 4, 5 }
+  }));
+
+  Array3 mask = layer.mask();
+
+  ASSERT_EQ(mask, Array3({
+    {
+      { 1, 1, 1, 1 },
+      { 1, 1, 1, 1 },
+      { 1, 1, 1, 1 },
+      { 1, 1, 1, 1 }
+    }
+  }));
+}
+
 TEST_F(MaxPoolingLayerTest, trainForward_depth1) {
   size_t inputW = 4;
   size_t inputH = 4;

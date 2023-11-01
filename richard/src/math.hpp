@@ -93,7 +93,7 @@ class Vector {
 
     void zero();
     void normalize();
-    void randomize(double standardDeviation);
+    Vector& randomize(double standardDeviation);
     void fill(double x);
 
     double sum() const;
@@ -237,7 +237,7 @@ class Matrix {
 
     void zero();
     void fill(double x);
-    void randomize(double standardDeviation);
+    Matrix& randomize(double standardDeviation);
 
     double sum() const;
     Matrix transpose() const;
@@ -366,7 +366,7 @@ class Kernel {
 
     void zero();
     void fill(double x);
-    void randomize(double standardDeviation);
+    Kernel& randomize(double standardDeviation);
 
     Kernel operator+(const Kernel& rhs) const;
     Kernel operator-(const Kernel& rhs) const;

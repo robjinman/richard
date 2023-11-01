@@ -24,8 +24,11 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW,
 
     filter.K = Kernel(kernelSize[0], kernelSize[1], inputDepth);
     filter.K.randomize(0.1);
+    //filter.K = Kernel({{{ 1.0 }}});
 
     filter.b = 0.0;
+
+    std::cout << "Kernel " << i << " initialized to:\n" << filter.K << "\n";
 
     m_filters.push_back(filter);
   }
@@ -35,6 +38,9 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW,
   m_Z = Array3(sz[0], sz[1], sz[2]);
   m_A = Array3(sz[0], sz[1], sz[2]);
   m_delta = Array3(sz[0], sz[1], sz[2]);
+  
+  //std::cout << "Initial delta: \n";
+  //std::cout << m_delta << "\n";
 }
 
 ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& fin, size_t inputW,
@@ -151,11 +157,17 @@ void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& 
   //std::cout << "Inputs:\n";
   //std::cout << inputs;
 
-  double learnRate = m_learnRate;// * pow(m_learnRateDecay, epoch) / (fmW * fmH);
+  double learnRate = m_learnRate * pow(m_learnRateDecay, epoch) / (fmW * fmH);
 
   for (size_t slice = 0; slice < depth; ++slice) {
     Kernel& K = m_filters[slice].K;
     double& b = m_filters[slice].b;
+    
+    //std::cout << K << "\n";
+    //std::cout << "b = " << b << "\n";
+
+    //std::cout << "Z:\n" << m_Z << "\n";
+    //std::cout << "Next delta: \n" << nextDelta << "\n";
 
     for (size_t ymin = 0; ymin < fmH; ++ymin) {
       for (size_t xmin = 0; xmin < fmW; ++xmin) {
@@ -172,6 +184,10 @@ void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& 
               size_t inputX = xmin + i;
               size_t inputY = ymin + j;
               double dw = inputs.at(inputX, inputY, z) * delta * learnRate;
+              
+              //std::cout << "input = " << inputs.at(inputX, inputY, z) << "\n";;
+              //std::cout << "delta = " << delta << "\n";
+              //std::cout << "dw = " << dw << "\n";
 
               K.set(i, j, z, K.at(i, j, z) - dw);
               b = b - delta * learnRate;
@@ -182,8 +198,8 @@ void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& 
     }
   }
 
-  std::cout << "Convolutional layer delta:\n";
-  std::cout << m_delta;
+  //std::cout << "Convolutional layer delta:\n";
+  //std::cout << m_delta;
 }
 
 nlohmann::json ConvolutionalLayer::getConfig() const {

@@ -220,8 +220,12 @@ std::array<size_t, 2> NeuralNetImpl::inputSize() const {
 double NeuralNetImpl::feedForward(const Array3& x, const Vector& y) {
   const DataArray* A = &x.storage();
   for (auto& layer : m_layers) {
+    //std::cout << "In: " << *A << std::endl;
+  
     layer->trainForward(*A);
     A = &layer->activations();
+    
+    //std::cout << "Out: " << *A << std::endl;
   }
 
   ConstVectorPtr outputs = Vector::createShallow(*A);
@@ -374,11 +378,11 @@ void NeuralNetImpl::setBiases(const std::vector<DataArray>& biases) {
   }
 }
 
-std::unique_ptr<NeuralNet> createNeuralNet(const nlohmann::json& config) {
+NeuralNetPtr createNeuralNet(const nlohmann::json& config) {
   return std::make_unique<NeuralNetImpl>(config);
 }
 
-std::unique_ptr<NeuralNet> createNeuralNet(std::istream& fin) {
+NeuralNetPtr createNeuralNet(std::istream& fin) {
   return std::make_unique<NeuralNetImpl>(fin);
 }
 
@@ -392,3 +396,4 @@ std::ostream& operator<<(std::ostream& os, LayerType layerType) {
   }
   return os;
 }
+

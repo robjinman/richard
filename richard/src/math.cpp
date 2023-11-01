@@ -237,13 +237,15 @@ void Vector::fill(double x) {
   }
 }
 
-void Vector::randomize(double standardDeviation) {
-  std::default_random_engine gen;
+Vector& Vector::randomize(double standardDeviation) {
+  static std::default_random_engine gen;
   std::normal_distribution<double> dist(0.0, standardDeviation);
 
   for (size_t i = 0; i < m_size; ++i) {
     m_data[i] = dist(gen);
   }
+  
+  return *this;
 }
 
 void Vector::normalize() {
@@ -538,13 +540,15 @@ void Matrix::fill(double x) {
   }
 }
 
-void Matrix::randomize(double standardDeviation) {
-  std::default_random_engine gen;
+Matrix& Matrix::randomize(double standardDeviation) {
+  static std::default_random_engine gen;
   std::normal_distribution<double> dist(0.0, standardDeviation);
 
   for (size_t i = 0; i < size(); ++i) {
     m_data[i] = dist(gen);
   }
+  
+  return *this;
 }
 
 double Matrix::sum() const {
@@ -769,13 +773,15 @@ void Kernel::fill(double x) {
   }
 }
 
-void Kernel::randomize(double standardDeviation) {
-  std::default_random_engine gen;
+Kernel& Kernel::randomize(double standardDeviation) {
+  static std::default_random_engine gen;
   std::normal_distribution<double> dist(0.0, standardDeviation);
 
   for (size_t i = 0; i < size(); ++i) {
     m_data[i] = dist(gen);
   }
+
+  return *this;
 }
 
 Kernel Kernel::operator+(const Kernel& rhs) const {

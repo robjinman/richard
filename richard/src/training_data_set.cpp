@@ -22,7 +22,7 @@ size_t TrainingDataSet::loadSamples(std::vector<Sample>& samples, size_t n) {
       size_t inputSize = samples[0].data.size();
       m_stats = std::make_unique<DataStats>(Vector(inputSize), Vector(inputSize));
       m_stats->min.fill(std::numeric_limits<double>::max());
-      m_stats->min.fill(std::numeric_limits<double>::min());
+      m_stats->min.fill(std::numeric_limits<double>::lowest());
     }
 
     if (m_stats != nullptr) {

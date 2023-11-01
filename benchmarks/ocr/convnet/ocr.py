@@ -57,19 +57,21 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 
 initializer1 = keras.initializers.RandomNormal(mean=0., stddev=0.1)
 initializer2 = keras.initializers.RandomNormal(mean=0., stddev=0.1)
+initializer3 = keras.initializers.RandomNormal(mean=0., stddev=0.1)
+initializer4 = keras.initializers.RandomNormal(mean=0., stddev=0.1)
 
 model = keras.Sequential(
     [
         keras.Input(shape=input_shape),
-        layers.Conv2D(8, kernel_size=(5, 5), activation="relu",
-            kernel_initializer=initializer1, bias_initializer="zeros"),
-        layers.MaxPooling2D(pool_size=(2, 2)),
-        layers.Conv2D(16, kernel_size=(5, 5), activation="relu",
+        layers.Conv2D(8, kernel_size=(3, 3), activation="relu",
             kernel_initializer=initializer1, bias_initializer="zeros"),
         layers.MaxPooling2D(pool_size=(2, 2)),
         layers.Flatten(),
-        #layers.Dropout(0.5),
-        layers.Dense(num_classes, activation="sigmoid", kernel_initializer=initializer2,
+        layers.Dense(300, activation="sigmoid", kernel_initializer=initializer2,
+            bias_initializer="zeros"),
+        layers.Dense(80, activation="sigmoid", kernel_initializer=initializer3,
+            bias_initializer="zeros"),
+        layers.Dense(num_classes, activation="sigmoid", kernel_initializer=initializer4,
             bias_initializer="zeros"),
     ]
 )
