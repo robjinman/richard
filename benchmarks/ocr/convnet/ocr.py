@@ -63,15 +63,14 @@ initializer4 = keras.initializers.RandomNormal(mean=0., stddev=0.1)
 model = keras.Sequential(
     [
         keras.Input(shape=input_shape),
-        layers.Conv2D(8, kernel_size=(3, 3), activation="relu",
+        layers.Conv2D(32, kernel_size=(5, 5), activation="relu",
             kernel_initializer=initializer1, bias_initializer="zeros"),
         layers.MaxPooling2D(pool_size=(2, 2)),
+        layers.Conv2D(64, kernel_size=(5, 5), activation="relu",
+            kernel_initializer=initializer2, bias_initializer="zeros"),
+        layers.MaxPooling2D(pool_size=(2, 2)),
         layers.Flatten(),
-        layers.Dense(300, activation="sigmoid", kernel_initializer=initializer2,
-            bias_initializer="zeros"),
-        layers.Dense(80, activation="sigmoid", kernel_initializer=initializer3,
-            bias_initializer="zeros"),
-        layers.Dense(num_classes, activation="sigmoid", kernel_initializer=initializer4,
+        layers.Dense(num_classes, activation="sigmoid", kernel_initializer=initializer3,
             bias_initializer="zeros"),
     ]
 )
@@ -79,9 +78,9 @@ model = keras.Sequential(
 model.summary()
 
 batch_size = 1
-epochs = 10
+epochs = 30
 
-optimizer = keras.optimizers.SGD(learning_rate=0.7)
+optimizer = keras.optimizers.SGD(learning_rate=0.001)
 
 model.compile(loss="mean_squared_error", optimizer=optimizer, metrics=["accuracy"])
 

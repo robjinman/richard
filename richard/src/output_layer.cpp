@@ -1,4 +1,3 @@
-#include <iostream>
 #include "output_layer.hpp"
 
 OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize)
@@ -92,13 +91,7 @@ void OutputLayer::updateDelta(const DataArray& inputs, const DataArray& outputs,
   const Vector& y = *pY;
 
   Vector deltaC = quadraticCostDerivatives(m_A, y);
-  //std::cout << "deltaC:\n";
-  //std::cout << deltaC;
-
   m_delta = m_Z.computeTransform(m_activationFnPrime).hadamard(deltaC);
-
-  //std::cout << "Output layer delta:\n";
-  //std::cout << m_delta;
 
   double learnRate = m_learnRate * pow(m_learnRateDecay, epoch);
 

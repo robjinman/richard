@@ -1,4 +1,3 @@
-#include <iostream> // TODO
 #include "max_pooling_layer.hpp"
 #include "convolutional_layer.hpp"
 #include "exception.hpp"
@@ -49,20 +48,11 @@ const DataArray& MaxPoolingLayer::delta() const {
 }
 
 void MaxPoolingLayer::trainForward(const DataArray& inputs) {
-  //std::cout << "MaxPoolingLayer::trainForward()\n";
-  //std::cout << "inputs: " << inputs << "\n";
-
   ConstArray3Ptr pImage = Array3::createShallow(inputs, m_inputW, m_inputH, m_inputDepth);
   const Array3& image = *pImage;
 
   size_t outputW = m_inputW / m_regionW;
   size_t outputH = m_inputH / m_regionH;
-
-  //std::cout << "m_inputDepth = " << m_inputDepth << "\n";
-  //std::cout << "outputH = " << outputH << "\n";
-  //std::cout << "outputW = " << outputW << "\n";
-  //std::cout << "m_regionW = " << m_regionW << "\n";
-  //std::cout << "m_regionH = " << m_regionH << "\n";
 
   for (size_t z = 0; z < m_inputDepth; ++z) {
     for (size_t y = 0; y < outputH; ++y) {
@@ -70,21 +60,23 @@ void MaxPoolingLayer::trainForward(const DataArray& inputs) {
         double largest = std::numeric_limits<double>::lowest();
         size_t largestInputX = 0;
         size_t largestInputY = 0;
+
         for (size_t j = 0; j < m_regionH; ++j) {
           for (size_t i = 0; i < m_regionW; ++i) {
             size_t imgX = x * m_regionW + i;
             size_t imgY = y * m_regionH + j;
             double input = image.at(imgX, imgY, z);
-            //std::cout << "input = " << input << "\n";
+
             if (input > largest) {
               largest = input;
               largestInputX = imgX;
               largestInputY = imgY;
             }
+
             m_mask.set(imgX, imgY, z, 0.0);
           }
         }
-        //std::cout << largestInputX << ", " << largestInputY << ", " << z << " = 1.0\n";
+
         m_mask.set(largestInputX, largestInputY, z, 1.0);
         m_Z.set(x, y, z, largest);
       }
@@ -105,16 +97,19 @@ DataArray MaxPoolingLayer::evalForward(const DataArray& inputs) const {
     for (size_t y = 0; y < outputH; ++y) {
       for (size_t x = 0; x < outputW; ++x) {
         double largest = std::numeric_limits<double>::lowest();
+
         for (size_t j = 0; j < m_regionH; ++j) {
           for (size_t i = 0; i < m_regionW; ++i) {
             size_t imgX = x * m_regionW + i;
             size_t imgY = y * m_regionH + j;
             double input = image.at(imgX, imgY, z);
+
             if (input > largest) {
               largest = input;
             }
           }
         }
+
         Z.set(x, y, z, largest);
       }
     }
@@ -135,6 +130,7 @@ void MaxPoolingLayer::padDelta(const Array3& delta, const Array3& mask, Array3& 
           for (size_t i = 0; i < m_regionW; ++i) {
             size_t imgX = x * m_regionW + i;
             size_t imgY = y * m_regionH + j;
+
             if (mask.at(imgX, imgY, z) != 0.0) {
               paddedDelta.set(imgX, imgY, z, delta.at(x, y, z));
             }
@@ -146,16 +142,11 @@ void MaxPoolingLayer::padDelta(const Array3& delta, const Array3& mask, Array3& 
       }
     }
   }
-  
-  //std::cout << "Mask: \n" << mask << "\n";
-  //std::cout << "Padded delta: \n" << paddedDelta << "\n";
 }
 
 void MaxPoolingLayer::backpropFromDenseLayer(const Layer& nextLayer, Array3& delta) {
   ConstVectorPtr pNextDelta = Vector::createShallow(nextLayer.delta());
   delta.setData(std::move(nextLayer.W().transposeMultiply(*pNextDelta).storage()));
-  
-  //std::cout << "Max pooling delta: \n" << delta << "\n";
 }
 
 void MaxPoolingLayer::backpropFromConvLayer(const std::vector<ConvolutionalLayer::Filter>& filters,
@@ -198,6 +189,8 @@ void MaxPoolingLayer::backpropFromConvLayer(const std::vector<ConvolutionalLayer
 }
 
 void MaxPoolingLayer::updateDelta(const DataArray&, const Layer& nextLayer, size_t) {
+  m_delta.zero();
+
   switch (nextLayer.type()) {
     case LayerType::OUTPUT:
     case LayerType::DENSE: {
@@ -215,12 +208,6 @@ void MaxPoolingLayer::updateDelta(const DataArray&, const Layer& nextLayer, size
   }
 
   padDelta(m_delta, m_mask, m_paddedDelta);
-
-  //std::cout << "Max pooling layer delta:\n";
-  //std::cout << m_delta;
-
-  //std::cout << "Max pooling layer padded delta:\n";
-  //std::cout << m_paddedDelta;
 }
 
 nlohmann::json MaxPoolingLayer::getConfig() const {

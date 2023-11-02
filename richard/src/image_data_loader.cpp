@@ -45,13 +45,20 @@ size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples, size_t N) {
         size_t imgH = image.size()[1];
         size_t channels = image.size()[2];
 
-        Array3 v(imgW, imgH, channels);
+//        Array3 v(imgW, imgH, channels);
+        Array3 v(imgW, imgH, 1);
 
         for (size_t j = 0; j < imgH; ++j) {
           for (size_t i = 0; i < imgW; ++i) {
-            for (size_t k = 0; k < channels; ++k) {
-              v.set(i, j, k, image[j][i][k]);
+            //for (size_t k = 0; k < channels; ++k) {
+            //  v.set(i, j, k, image[j][i][k]);
+            // }
+           
+            double pxSum = 0.0;
+            for (size_t k = 0; k < channels; ++k){
+              pxSum += image[j][i][k];
             }
+            v.set(i, j, 0, pxSum / channels);
           }
         }
 

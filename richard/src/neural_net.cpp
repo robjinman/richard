@@ -14,10 +14,8 @@
 #include "output_layer.hpp"
 
 const NeuralNet::CostFn quadradicCost = [](const Vector& actual, const Vector& expected) {
-  size_t n = expected.size();
-  ASSERT(actual.size() == n);
-
-  return (expected - actual).squareMagnitude() / static_cast<double>(n);
+  ASSERT(actual.size() == expected.size());
+  return (expected - actual).squareMagnitude() * 0.5;
 };
 
 namespace {
