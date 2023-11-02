@@ -228,12 +228,8 @@ std::array<size_t, 3> NeuralNetImpl::inputSize() const {
 double NeuralNetImpl::feedForward(const Array3& x, const Vector& y) {
   const DataArray* A = &x.storage();
   for (auto& layer : m_layers) {
-    //std::cout << "In: " << *A << std::endl;
-  
     layer->trainForward(*A);
     A = &layer->activations();
-    
-    //std::cout << "Out: " << *A << std::endl;
   }
 
   ConstVectorPtr outputs = Vector::createShallow(*A);
@@ -303,10 +299,6 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
 
     cost = cost / samplesProcessed;
     std::cout << ", cost = " << cost << std::endl;
-
-    if (std::isnan(cost)) {
-      exit(1); // TODO
-    }
 
     trainingData.seekToBeginning();
   }
