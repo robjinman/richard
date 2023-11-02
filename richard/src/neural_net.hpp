@@ -13,7 +13,7 @@ class NeuralNet {
     using CostFn = std::function<double(const Vector&, const Vector&)>;
 
     virtual CostFn costFn() const = 0;
-    virtual std::array<size_t, 2> inputSize() const = 0;
+    virtual std::array<size_t, 3> inputSize() const = 0;
     virtual void writeToStream(std::ostream& s) const = 0;
     virtual void train(LabelledDataSet& data) = 0;
     virtual VectorPtr evaluate(const Array3& inputs) const = 0;

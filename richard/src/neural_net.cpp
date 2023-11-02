@@ -24,7 +24,7 @@ struct Hyperparams {
   Hyperparams();
   explicit Hyperparams(const nlohmann::json& obj);
 
-  std::array<size_t, 2> numInputs;
+  std::array<size_t, 3> numInputs;
   size_t epochs;
   size_t maxBatchSize;
 
@@ -39,7 +39,7 @@ class NeuralNetImpl : public NeuralNet {
     explicit NeuralNetImpl(std::istream& s);
 
     CostFn costFn() const override;
-    std::array<size_t, 2> inputSize() const override;
+    std::array<size_t, 3> inputSize() const override;
     void writeToStream(std::ostream& s) const override;
     void train(LabelledDataSet& data) override;
     VectorPtr evaluate(const Array3& inputs) const override;
@@ -67,14 +67,14 @@ class NeuralNetImpl : public NeuralNet {
 };
 
 Hyperparams::Hyperparams()
-  : numInputs({784, 1})
+  : numInputs({784, 1, 1})
   , epochs(50)
   , maxBatchSize(1000) {}
 
 Hyperparams::Hyperparams(const nlohmann::json& obj) {
   nlohmann::json params = Hyperparams().toJson();
   params.merge_patch(obj);
-  numInputs = getOrThrow(params, "numInputs").get<std::array<size_t, 2>>();
+  numInputs = getOrThrow(params, "numInputs").get<std::array<size_t, 3>>();
   epochs = getOrThrow(params, "epochs").get<size_t>();
   maxBatchSize = getOrThrow(params, "maxBatchSize").get<size_t>();
 }
@@ -141,7 +141,12 @@ NeuralNetImpl::NeuralNetImpl(const nlohmann::json& config)
   : m_isTrained(false)
   , m_params(getOrThrow(config, "hyperparams")) {
 
-  std::array<size_t, 3> prevLayerSize = { m_params.numInputs[0], m_params.numInputs[1], 1 };
+  std::array<size_t, 3> prevLayerSize = {
+    m_params.numInputs[0],
+    m_params.numInputs[1],
+    m_params.numInputs[2]
+  };
+
   if (config.contains("hiddenLayers")) {
     auto layersJson = config["hiddenLayers"];
 
@@ -170,7 +175,12 @@ NeuralNetImpl::NeuralNetImpl(std::istream& fin) : m_isTrained(false) {
 
   m_params = Hyperparams(paramsJson);
 
-  std::array<size_t, 3> prevLayerSize = { m_params.numInputs[0], m_params.numInputs[1], 1 };
+  std::array<size_t, 3> prevLayerSize = {
+    m_params.numInputs[0],
+    m_params.numInputs[1],
+    m_params.numInputs[2]
+  };
+
   for (auto& layerJson : layersJson) {
     m_layers.push_back(constructLayer(layerJson, fin, prevLayerSize));
     prevLayerSize = m_layers.back()->outputSize();
@@ -211,7 +221,7 @@ void NeuralNetImpl::writeToStream(std::ostream& fout) const {
   }
 }
 
-std::array<size_t, 2> NeuralNetImpl::inputSize() const {
+std::array<size_t, 3> NeuralNetImpl::inputSize() const {
   return m_params.numInputs;
 }
 
@@ -254,7 +264,7 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
 
     std::vector<Sample> samples;
     while (trainingData.loadSamples(samples, N) > 0) {
-      size_t netInputSize = m_params.numInputs[0] * m_params.numInputs[1];
+      size_t netInputSize = m_params.numInputs[0] * m_params.numInputs[1] * m_params.numInputs[2];
       TRUE_OR_THROW(samples[0].data.size() == netInputSize,
         "Sample size is " << samples[0].data.size() << ", expected " << netInputSize);
 

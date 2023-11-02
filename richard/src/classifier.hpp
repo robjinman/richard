@@ -20,7 +20,7 @@ class Classifier {
     void toFile(const std::string& filePath) const;
     void train(TrainingDataSet& trainingData);
     Results test(LabelledDataSet& testData) const;
-    std::array<size_t, 2> inputSize() const;
+    std::array<size_t, 3> inputSize() const;
     const std::vector<std::string> classLabels() const;
     const DataStats& trainingDataStats() const;
 

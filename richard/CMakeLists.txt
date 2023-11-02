@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 set(PROJECT_NAME Richard)
 
 project(${PROJECT_NAME})
-set(RICHARD_LIB_NAME "chard")
+set(RICHARD_LIB_NAME "librichard")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -13,11 +13,23 @@ endif()
 
 message("Building ${CMAKE_BUILD_TYPE} configuration...")
 
+if (CPUPROF)
+  message("CPU profiling ON")
+  
+  find_package(GOOGLE_PERFTOOLS REQUIRED)
+
+  if (NOT DEFINED PROFILE_DURATION)
+    set(PROFILE_DURATION -1)
+  endif()
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+
 find_package(Boost 1.56 REQUIRED COMPONENTS program_options)
-find_package(OpenMP)
+#find_package(OpenMP)
 
 include(FetchContent)
 
@@ -39,21 +51,37 @@ target_include_directories(
     "${PROJECT_SOURCE_DIR}/../common"
 )
 
-set(COMPILER_FLAGS -Wextra -Wall)
-set(DEBUG_FLAGS ${COMPILER_FLAGS} -g)
-set(RELEASE_FLAGS ${COMPILER_FLAGS} -O3)
+set(CPUPROF_COMPILE_FLAGS -g)
+set(COMPILE_FLAGS -Wextra -Wall)
+if (CPUPROF)
+  set(COMPILE_FLAGS ${COMPILE_FLAGS} ${CPUPROF_COMPILE_FLAGS})
+endif()
+set(DEBUG_COMPILE_FLAGS ${COMPILE_FLAGS} -g)
+set(RELEASE_COMPILE_FLAGS ${COMPILE_FLAGS} -O3)
+
+set(CPUPROF_LINK_FLAGS -Wl,--no-as-needed -lprofiler -Wl,--as-needed)
+set(LINK_FLAGS)
+if (CPUPROF)
+  set(LINK_FLAGS ${LINK_FLAGS} ${CPUPROF_LINK_FLAGS})
+endif()
+set(DEBUG_LINK_FLAGS ${LINK_FLAGS})
+set(RELEASE_LINK_FLAGS ${LINK_FLAGS})
 
 target_compile_options(${RICHARD_LIB_NAME}
   PUBLIC
-  "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>"
-  "$<$<CONFIG:RELEASE>:${RELEASE_FLAGS}>")
+  "$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>"
+  "$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>")
+
 target_link_libraries(${RICHARD_LIB_NAME}
   PUBLIC
   Boost::program_options
   #OpenMP::OpenMP_CXX
-  nlohmann_json::nlohmann_json)
+  nlohmann_json::nlohmann_json
+  "$<$<CONFIG:DEBUG>:${DEBUG_LINK_FLAGS}>"
+  "$<$<CONFIG:RELEASE>:${RELEASE_LINK_FLAGS}>")
 
 add_executable(richard "${PROJECT_SOURCE_DIR}/src/main.cpp")
 target_link_libraries(richard ${RICHARD_LIB_NAME})
 
 add_subdirectory(test)
+
