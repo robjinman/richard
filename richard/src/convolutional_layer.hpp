@@ -5,6 +5,15 @@
 
 class ConvolutionalLayer : public Layer {
   public:
+    struct Filter {
+      Filter()
+        : K(1, 1, 1)
+        , b(0.0) {}
+
+      Kernel K;
+      double b;
+    };
+
     ConvolutionalLayer(const nlohmann::json& obj, size_t inputW, size_t inputH, size_t inputDepth);
     ConvolutionalLayer(const nlohmann::json& obj, std::istream& fin, size_t inputW, size_t inputH,
       size_t inputDepth);
@@ -18,8 +27,9 @@ class ConvolutionalLayer : public Layer {
     void updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) override;
     nlohmann::json getConfig() const override;
     void writeToStream(std::ostream& fout) const override;
-    // Don't use. Use kernel() instead.
+    // Don't use. Use filters() instead.
     const Matrix& W() const override;
+    const std::vector<Filter>& filters() const;
 
     std::array<size_t, 2> kernelSize() const;
     size_t depth() const;
@@ -27,18 +37,8 @@ class ConvolutionalLayer : public Layer {
     // Exposed for testing
     //
 
-    struct Filter {
-      Filter()
-        : K(1, 1, 1)
-        , b(0.0) {}
-
-      Kernel K;
-      double b;
-    };
-
     void forwardPass(const Array3& inputs, Array3& Z) const;
     void setFilters(const std::vector<ConvolutionalLayer::Filter>& filters);
-    const std::vector<Filter>& filters() const;
     void setWeights(const std::vector<DataArray>&) override;
     void setBiases(const DataArray&) override;
 
