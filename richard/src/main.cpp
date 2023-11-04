@@ -45,9 +45,8 @@ po::variable_value getOpt(po::variables_map& vm, const std::string& option, bool
   return value;
 };
 
-ApplicationPtr constructApp(po::variables_map& vm) {
+ApplicationPtr constructApp(FileSystem& fileSystem, po::variables_map& vm) {
   ApplicationPtr app = nullptr;
-  FileSystemPtr fileSystem = createFileSystem();
 
   if (vm.count("train")) {
     ClassifierTrainingApp::Options opts;
@@ -58,7 +57,7 @@ ApplicationPtr constructApp(po::variables_map& vm) {
     opts.configFile = getOpt(vm, "config", true).as<std::string>();
     opts.networkFile = getOpt(vm, "network", true).as<std::string>();
 
-    app = std::make_unique<ClassifierTrainingApp>(*fileSystem, opts);
+    app = std::make_unique<ClassifierTrainingApp>(fileSystem, opts);
   }
   else if (vm.count("eval")) {
     ClassifierEvalApp::Options opts;
@@ -68,7 +67,7 @@ ApplicationPtr constructApp(po::variables_map& vm) {
     opts.samplesPath = getOpt(vm, "samples", true).as<std::string>();
     opts.networkFile = getOpt(vm, "network", true).as<std::string>();
 
-    app = std::make_unique<ClassifierEvalApp>(*fileSystem, opts);
+    app = std::make_unique<ClassifierEvalApp>(fileSystem, opts);
   }
   else {
     EXCEPTION("Missing required argument: train or eval");
@@ -96,11 +95,6 @@ void printExampleConfig(const std::string& appType) {
 
 }
 
-// richard --train --samples ../../data/ocr/train.csv --config ../../data/ocr/config.json --network ../../data/ocr/network
-// richard --eval --samples ../../data/ocr/test.csv --network ../../data/ocr/network
-
-// richard --train --samples ../../data/catdog/train --config ../../data/catdog/config.json --network ../../data/catdog/network
-// richard --eval --samples ../../data/catdog/test --network ../../data/catdog/network
 int main(int argc, char** argv) {
   try {
     po::options_description desc{DESCRIPTION};
@@ -133,7 +127,8 @@ int main(int argc, char** argv) {
       return EXIT_SUCCESS;
     }
 
-    ApplicationPtr app = constructApp(vm);
+    FileSystemPtr fileSystem = createFileSystem();
+    ApplicationPtr app = constructApp(*fileSystem, vm);
 
     auto t1 = std::chrono::high_resolution_clock::now();
 

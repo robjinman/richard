@@ -29,14 +29,14 @@ void ClassifierTrainingApp::start() {
 }
 
 void ClassifierTrainingApp::saveStateToFile() const {
-  std::ofstream fout(m_opts.networkFile, std::ios::binary);
+  auto fout = m_fileSystem.openFileForWriting(m_opts.networkFile);
 
   std::string configString = m_config.dump();
   size_t configSize = configString.size();
-  fout.write(reinterpret_cast<char*>(&configSize), sizeof(size_t));
-  fout.write(configString.c_str(), configSize);
+  fout->write(reinterpret_cast<char*>(&configSize), sizeof(size_t));
+  fout->write(configString.c_str(), configSize);
 
-  m_classifier->writeToStream(fout);
+  m_classifier->writeToStream(*fout);
 }
 
 const nlohmann::json& ClassifierTrainingApp::exampleConfig() {
