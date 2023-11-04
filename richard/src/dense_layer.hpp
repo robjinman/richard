@@ -8,7 +8,7 @@ class DenseLayer : public Layer {
     DenseLayer(const nlohmann::json& obj, size_t inputSize);
 
     LayerType type() const override { return LayerType::DENSE; }
-    std::array<size_t, 3> outputSize() const override;
+    Triple outputSize() const override;
     const DataArray& activations() const override;
     const DataArray& delta() const override;
     void trainForward(const DataArray& inputs) override;

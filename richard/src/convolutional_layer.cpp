@@ -77,7 +77,7 @@ const DataArray& ConvolutionalLayer::delta() const {
   return m_delta.storage();
 }
 
-std::array<size_t, 3> ConvolutionalLayer::outputSize() const {
+Triple ConvolutionalLayer::outputSize() const {
   ASSERT(!m_filters.empty());
   return {
     m_inputW - m_filters[0].K.W() + 1,

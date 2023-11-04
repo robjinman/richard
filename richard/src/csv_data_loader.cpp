@@ -11,8 +11,10 @@
 // a,44.0,52.1
 // c,11.9,92.4
 // ...
-CsvDataLoader::CsvDataLoader(const std::string& filePath, size_t inputSize)
+CsvDataLoader::CsvDataLoader(const std::string& filePath, size_t inputSize,
+  const NormalizationParams& normalization)
   : m_inputSize(inputSize)
+  , m_normalization(normalization)
   , m_fin(filePath) {}
 
 void CsvDataLoader::seekToBeginning() {
@@ -44,7 +46,7 @@ size_t CsvDataLoader::loadSamples(std::istream& stream, std::vector<Sample>& sam
       }
       else {
         double value = std::stod(token);
-        v[i - 1] = value;
+        v[i - 1] = normalize(m_normalization, value);
       }
     }
 
@@ -60,3 +62,4 @@ size_t CsvDataLoader::loadSamples(std::istream& stream, std::vector<Sample>& sam
 
   return numSamples;
 }
+

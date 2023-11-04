@@ -1,11 +1,8 @@
-#include <fstream>
-#include <limits>
-#include <sstream>
 #include <iostream> // TODO
 #include "classifier.hpp"
+#include "labelled_data_set.hpp"
 #include "exception.hpp"
-#include "training_data_set.hpp"
-#include "test_data_set.hpp"
+#include "data_details.hpp"
 #include "util.hpp"
 
 namespace {
@@ -30,105 +27,34 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 
 const nlohmann::json& Classifier::defaultConfig() {
   static nlohmann::json config;
-  config["classes"] = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
   config["network"] = NeuralNet::defaultConfig();
   return config;
 }
 
-Classifier::Classifier(const std::string& filePath)
-  : m_isTrained(false)
-  , m_trainingDataStats(nullptr) {
+Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config,
+  std::istream& fin)
+  : m_isTrained(false) {
 
-  std::ifstream fin(filePath, std::ios::binary);
-  m_neuralNet = createNeuralNet(fin);
-
-  size_t classesStringSize = 0;
-  fin.read(reinterpret_cast<char*>(&classesStringSize), sizeof(size_t));
-  std::string classesString(classesStringSize, '_');
-  fin.read(classesString.data(), classesStringSize);
-  std::stringstream ss{classesString};
-  std::string label;
-  while (std::getline(ss, label, ',')) {
-    m_classes.push_back(label);
-  }
-
-  uint32_t hasStats = false;
-  fin.read(reinterpret_cast<char*>(&hasStats), sizeof(uint32_t));
-
-  if (hasStats) {
-    std::array<size_t, 3> netInputSize = m_neuralNet->inputSize();
-    size_t numInputs = netInputSize[0] * netInputSize[1] * netInputSize[2];
-
-    Vector min(numInputs);
-    Vector max(numInputs);
-
-    fin.read(reinterpret_cast<char*>(min.data()), numInputs * sizeof(double));
-    fin.read(reinterpret_cast<char*>(max.data()), numInputs * sizeof(double));
-
-    m_trainingDataStats = std::make_unique<DataStats>(min, max);
-  }
+  m_neuralNet = createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin);
 
   m_isTrained = true;
 }
 
-Classifier::Classifier(const nlohmann::json& config)
+Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config)
   : m_neuralNet(nullptr)
-  , m_isTrained(false)
-  , m_trainingDataStats(nullptr) {
+  , m_isTrained(false) {
 
-  auto classesJson = getOrThrow(config, "classes");
-
-  for (auto& label : classesJson) {
-    m_classes.push_back(label.get<std::string>());
-  }
-
-  m_neuralNet = createNeuralNet(getOrThrow(config, "network"));
+  m_neuralNet = createNeuralNet(dataDetails.shape, getOrThrow(config, "network"));
 }
 
-std::array<size_t, 3> Classifier::inputSize() const {
-  return m_neuralNet->inputSize();
-}
-
-const std::vector<std::string> Classifier::classLabels() const {
-  return m_classes;
-}
-
-void Classifier::toFile(const std::string& filePath) const {
+void Classifier::writeToStream(std::ostream& fout) const {
   TRUE_OR_THROW(m_isTrained, "Classifier not trained");
 
-  std::ofstream fout(filePath, std::ios::binary);
-
   m_neuralNet->writeToStream(fout);
-
-  std::stringstream ss;
-  for (size_t i = 0; i < m_classes.size(); ++i) {
-    ss << m_classes[i];
-    if (i + 1 < m_classes.size()) {
-      ss << ",";
-    }
-  }
-  size_t n = ss.str().size();
-  fout.write(reinterpret_cast<char*>(&n), sizeof(n));
-  fout.write(ss.str().c_str(), n);
-
-  uint32_t hasStats = m_trainingDataStats != nullptr;
-  fout.write(reinterpret_cast<const char*>(&hasStats), sizeof(uint32_t));
-
-  if (hasStats) {
-    fout.write(reinterpret_cast<const char*>(m_trainingDataStats->min.data()),
-      m_trainingDataStats->min.size() * sizeof(double));
-    fout.write(reinterpret_cast<const char*>(m_trainingDataStats->max.data()),
-      m_trainingDataStats->max.size() * sizeof(double));
-  }
 }
 
-void Classifier::train(TrainingDataSet& data) {
+void Classifier::train(LabelledDataSet& data) {
   m_neuralNet->train(data);
-
-  if (data.hasStats()) {
-    m_trainingDataStats = std::make_unique<DataStats>(data.stats());
-  }
-
   m_isTrained = true;
 }
 
@@ -176,12 +102,7 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
   return results;
 }
 
-const DataStats& Classifier::trainingDataStats() const {
-  TRUE_OR_THROW(m_isTrained, "Classifier not trained");
-  TRUE_OR_THROW(m_trainingDataStats != nullptr, "No stats for training set");
-  return *m_trainingDataStats;
-}
-
 void Classifier::abort() {
   m_neuralNet->abort();
 }
+

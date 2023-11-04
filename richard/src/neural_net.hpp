@@ -5,6 +5,7 @@
 #include <array>
 #include <nlohmann/json.hpp>
 #include "math.hpp"
+#include "types.hpp"
 
 class LabelledDataSet;
 
@@ -13,7 +14,7 @@ class NeuralNet {
     using CostFn = std::function<double(const Vector&, const Vector&)>;
 
     virtual CostFn costFn() const = 0;
-    virtual std::array<size_t, 3> inputSize() const = 0;
+    virtual Triple inputSize() const = 0;
     virtual void writeToStream(std::ostream& s) const = 0;
     virtual void train(LabelledDataSet& data) = 0;
     virtual VectorPtr evaluate(const Array3& inputs) const = 0;
@@ -33,6 +34,7 @@ class NeuralNet {
 
 using NeuralNetPtr = std::unique_ptr<NeuralNet>;
 
-NeuralNetPtr createNeuralNet(const nlohmann::json& config);
-NeuralNetPtr createNeuralNet(std::istream& fin);
+NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config);
+NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+  std::istream& fin);
 

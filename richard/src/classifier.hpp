@@ -2,9 +2,9 @@
 
 #include <nlohmann/json.hpp>
 #include "neural_net.hpp"
-#include "data_stats.hpp"
 
-class TrainingDataSet;
+class LabelledDataSet;
+class DataDetails;
 
 class Classifier {
   public:
@@ -14,15 +14,12 @@ class Classifier {
       double cost = 0.0;
     };
 
-    explicit Classifier(const nlohmann::json& config);
-    explicit Classifier(const std::string& filePath);
+    explicit Classifier(const DataDetails& dataDetails, const nlohmann::json& config);
+    Classifier(const DataDetails& dataDetails, const nlohmann::json& config, std::istream& fin);
 
-    void toFile(const std::string& filePath) const;
-    void train(TrainingDataSet& trainingData);
+    void writeToStream(std::ostream& fout) const;
+    void train(LabelledDataSet& trainingData);
     Results test(LabelledDataSet& testData) const;
-    std::array<size_t, 3> inputSize() const;
-    const std::vector<std::string> classLabels() const;
-    const DataStats& trainingDataStats() const;
 
     // Called from another thread
     void abort();
@@ -31,7 +28,6 @@ class Classifier {
 
   private:
     std::unique_ptr<NeuralNet> m_neuralNet;
-    std::vector<std::string> m_classes;
     bool m_isTrained;
-    std::unique_ptr<DataStats> m_trainingDataStats;
 };
+

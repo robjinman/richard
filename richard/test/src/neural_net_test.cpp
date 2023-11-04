@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <neural_net.hpp>
-#include <training_data_set.hpp>
+#include <labelled_data_set.hpp>
 
 class NeuralNetTest : public testing::Test {
   public:
@@ -9,10 +9,16 @@ class NeuralNetTest : public testing::Test {
     virtual void TearDown() override {}
 };
 
+class MockDataLoader : public DataLoader {
+  public:
+    MOCK_METHOD(size_t, loadSamples, (std::vector<Sample>& samples, size_t n), (override));
+    MOCK_METHOD(void, seekToBeginning, (), (override));
+};
+
 class MockLabelledDataSet : public LabelledDataSet {
   public:
-    MockLabelledDataSet(const std::vector<std::string>& labels)
-      : LabelledDataSet(labels) {}
+    MockLabelledDataSet(DataLoaderPtr dataLoader, const std::vector<std::string>& labels)
+      : LabelledDataSet(std::move(dataLoader), labels) {}
 
     MOCK_METHOD(size_t, loadSamples, (std::vector<Sample>& samples, size_t n), (override));
     MOCK_METHOD(void, seekToBeginning, (), (override));
@@ -22,7 +28,6 @@ TEST_F(NeuralNetTest, evaluate) {
   const std::string configString =     ""
   "{                                    "
   "  \"hyperparams\": {                 "
-  "      \"numInputs\": [3, 1],         "
   "      \"epochs\": 1,                 "
   "      \"maxBatchSize\": 1            "
   "  },                                 "
@@ -49,8 +54,10 @@ TEST_F(NeuralNetTest, evaluate) {
   "  }                                  "
   "}                                    ";
 
+  Triple inputShape({ 3, 1, 1 });
+
   nlohmann::json config = nlohmann::json::parse(configString);
-  std::unique_ptr<NeuralNet> net = createNeuralNet(config);
+  std::unique_ptr<NeuralNet> net = createNeuralNet(inputShape, config);
 
   Sample sample("a", Array3({{{ 0.5, 0.3, 0.7 }}}));
   auto loadSample = [&sample](std::vector<Sample>& samples, size_t) {
@@ -58,7 +65,10 @@ TEST_F(NeuralNetTest, evaluate) {
     return 1;
   };
 
-  testing::NiceMock<MockLabelledDataSet> dataSet(std::vector<std::string>({ "a", "b" }));
+  DataLoaderPtr dataLoader = std::make_unique<MockDataLoader>();
+  testing::NiceMock<MockLabelledDataSet> dataSet(std::move(dataLoader),
+    std::vector<std::string>({ "a", "b" }));
+
   ON_CALL(dataSet, loadSamples).WillByDefault(testing::Invoke(loadSample));
 
   Matrix W0({
@@ -100,7 +110,6 @@ TEST_F(NeuralNetTest, evaluateTrivialConvVsFullyConnected) {
   const std::string convNetConfigString =  ""
   "{                                        "
   "  \"hyperparams\": {                     "
-  "      \"numInputs\": [2, 2],             "
   "      \"epochs\": 1,                     "
   "      \"maxBatchSize\": 1                "
   "  },                                     "
@@ -134,7 +143,6 @@ TEST_F(NeuralNetTest, evaluateTrivialConvVsFullyConnected) {
   const std::string denseNetConfigString = ""
   "{                                        "
   "  \"hyperparams\": {                     "
-  "      \"numInputs\": [2, 2],             "
   "      \"epochs\": 1,                     "
   "      \"maxBatchSize\": 1                "
   "  },                                     "
@@ -154,8 +162,10 @@ TEST_F(NeuralNetTest, evaluateTrivialConvVsFullyConnected) {
   "  }                                      "
   "}                                        ";
 
-  NeuralNetPtr convNet = createNeuralNet(nlohmann::json::parse(convNetConfigString));
-  NeuralNetPtr denseNet = createNeuralNet(nlohmann::json::parse(denseNetConfigString));
+  Triple inputShape({ 2, 2, 1 });
+
+  NeuralNetPtr convNet = createNeuralNet(inputShape, nlohmann::json::parse(convNetConfigString));
+  NeuralNetPtr denseNet = createNeuralNet(inputShape, nlohmann::json::parse(denseNetConfigString));
 
   Sample sample("a", Array3({{
     { 0.5, 0.4 },
@@ -166,7 +176,10 @@ TEST_F(NeuralNetTest, evaluateTrivialConvVsFullyConnected) {
     return 1;
   };
 
-  testing::NiceMock<MockLabelledDataSet> dataSet(std::vector<std::string>({ "a", "b" }));
+  DataLoaderPtr dataLoader = std::make_unique<MockDataLoader>();
+  testing::NiceMock<MockLabelledDataSet> dataSet(std::move(dataLoader),
+    std::vector<std::string>({ "a", "b" }));
+
   ON_CALL(dataSet, loadSamples).WillByDefault(testing::Invoke(loadSample));
 
   Kernel convK({
@@ -204,7 +217,6 @@ TEST_F(NeuralNetTest, evaluateConv) {
   const std::string configString =       ""
   "{                                      "
   "  \"hyperparams\": {                   "
-  "      \"numInputs\": [5, 5],           "
   "      \"epochs\": 1,                   "
   "      \"maxBatchSize\": 1              "
   "  },                                   "
@@ -228,8 +240,10 @@ TEST_F(NeuralNetTest, evaluateConv) {
   "  }                                    "
   "}                                      ";
 
+  Triple inputShape({ 5, 5, 1 });
+
   nlohmann::json config = nlohmann::json::parse(configString);
-  std::unique_ptr<NeuralNet> net = createNeuralNet(config);
+  std::unique_ptr<NeuralNet> net = createNeuralNet(inputShape, config);
 
   Sample sample("a", Array3({{
     { 0.5, 0.4, 0.3, 0.9, 0.8 },
@@ -243,7 +257,10 @@ TEST_F(NeuralNetTest, evaluateConv) {
     return 1;
   };
 
-  testing::NiceMock<MockLabelledDataSet> dataSet(std::vector<std::string>({ "a", "b" }));
+  DataLoaderPtr dataLoader = std::make_unique<MockDataLoader>();
+  testing::NiceMock<MockLabelledDataSet> dataSet(std::move(dataLoader),
+    std::vector<std::string>({ "a", "b" }));
+
   ON_CALL(dataSet, loadSamples).WillByDefault(testing::Invoke(loadSample));
 
   Kernel convK0({

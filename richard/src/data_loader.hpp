@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 #include "math.hpp"
 
 struct Sample {
@@ -19,3 +20,6 @@ class DataLoader {
 
     virtual ~DataLoader() {}
 };
+
+using DataLoaderPtr = std::unique_ptr<DataLoader>;
+

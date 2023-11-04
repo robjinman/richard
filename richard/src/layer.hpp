@@ -4,6 +4,7 @@
 #include <functional>
 #include "math.hpp"
 #include "util.hpp"
+#include "types.hpp"
 
 using ActivationFn = std::function<double(double)>;
 using CostDerivativesFn = std::function<Vector(const Vector&, const Vector&)>;
@@ -43,7 +44,7 @@ enum class LayerType {
 class Layer {
   public:
     virtual LayerType type() const = 0;
-    virtual std::array<size_t, 3> outputSize() const = 0;
+    virtual Triple outputSize() const = 0;
     virtual const DataArray& activations() const = 0;
     virtual const DataArray& delta() const = 0;
     virtual void trainForward(const DataArray& inputs) = 0;

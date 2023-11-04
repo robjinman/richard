@@ -74,7 +74,7 @@ DataArray OutputLayer::evalForward(const DataArray& inputs) const {
   return y.storage();
 }
 
-std::array<size_t, 3> OutputLayer::outputSize() const {
+Triple OutputLayer::outputSize() const {
   return { m_B.size(), 1, 1 };
 }
 

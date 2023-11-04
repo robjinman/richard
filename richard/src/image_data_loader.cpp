@@ -6,8 +6,9 @@
 using namespace cpputils;
 
 ImageDataLoader::ImageDataLoader(const std::string& directoryPath,
-  const std::vector<std::string>& labels)
-  : m_directoryPath(directoryPath) {
+  const std::vector<std::string>& labels, const NormalizationParams& normalization)
+  : m_normalization(normalization)
+  , m_directoryPath(directoryPath) {
 
   TRUE_OR_THROW(std::filesystem::is_directory(m_directoryPath),
     "'" << m_directoryPath << "' is not a directory");
@@ -50,7 +51,7 @@ size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples, size_t N) {
         for (size_t j = 0; j < imgH; ++j) {
           for (size_t i = 0; i < imgW; ++i) {
             for (size_t k = 0; k < channels; ++k) {
-              v.set(i, j, k, image[j][i][k]);
+              v.set(i, j, k, normalize(m_normalization, image[j][i][k]));
             }
           }
         }
@@ -73,3 +74,4 @@ size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples, size_t N) {
 
   return samplesLoaded;
 }
+

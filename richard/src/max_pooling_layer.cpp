@@ -31,7 +31,7 @@ const Matrix& MaxPoolingLayer::W() const {
   return m;
 }
 
-std::array<size_t, 3> MaxPoolingLayer::outputSize() const {
+Triple MaxPoolingLayer::outputSize() const {
   return {
     static_cast<size_t>(m_inputW / m_regionW),
     static_cast<size_t>(m_inputH / m_regionH),
