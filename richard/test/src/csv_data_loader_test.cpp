@@ -8,16 +8,15 @@ class CsvDataLoaderTest : public testing::Test {
 };
 
 TEST_F(CsvDataLoaderTest, loadSamples) {
-  std::stringstream ss;
-  ss << "1,0,255,128";
+  std::unique_ptr<std::istream> ss = std::make_unique<std::stringstream>("1,0,255,128");
   std::vector<Sample> samples;
 
   NormalizationParams normalization;
   normalization.min = 0;
   normalization.max = 255;
 
-  CsvDataLoader loader("Dummy", 3, normalization);
-  loader.loadSamples(ss, samples, 1);
+  CsvDataLoader loader(std::move(ss), 3, normalization);
+  loader.loadSamples(samples, 1);
 
   ASSERT_EQ(samples.size(), 1);
 

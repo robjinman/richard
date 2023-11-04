@@ -25,12 +25,6 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 
 }
 
-const nlohmann::json& Classifier::defaultConfig() {
-  static nlohmann::json config;
-  config["network"] = NeuralNet::defaultConfig();
-  return config;
-}
-
 Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config,
   std::istream& fin)
   : m_isTrained(false) {
@@ -104,5 +98,17 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
 
 void Classifier::abort() {
   m_neuralNet->abort();
+}
+
+const nlohmann::json& Classifier::exampleConfig() {
+  static nlohmann::json obj;
+  static bool done = false;
+
+  if (!done) {
+    obj["network"] = NeuralNet::exampleConfig();
+    done = true;
+  }
+  
+  return obj;
 }
 

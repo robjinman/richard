@@ -11,24 +11,20 @@
 // a,44.0,52.1
 // c,11.9,92.4
 // ...
-CsvDataLoader::CsvDataLoader(const std::string& filePath, size_t inputSize,
+CsvDataLoader::CsvDataLoader(std::unique_ptr<std::istream> fin, size_t inputSize,
   const NormalizationParams& normalization)
   : m_inputSize(inputSize)
   , m_normalization(normalization)
-  , m_fin(filePath) {}
+  , m_fin(std::move(fin)) {}
 
 void CsvDataLoader::seekToBeginning() {
-  m_fin.seekg(0);
+  m_fin->seekg(0);
 }
 
 size_t CsvDataLoader::loadSamples(std::vector<Sample>& samples, size_t N) {
-  return loadSamples(m_fin, samples, N);
-}
-
-size_t CsvDataLoader::loadSamples(std::istream& stream, std::vector<Sample>& samples, size_t N) {
   size_t numSamples = 0;
   std::string line;
-  while (std::getline(stream, line)) {
+  while (std::getline(*m_fin, line)) {
     std::stringstream ss{line};
     std::string label = "_";
     Vector v(m_inputSize);

@@ -2,6 +2,7 @@
 #include "exception.hpp"
 #include "csv_data_loader.hpp"
 #include "image_data_loader.hpp"
+#include "file_system.hpp"
 
 LabelledDataSet::LabelledDataSet(DataLoaderPtr loader, const std::vector<std::string>& labels)
   : m_loader(std::move(loader))
@@ -24,8 +25,8 @@ size_t LabelledDataSet::loadSamples(std::vector<Sample>& samples, size_t n) {
   return m_loader->loadSamples(samples, n);
 }
 
-std::unique_ptr<LabelledDataSet> createDataSet(const std::string& samplesPath,
-  const DataDetails& dataDetails) {
+std::unique_ptr<LabelledDataSet> createDataSet(FileSystem& fileSystem,
+  const std::string& samplesPath, const DataDetails& dataDetails) {
 
   DataLoaderPtr dataLoader = nullptr;
   if (std::filesystem::is_directory(samplesPath)) {
@@ -35,7 +36,11 @@ std::unique_ptr<LabelledDataSet> createDataSet(const std::string& samplesPath,
   else {
     const Triple& shape = dataDetails.shape;
     size_t inputSize = shape[0] * shape[1] * shape[2];
-    dataLoader = std::make_unique<CsvDataLoader>(samplesPath, inputSize, dataDetails.normalization);
+    
+    auto fin = fileSystem.openFileForReading(samplesPath);
+
+    dataLoader = std::make_unique<CsvDataLoader>(std::move(fin), inputSize,
+      dataDetails.normalization);
   }
 
   return std::make_unique<LabelledDataSet>(std::move(dataLoader), dataDetails.classLabels);

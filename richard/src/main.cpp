@@ -4,6 +4,7 @@
 #include "exception.hpp"
 #include "classifier_training_app.hpp"
 #include "classifier_eval_app.hpp"
+#include "file_system.hpp"
 
 namespace po = boost::program_options;
 
@@ -46,6 +47,7 @@ po::variable_value getOpt(po::variables_map& vm, const std::string& option, bool
 
 ApplicationPtr constructApp(po::variables_map& vm) {
   ApplicationPtr app = nullptr;
+  FileSystemPtr fileSystem = createFileSystem();
 
   if (vm.count("train")) {
     ClassifierTrainingApp::Options opts;
@@ -56,7 +58,7 @@ ApplicationPtr constructApp(po::variables_map& vm) {
     opts.configFile = getOpt(vm, "config", true).as<std::string>();
     opts.networkFile = getOpt(vm, "network", true).as<std::string>();
 
-    app = std::make_unique<ClassifierTrainingApp>(opts);
+    app = std::make_unique<ClassifierTrainingApp>(*fileSystem, opts);
   }
   else if (vm.count("eval")) {
     ClassifierEvalApp::Options opts;
@@ -66,7 +68,7 @@ ApplicationPtr constructApp(po::variables_map& vm) {
     opts.samplesPath = getOpt(vm, "samples", true).as<std::string>();
     opts.networkFile = getOpt(vm, "network", true).as<std::string>();
 
-    app = std::make_unique<ClassifierEvalApp>(opts);
+    app = std::make_unique<ClassifierEvalApp>(*fileSystem, opts);
   }
   else {
     EXCEPTION("Missing required argument: train or eval");
@@ -77,6 +79,19 @@ ApplicationPtr constructApp(po::variables_map& vm) {
   }
 
   return app;
+}
+
+void printExampleConfig(const std::string& appType) {
+  nlohmann::json obj;
+
+  if (appType == "train") {
+    obj = ClassifierTrainingApp::exampleConfig();
+  }
+  else {
+    EXCEPTION("Expected app type to be one of ['train'], got '" << appType << "'");
+  }
+
+  std::cout << obj.dump(4) << std::endl;
 }
 
 }
@@ -93,7 +108,7 @@ int main(int argc, char** argv) {
       ("help,h", "Show help")
       ("train,t", "Train a classifier")
       ("eval,e", "Evaluate a classifier with test data")
-      ("gen,g", "Generate example neural net config file")
+      ("gen,g", po::value<std::string>(), "Generate example config file for app type (train)")
       ("samples,s", po::value<std::string>())
       ("config,c", po::value<std::string>(), "JSON configuration file")
       ("network,n", po::value<std::string>()->required(), "File to save/load neural network state");
@@ -103,27 +118,29 @@ int main(int argc, char** argv) {
 
     if (vm.count("help")) {
       std::cout << desc << std::endl;
-      return 0;
+      return EXIT_SUCCESS;
     }
 
     optionChoice(vm, { "train", "eval", "gen" });
 
     if (vm.count("gen")) {
-      // TODO
-      //nlohmann::json obj;
-      //obj["classifier"] = Classifier::defaultConfig();
-      //std::cout << obj.dump(4) << std::endl;
+      printExampleConfig(getOpt(vm, "gen", true).as<std::string>());
+
+      for (auto i : vm) {
+        std::cerr << "Warning: Unused option '" << i.first << "'" << std::endl;
+      }
+      
       return EXIT_SUCCESS;
     }
 
     ApplicationPtr app = constructApp(vm);
 
-    const auto t1 = std::chrono::high_resolution_clock::now();
+    auto t1 = std::chrono::high_resolution_clock::now();
 
     app->start();
-    
-    const auto t2 = std::chrono::high_resolution_clock::now();
-    const long long elapsed = duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+    long long elapsed = duration_cast<std::chrono::milliseconds>(t2 - t1).count();
     std::cout << "Running time: " << elapsed << " milliseconds" << std::endl;
   }
   catch (const std::exception& e) {

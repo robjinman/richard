@@ -22,7 +22,7 @@ class NeuralNet {
     // Called from another thread
     virtual void abort() = 0;
 
-    static const nlohmann::json& defaultConfig();
+    static const nlohmann::json& exampleConfig();
 
     virtual ~NeuralNet() {}
 

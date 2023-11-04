@@ -1,11 +1,12 @@
 #pragma once
 
-#include <string>
 #include <nlohmann/json.hpp>
 #include "application.hpp"
 #include "data_details.hpp"
 #include "classifier.hpp"
 #include "labelled_data_set.hpp"
+
+class FileSystem;
 
 class ClassifierTrainingApp : public Application {
   public:
@@ -15,11 +16,14 @@ class ClassifierTrainingApp : public Application {
       std::string networkFile;
     };
 
-    ClassifierTrainingApp(const Options& options);
+    ClassifierTrainingApp(FileSystem& fileSystem, const Options& options);
 
     void start() override;
 
+    static const nlohmann::json& exampleConfig();
+
   private:
+    FileSystem& m_fileSystem;
     Options m_opts;
     nlohmann::json m_config;
     std::unique_ptr<Classifier> m_classifier;

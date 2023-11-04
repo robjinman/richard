@@ -8,6 +8,7 @@
 #include "types.hpp"
 
 class DataDetails;
+class FileSystem;
 
 class LabelledDataSet {
   public:
@@ -35,6 +36,6 @@ inline const Vector& LabelledDataSet::classOutputVector(const std::string& label
   return m_classOutputVectors.at(label);
 }
 
-std::unique_ptr<LabelledDataSet> createDataSet(const std::string& samplesPath,
-  const DataDetails& dataDetails);
+std::unique_ptr<LabelledDataSet> createDataSet(FileSystem& fileSystem,
+  const std::string& samplesPath, const DataDetails& dataDetails);
 

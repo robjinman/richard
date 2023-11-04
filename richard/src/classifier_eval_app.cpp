@@ -1,24 +1,26 @@
 #include <iostream>
 #include "classifier_eval_app.hpp"
 #include "util.hpp"
+#include "file_system.hpp"
 
-ClassifierEvalApp::ClassifierEvalApp(const Options& options)
-  : m_opts(options) {
+ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const Options& options)
+  : m_fileSystem(fileSystem)
+  , m_opts(options) {
 
-  std::ifstream fin(options.networkFile);
+  auto fin = m_fileSystem.openFileForReading(options.networkFile);
 
   size_t configSize = 0;
-  fin.read(reinterpret_cast<char*>(&configSize), sizeof(size_t));
+  fin->read(reinterpret_cast<char*>(&configSize), sizeof(size_t));
 
   std::string configString(configSize, '_');
-  fin.read(reinterpret_cast<char*>(configString.data()), configSize);
+  fin->read(reinterpret_cast<char*>(configString.data()), configSize);
   nlohmann::json config = nlohmann::json::parse(configString);
 
   m_dataDetails = std::make_unique<DataDetails>(getOrThrow(config, "data"));
   m_classifier = std::make_unique<Classifier>(*m_dataDetails, getOrThrow(config, "classifier"),
-    fin);
+    *fin);
 
-  m_dataSet = createDataSet(m_opts.samplesPath, *m_dataDetails);
+  m_dataSet = createDataSet(m_fileSystem, m_opts.samplesPath, *m_dataDetails);
 }
 
 void ClassifierEvalApp::start() {

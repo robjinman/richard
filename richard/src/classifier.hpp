@@ -24,7 +24,7 @@ class Classifier {
     // Called from another thread
     void abort();
 
-    static const nlohmann::json& defaultConfig();
+    static const nlohmann::json& exampleConfig();
 
   private:
     std::unique_ptr<NeuralNet> m_neuralNet;

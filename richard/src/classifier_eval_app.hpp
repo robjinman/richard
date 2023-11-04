@@ -4,7 +4,8 @@
 #include "classifier.hpp"
 #include "data_details.hpp"
 #include "labelled_data_set.hpp"
-#include <string>
+
+class FileSystem;
 
 class ClassifierEvalApp : public Application {
   public:
@@ -13,11 +14,12 @@ class ClassifierEvalApp : public Application {
       std::string networkFile;
     };
 
-    ClassifierEvalApp(const Options& options);
-    
+    ClassifierEvalApp(FileSystem& fileSystem, const Options& options);
+
     void start() override;
-    
+
   private:
+    FileSystem& m_fileSystem;
     Options m_opts;
     std::unique_ptr<Classifier> m_classifier;
     std::unique_ptr<DataDetails> m_dataDetails;

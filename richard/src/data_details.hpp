@@ -5,15 +5,15 @@
 #include <nlohmann/json.hpp>
 #include "types.hpp"
 
-struct NormalizationParams {
-  NormalizationParams()
-    : min(0)
-    , max(0) {}
+class NormalizationParams {
+  public:
+    NormalizationParams();
+    NormalizationParams(const nlohmann::json& json);
 
-  NormalizationParams(const nlohmann::json& json);
-
-  double min;
-  double max;
+    double min;
+    double max;
+  
+    static const nlohmann::json& exampleConfig();
 };
 
 inline double normalize(const NormalizationParams& params, double x) {
@@ -22,10 +22,13 @@ inline double normalize(const NormalizationParams& params, double x) {
 
 class DataDetails {
   public:
+    DataDetails();
     DataDetails(const nlohmann::json& json);
-    
+
     NormalizationParams normalization;
     std::vector<std::string> classLabels;
     Triple shape;
+
+    static const nlohmann::json& exampleConfig();
 };
 
