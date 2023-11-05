@@ -14,6 +14,7 @@ TEST_F(ConvolutionalLayerTest, forwardPass_depth1) {
   json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
   json["learnRate"] = 1.0;
   json["learnRateDecay"] = 1.0;
+  json["dropoutRate"] = 0.0;
 
   ConvolutionalLayer layer(json, 3, 3, 1);
 
@@ -48,6 +49,7 @@ TEST_F(ConvolutionalLayerTest, forwardPass_depth2) {
   json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
   json["learnRate"] = 1.0;
   json["learnRateDecay"] = 1.0;
+  json["dropoutRate"] = 0.0;
 
   ConvolutionalLayer layer(json, 3, 3, 1);
 
@@ -92,6 +94,7 @@ TEST_F(ConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
   json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
   json["learnRate"] = 1.0;
   json["learnRateDecay"] = 1.0;
+  json["dropoutRate"] = 0.0;
 
   ConvolutionalLayer layer(json, 3, 3, 2);
 
@@ -152,6 +155,7 @@ TEST_F(ConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
   json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
   json["learnRate"] = 1.0;
   json["learnRateDecay"] = 1.0;
+  json["dropoutRate"] = 0.0;
 
   ConvolutionalLayer layer(json, 3, 3, 1);
   testing::NiceMock<MockLayer> poolingLayer;

@@ -50,6 +50,7 @@ class ConvolutionalLayer : public Layer {
     size_t m_inputDepth;
     double m_learnRate;
     double m_learnRateDecay;
+    double m_dropoutRate;
 
     size_t numOutputs() const;
 };

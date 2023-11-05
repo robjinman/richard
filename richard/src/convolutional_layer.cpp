@@ -17,6 +17,7 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW,
   m_learnRate = getOrThrow(obj, "learnRate").get<double>();
   m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<double>();
   size_t depth = getOrThrow(obj, "depth").get<size_t>();
+  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<double>();
 
   for (size_t i = 0; i < depth; ++i) {
     Filter filter;
@@ -107,12 +108,20 @@ void ConvolutionalLayer::forwardPass(const Array3& inputs, Array3& Z) const {
 }
 
 void ConvolutionalLayer::trainForward(const DataArray& inputs) {
+  auto shouldDrop = [this]() {
+    return rand() / (RAND_MAX + 1.0) < m_dropoutRate;
+  };
+  
+  auto reluWithDropout = [&](double x) {
+    return shouldDrop() ? 0.0 : relu(x); 
+  };
+
   ConstArray3Ptr pX = Array3::createShallow(inputs, m_inputW, m_inputH, m_inputDepth);
   const Array3& X = *pX;
 
   forwardPass(X, m_Z);
 
-  m_A = m_Z.computeTransform(relu);
+  m_A = m_Z.computeTransform(reluWithDropout);
 }
 
 DataArray ConvolutionalLayer::evalForward(const DataArray& inputs) const {

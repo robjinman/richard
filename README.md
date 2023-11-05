@@ -90,7 +90,8 @@ Examples
                         "depth": 32,
                         "kernelSize": [3, 3],
                         "learnRate": 0.01,
-                        "learnRateDecay": 1.0
+                        "learnRateDecay": 1.0,
+                        "dropoutRate": 0.0
                     },
                     {
                         "type": "maxPooling",
@@ -101,7 +102,8 @@ Examples
                         "depth": 64,
                         "kernelSize": [4, 4],
                         "learnRate": 0.01,
-                        "learnRateDecay": 1.0
+                        "learnRateDecay": 1.0,
+                        "dropoutRate": 0.0
                     },
                     {
                         "type": "maxPooling",
