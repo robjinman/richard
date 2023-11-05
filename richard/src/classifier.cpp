@@ -1,9 +1,9 @@
-#include <iostream> // TODO
 #include "classifier.hpp"
 #include "labelled_data_set.hpp"
 #include "exception.hpp"
 #include "data_details.hpp"
 #include "util.hpp"
+#include "logger.hpp"
 
 namespace {
 
@@ -26,19 +26,21 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 }
 
 Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config,
-  std::istream& fin)
-  : m_isTrained(false) {
+  std::istream& fin, Logger& logger)
+  : m_logger(logger)
+  , m_isTrained(false) {
 
-  m_neuralNet = createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin);
+  m_neuralNet = createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin, m_logger);
 
   m_isTrained = true;
 }
 
-Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config)
-  : m_neuralNet(nullptr)
+Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config, Logger& logger)
+  : m_logger(logger)
+  , m_neuralNet(nullptr)
   , m_isTrained(false) {
 
-  m_neuralNet = createNeuralNet(dataDetails.shape, getOrThrow(config, "network"));
+  m_neuralNet = createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), m_logger);
 }
 
 void Classifier::writeToStream(std::ostream& fout) const {
@@ -77,11 +79,11 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
 
       if (outputsMatch(*actual, expected)) {
         ++results.good;
-        std::cout << "1" << std::flush;
+        m_logger.info("1", false);
       }
       else {
         ++results.bad;
-        std::cout << "0" << std::flush;
+        m_logger.info("0", false);
       }
 
       totalCost += costFn(*actual, expected);
@@ -89,7 +91,7 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
     }
     samples.clear();
   }
-  std::cout << std::endl;
+  m_logger.info("");
 
   results.cost = totalCost / totalSamples;
 

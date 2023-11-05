@@ -3,16 +3,20 @@
 #include "stdin_monitor.hpp"
 #include "util.hpp"
 #include "file_system.hpp"
+#include "logger.hpp"
 
-ClassifierTrainingApp::ClassifierTrainingApp(FileSystem& fileSystem, const Options& options)
-  : m_fileSystem(fileSystem)
+ClassifierTrainingApp::ClassifierTrainingApp(FileSystem& fileSystem, const Options& options,
+  Logger& logger)
+  : m_logger(logger)
+  , m_fileSystem(fileSystem)
   , m_opts(options) {
 
   auto fin = m_fileSystem.openFileForReading(options.configFile);
   m_config = nlohmann::json::parse(*fin);
 
   m_dataDetails = std::make_unique<DataDetails>(getOrThrow(m_config, "data"));
-  m_classifier = std::make_unique<Classifier>(*m_dataDetails, getOrThrow(m_config, "classifier"));
+  m_classifier = std::make_unique<Classifier>(*m_dataDetails, getOrThrow(m_config, "classifier"),
+    m_logger);
 
   m_dataSet = createDataSet(m_fileSystem, m_opts.samplesPath, *m_dataDetails);
 }
@@ -21,7 +25,7 @@ void ClassifierTrainingApp::start() {
   StdinMonitor stdinMonitor;
   stdinMonitor.onKey('q', [this]() { m_classifier->abort(); });
 
-  std::cout << "Training classifier" << std::endl;
+  m_logger.info("Training classifier");
 
   m_classifier->train(*m_dataSet);
 

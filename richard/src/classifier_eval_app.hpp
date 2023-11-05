@@ -6,6 +6,7 @@
 #include "labelled_data_set.hpp"
 
 class FileSystem;
+class Logger;
 
 class ClassifierEvalApp : public Application {
   public:
@@ -14,11 +15,12 @@ class ClassifierEvalApp : public Application {
       std::string networkFile;
     };
 
-    ClassifierEvalApp(FileSystem& fileSystem, const Options& options);
+    ClassifierEvalApp(FileSystem& fileSystem, const Options& options, Logger& logger);
 
     void start() override;
 
   private:
+    Logger& m_logger;
     FileSystem& m_fileSystem;
     Options m_opts;
     std::unique_ptr<Classifier> m_classifier;

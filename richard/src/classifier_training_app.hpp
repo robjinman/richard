@@ -7,6 +7,7 @@
 #include "labelled_data_set.hpp"
 
 class FileSystem;
+class Logger;
 
 class ClassifierTrainingApp : public Application {
   public:
@@ -16,13 +17,14 @@ class ClassifierTrainingApp : public Application {
       std::string networkFile;
     };
 
-    ClassifierTrainingApp(FileSystem& fileSystem, const Options& options);
+    ClassifierTrainingApp(FileSystem& fileSystem, const Options& options, Logger& logger);
 
     void start() override;
 
     static const nlohmann::json& exampleConfig();
 
   private:
+    Logger& m_logger;
     FileSystem& m_fileSystem;
     Options m_opts;
     nlohmann::json m_config;

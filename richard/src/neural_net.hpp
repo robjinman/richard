@@ -2,11 +2,11 @@
 
 #include <vector>
 #include <fstream>
-#include <array>
 #include <nlohmann/json.hpp>
 #include "math.hpp"
 #include "types.hpp"
 
+class Logger;
 class LabelledDataSet;
 
 class NeuralNet {
@@ -34,7 +34,8 @@ class NeuralNet {
 
 using NeuralNetPtr = std::unique_ptr<NeuralNet>;
 
-NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config);
 NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
-  std::istream& fin);
+  Logger& logger);
+NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+  std::istream& fin, Logger& logger);
 

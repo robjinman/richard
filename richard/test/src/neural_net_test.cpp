@@ -2,6 +2,9 @@
 #include <gmock/gmock.h>
 #include <neural_net.hpp>
 #include <labelled_data_set.hpp>
+#include "mock_logger.hpp"
+
+using testing::NiceMock;
 
 class NeuralNetTest : public testing::Test {
   public:
@@ -54,10 +57,12 @@ TEST_F(NeuralNetTest, evaluate) {
   "  }                                  "
   "}                                    ";
 
+  NiceMock<MockLogger> logger;
+
   Triple inputShape({ 3, 1, 1 });
 
   nlohmann::json config = nlohmann::json::parse(configString);
-  std::unique_ptr<NeuralNet> net = createNeuralNet(inputShape, config);
+  std::unique_ptr<NeuralNet> net = createNeuralNet(inputShape, config, logger);
 
   Sample sample("a", Array3({{{ 0.5, 0.3, 0.7 }}}));
   auto loadSample = [&sample](std::vector<Sample>& samples, size_t) {
@@ -162,10 +167,14 @@ TEST_F(NeuralNetTest, evaluateTrivialConvVsFullyConnected) {
   "  }                                      "
   "}                                        ";
 
+  NiceMock<MockLogger> logger;
+
   Triple inputShape({ 2, 2, 1 });
 
-  NeuralNetPtr convNet = createNeuralNet(inputShape, nlohmann::json::parse(convNetConfigString));
-  NeuralNetPtr denseNet = createNeuralNet(inputShape, nlohmann::json::parse(denseNetConfigString));
+  NeuralNetPtr convNet = createNeuralNet(inputShape, nlohmann::json::parse(convNetConfigString),
+    logger);
+  NeuralNetPtr denseNet = createNeuralNet(inputShape, nlohmann::json::parse(denseNetConfigString),
+    logger);
 
   Sample sample("a", Array3({{
     { 0.5, 0.4 },
@@ -240,10 +249,12 @@ TEST_F(NeuralNetTest, evaluateConv) {
   "  }                                    "
   "}                                      ";
 
+  NiceMock<MockLogger> logger;
+
   Triple inputShape({ 5, 5, 1 });
 
   nlohmann::json config = nlohmann::json::parse(configString);
-  std::unique_ptr<NeuralNet> net = createNeuralNet(inputShape, config);
+  std::unique_ptr<NeuralNet> net = createNeuralNet(inputShape, config, logger);
 
   Sample sample("a", Array3({{
     { 0.5, 0.4, 0.3, 0.9, 0.8 },

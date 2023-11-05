@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include <classifier_training_app.hpp>
 #include "mock_file_system.hpp"
+#include "mock_logger.hpp"
+
+using testing::NiceMock;
 
 class ClassifierTrainingAppTest : public testing::Test {
   public:
@@ -11,7 +14,8 @@ class ClassifierTrainingAppTest : public testing::Test {
 TEST_F(ClassifierTrainingAppTest, exampleConfig) {
   nlohmann::json config = ClassifierTrainingApp::exampleConfig();
 
-  MockFileSystem fileSystem;
+  NiceMock<MockFileSystem> fileSystem;
+  NiceMock<MockLogger> logger;
 
   ClassifierTrainingApp::Options opts;
   opts.samplesPath = "samples.csv";
@@ -31,6 +35,6 @@ TEST_F(ClassifierTrainingAppTest, exampleConfig) {
   ON_CALL(fileSystem, openFileForWriting("savefile"))
     .WillByDefault(testing::Return(testing::ByMove(std::move(saveFileStream))));
 
-  ClassifierTrainingApp app(fileSystem, opts);
+  ClassifierTrainingApp app(fileSystem, opts, logger);
 }
 

@@ -5,6 +5,7 @@
 
 class LabelledDataSet;
 class DataDetails;
+class Logger;
 
 class Classifier {
   public:
@@ -14,8 +15,9 @@ class Classifier {
       double cost = 0.0;
     };
 
-    explicit Classifier(const DataDetails& dataDetails, const nlohmann::json& config);
-    Classifier(const DataDetails& dataDetails, const nlohmann::json& config, std::istream& fin);
+    Classifier(const DataDetails& dataDetails, const nlohmann::json& config, Logger& logger);
+    Classifier(const DataDetails& dataDetails, const nlohmann::json& config, std::istream& fin,
+      Logger& logger);
 
     void writeToStream(std::ostream& fout) const;
     void train(LabelledDataSet& trainingData);
@@ -27,6 +29,7 @@ class Classifier {
     static const nlohmann::json& exampleConfig();
 
   private:
+    Logger& m_logger;
     std::unique_ptr<NeuralNet> m_neuralNet;
     bool m_isTrained;
 };

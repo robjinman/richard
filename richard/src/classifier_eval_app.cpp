@@ -2,9 +2,11 @@
 #include "classifier_eval_app.hpp"
 #include "util.hpp"
 #include "file_system.hpp"
+#include "logger.hpp"
 
-ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const Options& options)
-  : m_fileSystem(fileSystem)
+ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const Options& options, Logger& logger)
+  : m_logger(logger)
+  , m_fileSystem(fileSystem)
   , m_opts(options) {
 
   auto fin = m_fileSystem.openFileForReading(options.networkFile);
@@ -18,19 +20,19 @@ ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const Options& opti
 
   m_dataDetails = std::make_unique<DataDetails>(getOrThrow(config, "data"));
   m_classifier = std::make_unique<Classifier>(*m_dataDetails, getOrThrow(config, "classifier"),
-    *fin);
+    *fin, m_logger);
 
   m_dataSet = createDataSet(m_fileSystem, m_opts.samplesPath, *m_dataDetails);
 }
 
 void ClassifierEvalApp::start() {
-  std::cout << "Testing classifier" << std::endl;
+  m_logger.info("Testing classifier");
 
   Classifier::Results results = m_classifier->test(*m_dataSet);
 
-  std::cout << "Correct classifications: "
-    << results.good << "/" << results.good + results.bad << std::endl;
+  m_logger.info(STR("Correct classifications: "
+    << results.good << "/" << results.good + results.bad));
 
-  std::cout << "Average cost: " << results.cost << std::endl;
+  m_logger.info(STR("Average cost: " << results.cost));
 }
 
