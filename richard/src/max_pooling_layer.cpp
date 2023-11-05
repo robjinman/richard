@@ -214,11 +214,3 @@ const Array3& MaxPoolingLayer::mask() const {
   return m_mask;
 }
 
-void MaxPoolingLayer::setWeights(const std::vector<DataArray>&) {
-  EXCEPTION("Do not call MaxPoolingLayer::setWeights()");
-}
-
-void MaxPoolingLayer::setBiases(const DataArray&) {
-  EXCEPTION("Do not call MaxPoolingLayer::setBiases()");
-}
-

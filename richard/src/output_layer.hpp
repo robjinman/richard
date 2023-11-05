@@ -23,8 +23,8 @@ class OutputLayer : public Layer {
     //
     void setWeights(const Matrix& weights);
     void setBiases(const Vector& biases);
-    void setWeights(const std::vector<DataArray>& W) override;
-    void setBiases(const DataArray& B) override;
+    void setWeights(const DataArray& W);
+    void setBiases(const DataArray& B);
     void setActivationFn(ActivationFn f, ActivationFn fPrime);
 
   private:

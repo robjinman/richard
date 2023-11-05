@@ -116,10 +116,8 @@ void DenseLayer::setBiases(const Vector& B) {
   m_B = B;
 }
 
-void DenseLayer::setWeights(const std::vector<DataArray>& W) {
-  ASSERT(W.size() == 1);
-
-  m_W = Matrix(W[0], m_W.cols(), m_W.rows());
+void DenseLayer::setWeights(const DataArray& W) {
+  m_W = Matrix(W, m_W.cols(), m_W.rows());
 }
 
 void DenseLayer::setBiases(const DataArray& B) {

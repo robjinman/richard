@@ -8,6 +8,7 @@
 
 class Logger;
 class LabelledDataSet;
+class Layer;
 
 class NeuralNet {
   public:
@@ -28,8 +29,7 @@ class NeuralNet {
 
     // Exposed for testing
     //
-    virtual void setWeights(const std::vector<std::vector<DataArray>>& weights) = 0;
-    virtual void setBiases(const std::vector<DataArray>& biases) = 0;
+    virtual Layer& getLayer(size_t index) = 0;
 };
 
 using NeuralNetPtr = std::unique_ptr<NeuralNet>;

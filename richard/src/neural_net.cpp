@@ -49,8 +49,7 @@ class NeuralNetImpl : public NeuralNet {
 
     // Exposed for testing
     //
-    void setWeights(const std::vector<std::vector<DataArray>>& weights) override;
-    void setBiases(const std::vector<DataArray>& biases) override;
+    Layer& getLayer(size_t index) override;
 
   private:
     double feedForward(const Array3& x, const Vector& y);
@@ -295,28 +294,6 @@ VectorPtr NeuralNetImpl::evaluate(const Array3& x) const {
 
 }
 
-void NeuralNetImpl::setWeights(const std::vector<std::vector<DataArray>>& weights) {
-  ASSERT(m_layers.size() == weights.size());
-  for (size_t i = 0; i < m_layers.size(); ++i) {
-    if (m_layers[i]->type() == LayerType::MAX_POOLING) {
-      continue;
-    }
-
-    m_layers[i]->setWeights(weights[i]);
-  }
-}
-
-void NeuralNetImpl::setBiases(const std::vector<DataArray>& biases) {
-  ASSERT(m_layers.size() == biases.size());
-  for (size_t i = 0; i < m_layers.size(); ++i) {
-    if (m_layers[i]->type() == LayerType::MAX_POOLING) {
-      continue;
-    }
-
-    m_layers[i]->setBiases(biases[i]);
-  }
-}
-
 const nlohmann::json& NeuralNet::exampleConfig() {
   static nlohmann::json config;
   static bool done = false;
@@ -354,6 +331,11 @@ const nlohmann::json& NeuralNet::exampleConfig() {
   }
 
   return config;
+}
+
+Layer& NeuralNetImpl::getLayer(size_t index) {
+  ASSERT(index < m_layers.size());
+  return *m_layers[index];
 }
 
 NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,

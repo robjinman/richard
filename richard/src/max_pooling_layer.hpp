@@ -23,8 +23,6 @@ class MaxPoolingLayer : public Layer {
     const Array3& mask() const;
     void backpropFromConvLayer(const std::vector<ConvolutionalLayer::Filter>& filters,
       const DataArray& convDelta, Array3& delta);
-    void setWeights(const std::vector<DataArray>&) override;
-    void setBiases(const DataArray&) override;
 
   private:
     Array3 m_Z;

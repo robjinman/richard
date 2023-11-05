@@ -54,11 +54,6 @@ class Layer {
     virtual const Matrix& W() const = 0;
 
     virtual ~Layer() {}
-
-    // Exposed for testing
-    //
-    virtual void setWeights(const std::vector<DataArray>& weights) = 0;
-    virtual void setBiases(const DataArray& biases) = 0;
 };
 
 std::ostream& operator<<(std::ostream& os, LayerType layerType);
