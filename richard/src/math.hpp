@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <initializer_list>
-#include <cassert>
 #include <stdexcept>
 #include <functional>
 #include "exception.hpp"

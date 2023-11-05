@@ -296,7 +296,7 @@ VectorPtr NeuralNetImpl::evaluate(const Array3& x) const {
 }
 
 void NeuralNetImpl::setWeights(const std::vector<std::vector<DataArray>>& weights) {
-  assert(m_layers.size() == weights.size());
+  ASSERT(m_layers.size() == weights.size());
   for (size_t i = 0; i < m_layers.size(); ++i) {
     if (m_layers[i]->type() == LayerType::MAX_POOLING) {
       continue;
@@ -307,7 +307,7 @@ void NeuralNetImpl::setWeights(const std::vector<std::vector<DataArray>>& weight
 }
 
 void NeuralNetImpl::setBiases(const std::vector<DataArray>& biases) {
-  assert(m_layers.size() == biases.size());
+  ASSERT(m_layers.size() == biases.size());
   for (size_t i = 0; i < m_layers.size(); ++i) {
     if (m_layers[i]->type() == LayerType::MAX_POOLING) {
       continue;

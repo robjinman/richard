@@ -181,7 +181,7 @@ void ConvolutionalLayer::writeToStream(std::ostream& fout) const {
 }
 
 const Matrix& ConvolutionalLayer::W() const {
-  assert(false);
+  EXCEPTION("Use ConvolutionalLayer::filters() instead of ConvolutionalLayer::W()");
   static Matrix m(1, 1);
   return m;
 }

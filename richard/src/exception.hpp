@@ -2,7 +2,6 @@
 
 #include <stdexcept>
 #include <sstream>
-#include <cassert>
 
 // DBG_ macros expand to nothing in release builds. Use in performance critical areas.
 
