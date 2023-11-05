@@ -1,5 +1,6 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
 #include "layer.hpp"
 #include "convolutional_layer.hpp"
 
@@ -14,7 +15,6 @@ class MaxPoolingLayer : public Layer {
     void trainForward(const DataArray& inputs) override;
     DataArray evalForward(const DataArray& inputs) const override;
     void updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) override;
-    nlohmann::json getConfig() const override;
     void writeToStream(std::ostream&) const override {}
     const Matrix& W() const override;
 

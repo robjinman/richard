@@ -1,5 +1,6 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
 #include "layer.hpp"
 
 class OutputLayer : public Layer {
@@ -13,9 +14,8 @@ class OutputLayer : public Layer {
     const DataArray& delta() const override;
     void trainForward(const DataArray& inputs) override;
     DataArray evalForward(const DataArray& inputs) const override;
-    void updateDelta(const DataArray&, const Layer&, size_t) override { assert(false); }
+    void updateDelta(const DataArray&, const Layer&, size_t) override;
     void updateDelta(const DataArray& inputs, const DataArray& y, size_t epoch);
-    nlohmann::json getConfig() const override;
     void writeToStream(std::ostream& fout) const override;
     const Matrix& W() const override;
 
@@ -38,3 +38,4 @@ class OutputLayer : public Layer {
     ActivationFn m_activationFn;
     ActivationFn m_activationFnPrime;
 };
+

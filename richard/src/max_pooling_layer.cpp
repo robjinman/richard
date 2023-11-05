@@ -1,6 +1,6 @@
 #include "max_pooling_layer.hpp"
-#include "convolutional_layer.hpp"
 #include "exception.hpp"
+#include "util.hpp"
 
 MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_t inputH,
   size_t inputDepth)
@@ -16,9 +16,9 @@ MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_
   m_regionW = regionSize[0];
   m_regionH = regionSize[1];
 
-  TRUE_OR_THROW(inputW % m_regionW == 0,
+  ASSERT_MSG(inputW % m_regionW == 0,
     "Region width " << m_regionW << " does not divide input width " << inputW);
-  TRUE_OR_THROW(inputH % m_regionH == 0,
+  ASSERT_MSG(inputH % m_regionH == 0,
     "Region height " << m_regionH << " does not divide input height " << inputH);
 
   m_Z = Array3(m_inputW / m_regionW, m_inputH / m_regionH, m_inputDepth);
@@ -208,13 +208,6 @@ void MaxPoolingLayer::updateDelta(const DataArray&, const Layer& nextLayer, size
   }
 
   padDelta(m_delta, m_mask, m_paddedDelta);
-}
-
-nlohmann::json MaxPoolingLayer::getConfig() const {
-  nlohmann::json config;
-  config["type"] = "maxPooling";
-  config["regionSize"] = std::array<size_t, 2>({ m_regionW, m_regionH });
-  return config;
 }
 
 const Array3& MaxPoolingLayer::mask() const {

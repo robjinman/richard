@@ -78,7 +78,7 @@ const DataArray& ConvolutionalLayer::delta() const {
 }
 
 Triple ConvolutionalLayer::outputSize() const {
-  ASSERT(!m_filters.empty());
+  DBG_ASSERT(!m_filters.empty());
   return {
     m_inputW - m_filters[0].K.W() + 1,
     m_inputH - m_filters[0].K.H() + 1,
@@ -132,7 +132,7 @@ DataArray ConvolutionalLayer::evalForward(const DataArray& inputs) const {
 void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& nextLayer,
   size_t epoch) {
 
-  TRUE_OR_THROW(nextLayer.type() == LayerType::MAX_POOLING,
+  ASSERT_MSG(nextLayer.type() == LayerType::MAX_POOLING,
     "Expect max pooling after convolutional layer");
 
   size_t fmW = outputSize()[0];
@@ -171,18 +171,6 @@ void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& 
       }
     }
   }
-}
-
-nlohmann::json ConvolutionalLayer::getConfig() const {
-  ASSERT(!m_filters.empty());
-
-  nlohmann::json config;
-  config["type"] = "convolutional";
-  config["kernelSize"] = std::array<size_t, 2>({ m_filters[0].K.W(), m_filters[0].K.H() });
-  config["depth"] = m_filters.size();
-  config["learnRate"] = m_learnRate;
-  config["learnRateDecay"] = m_learnRateDecay;
-  return config;
 }
 
 void ConvolutionalLayer::writeToStream(std::ostream& fout) const {

@@ -15,7 +15,7 @@
 #include "logger.hpp"
 
 const NeuralNet::CostFn quadradicCost = [](const Vector& actual, const Vector& expected) {
-  ASSERT(actual.size() == expected.size());
+  DBG_ASSERT(actual.size() == expected.size());
   return (expected - actual).squareMagnitude() * 0.5;
 };
 
@@ -189,7 +189,7 @@ NeuralNet::CostFn NeuralNetImpl::costFn() const {
 }
 
 void NeuralNetImpl::writeToStream(std::ostream& fout) const {
-  TRUE_OR_THROW(m_isTrained, "Neural net is not trained");
+  ASSERT_MSG(m_isTrained, "Neural net is not trained");
 
   for (const auto& pLayer : m_layers) {
     pLayer->writeToStream(fout);
@@ -213,7 +213,7 @@ double NeuralNetImpl::feedForward(const Array3& x, const Vector& y) {
 }
 
 OutputLayer& NeuralNetImpl::outputLayer() {
-  TRUE_OR_THROW(!m_layers.empty(), "No output layer");
+  ASSERT_MSG(!m_layers.empty(), "No output layer");
   return dynamic_cast<OutputLayer&>(*m_layers.back());
 }
 
@@ -235,8 +235,8 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
 
     std::vector<Sample> samples;
     while (trainingData.loadSamples(samples, N) > 0) {
-      size_t netInputSize = m_inputShape[0] * m_inputShape[1] * m_inputShape[2];
-      TRUE_OR_THROW(samples[0].data.size() == netInputSize,
+      [[maybe_unused]] size_t netInputSize = m_inputShape[0] * m_inputShape[1] * m_inputShape[2];
+      DBG_ASSERT_MSG(samples[0].data.size() == netInputSize,
         "Sample size is " << samples[0].data.size() << ", expected " << netInputSize);
 
       for (size_t i = 0; i < samples.size(); ++i) {

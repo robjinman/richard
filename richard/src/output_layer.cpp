@@ -1,4 +1,5 @@
 #include "output_layer.hpp"
+#include "util.hpp"
 
 OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize)
   : m_W(1, 1)
@@ -56,15 +57,6 @@ const Matrix& OutputLayer::W() const {
   return m_W;
 }
 
-nlohmann::json OutputLayer::getConfig() const {
-  nlohmann::json config;
-  config["type"] = "output";
-  config["size"] = m_B.size();
-  config["learnRate"] = m_learnRate;
-  config["learnRateDecay"] = m_learnRateDecay;
-  return config;
-}
-
 DataArray OutputLayer::evalForward(const DataArray& inputs) const {
   ConstVectorPtr pX = Vector::createShallow(inputs);
   const Vector& x = *pX;
@@ -84,6 +76,10 @@ void OutputLayer::trainForward(const DataArray& inputs) {
 
   m_Z = m_W * x + m_B;
   m_A = m_Z.computeTransform(m_activationFn);
+}
+
+void OutputLayer::updateDelta(const DataArray&, const Layer&, size_t) {
+  EXCEPTION("Use other OutputLayer::updateDelta() overload");
 }
 
 void OutputLayer::updateDelta(const DataArray& inputs, const DataArray& outputs, size_t epoch) {

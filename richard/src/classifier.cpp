@@ -44,7 +44,7 @@ Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& con
 }
 
 void Classifier::writeToStream(std::ostream& fout) const {
-  TRUE_OR_THROW(m_isTrained, "Classifier not trained");
+  ASSERT_MSG(m_isTrained, "Classifier not trained");
 
   m_neuralNet->writeToStream(fout);
 }
@@ -55,7 +55,7 @@ void Classifier::train(LabelledDataSet& data) {
 }
 
 Classifier::Results Classifier::test(LabelledDataSet& testData) const {
-  TRUE_OR_THROW(m_isTrained, "Classifier not trained");
+  ASSERT_MSG(m_isTrained, "Classifier not trained");
 
   const size_t N = 500; // TODO
 
@@ -65,13 +65,13 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
   const auto& costFn = m_neuralNet->costFn();
 
   auto inputSz = m_neuralNet->inputSize();
-  size_t netInputSize = inputSz[0] * inputSz[1] * inputSz[2];
+  [[maybe_unused]] size_t netInputSize = inputSz[0] * inputSz[1] * inputSz[2];
 
   size_t totalSamples = 0;
   double totalCost = 0.0;
   while (testData.loadSamples(samples, N) > 0) {
     for (const auto& sample : samples) {
-      TRUE_OR_THROW(sample.data.size() == netInputSize,
+      DBG_ASSERT_MSG(sample.data.size() == netInputSize,
         "Expected sample of size " << netInputSize << ", got " << sample.data.size());
 
       std::unique_ptr<Vector> actual = m_neuralNet->evaluate(sample.data);

@@ -19,15 +19,15 @@ bool arraysEqual(const double* A, const double* B, size_t size) {
 }
 
 size_t count(std::initializer_list<std::initializer_list<double>> X) {
-  size_t H = X.size();
-  ASSERT(H > 0);
-  size_t W = X.begin()->size();
-  ASSERT(W > 0);
+  [[maybe_unused]] size_t H = X.size();
+  DBG_ASSERT(H > 0);
+  [[maybe_unused]] size_t W = X.begin()->size();
+  DBG_ASSERT(W > 0);
 
   size_t numElements = 0;
 
-  for (auto row : X) {
-    ASSERT(row.size() == W);
+  for ([[maybe_unused]] auto row : X) {
+    DBG_ASSERT(row.size() == W);
     numElements += W;
   }
 
@@ -35,20 +35,20 @@ size_t count(std::initializer_list<std::initializer_list<double>> X) {
 }
 
 size_t count(std::initializer_list<std::initializer_list<std::initializer_list<double>>> X) {
-  size_t H = X.size();
-  ASSERT(H > 0);
-  size_t W = X.begin()->size();
-  ASSERT(W > 0);
+  [[maybe_unused]] size_t H = X.size();
+  DBG_ASSERT(H > 0);
+  [[maybe_unused]] size_t W = X.begin()->size();
+  DBG_ASSERT(W > 0);
   size_t D = X.begin()->begin()->size();
-  ASSERT(D > 0);
+  DBG_ASSERT(D > 0);
 
   size_t numElements = 0;
 
   for (auto row : X) {
-    ASSERT(row.size() == W);
+    DBG_ASSERT(row.size() == W);
 
-    for (auto zLine : row) {
-      ASSERT(zLine.size() == D);
+    for ([[maybe_unused]] auto zLine : row) {
+      DBG_ASSERT(zLine.size() == D);
       numElements += D;
     }
   }
@@ -178,7 +178,7 @@ Vector::Vector(Vector&& mv) {
 
 Vector& Vector::operator=(const Vector& rhs) {
   if (isShallow()) {
-    ASSERT(rhs.size() == m_size);
+    DBG_ASSERT(rhs.size() == m_size);
   }
   else {
     m_size = rhs.m_size;
@@ -256,7 +256,7 @@ void Vector::normalize() {
 }
 
 double Vector::dot(const Vector& rhs) const {
-  ASSERT(rhs.m_size == m_size);
+  DBG_ASSERT(rhs.m_size == m_size);
 
   double x = 0.0;
   for (size_t i = 0; i < m_size; ++i) {
@@ -266,7 +266,7 @@ double Vector::dot(const Vector& rhs) const {
 }
 
 Vector Vector::hadamard(const Vector& rhs) const {
-  ASSERT(rhs.m_size == m_size);
+  DBG_ASSERT(rhs.m_size == m_size);
 
   Vector v(m_size);
   for (size_t i = 0; i < m_size; ++i) {
@@ -276,7 +276,7 @@ Vector Vector::hadamard(const Vector& rhs) const {
 }
 
 Vector Vector::operator+(const Vector& rhs) const {
-  ASSERT(rhs.m_size == m_size);
+  DBG_ASSERT(rhs.m_size == m_size);
 
   Vector v(m_size);
   for (size_t i = 0; i < m_size; ++i) {
@@ -286,7 +286,7 @@ Vector Vector::operator+(const Vector& rhs) const {
 }
 
 Vector Vector::operator-(const Vector& rhs) const {
-  ASSERT(rhs.m_size == m_size);
+  DBG_ASSERT(rhs.m_size == m_size);
 
   Vector v(m_size);
   for (size_t i = 0; i < m_size; ++i) {
@@ -397,7 +397,7 @@ Matrix::Matrix(const DataArray& data, size_t cols, size_t rows)
   , m_rows(rows)
   , m_cols(cols) {
 
-  ASSERT(m_storage.size() == size());  
+  DBG_ASSERT(m_storage.size() == size());  
 }
 
 Matrix::Matrix(DataArray&& data, size_t cols, size_t rows)
@@ -406,7 +406,7 @@ Matrix::Matrix(DataArray&& data, size_t cols, size_t rows)
   , m_rows(rows)
   , m_cols(cols) {
 
-  ASSERT(m_storage.size() == size());  
+  DBG_ASSERT(m_storage.size() == size());  
 }
 
 Matrix::Matrix(const Matrix& cpy)
@@ -439,7 +439,7 @@ Matrix::Matrix(Matrix&& mv) {
 
 Matrix& Matrix::operator=(const Matrix& rhs) {
   if (isShallow()) {
-    ASSERT(rhs.m_cols == m_cols && rhs.m_rows == m_rows);
+    DBG_ASSERT(rhs.m_cols == m_cols && rhs.m_rows == m_rows);
   }
   else {
     m_cols = rhs.m_cols;
@@ -471,7 +471,7 @@ Matrix& Matrix::operator=(Matrix&& rhs) {
 }
 
 Vector Matrix::operator*(const Vector& rhs) const {
-  ASSERT(rhs.size() == m_cols);
+  DBG_ASSERT(rhs.size() == m_cols);
 
   Vector v(m_rows);
   for (size_t r = 0; r < m_rows; ++r) {
@@ -485,8 +485,8 @@ Vector Matrix::operator*(const Vector& rhs) const {
 }
 
 Matrix Matrix::operator+(const Matrix& rhs) const {
-  ASSERT(rhs.m_cols == m_cols);
-  ASSERT(rhs.m_rows == m_rows);
+  DBG_ASSERT(rhs.m_cols == m_cols);
+  DBG_ASSERT(rhs.m_rows == m_rows);
 
   Matrix m(m_cols, m_rows);
 
@@ -498,8 +498,8 @@ Matrix Matrix::operator+(const Matrix& rhs) const {
 }
 
 Matrix Matrix::operator-(const Matrix& rhs) const {
-  ASSERT(rhs.m_cols == m_cols);
-  ASSERT(rhs.m_rows == m_rows);
+  DBG_ASSERT(rhs.m_cols == m_cols);
+  DBG_ASSERT(rhs.m_rows == m_rows);
 
   Matrix m(m_cols, m_rows);
 
@@ -517,7 +517,7 @@ void Matrix::operator+=(double x) {
 }
 
 Vector Matrix::transposeMultiply(const Vector& rhs) const {
-  ASSERT(rhs.size() == m_rows);
+  DBG_ASSERT(rhs.size() == m_rows);
 
   Vector v(m_cols);
   for (size_t c = 0; c < m_cols; ++c) {
@@ -580,12 +580,12 @@ bool Matrix::operator==(const Matrix& rhs) const {
 }
 
 MatrixPtr Matrix::createShallow(DataArray& data, size_t cols, size_t rows) {
-  TRUE_OR_THROW(data.size() == cols * rows, "cols * rows != data length");
+  DBG_ASSERT(data.size() == cols * rows);
   return MatrixPtr(new Matrix(data.data(), cols, rows));
 }
 
 ConstMatrixPtr Matrix::createShallow(const DataArray& data, size_t cols, size_t rows) {
-  TRUE_OR_THROW(data.size() == cols * rows, "cols * rows != data length");
+  DBG_ASSERT(data.size() == cols * rows);
   return ConstMatrixPtr(new Matrix(const_cast<double*>(data.data()), cols, rows));
 }
 
@@ -643,7 +643,7 @@ Kernel::Kernel(const DataArray& data, size_t W, size_t H, size_t D)
   , m_H(H)
   , m_W(W) {
 
-  ASSERT(m_storage.size() == size());    
+  DBG_ASSERT(m_storage.size() == size());    
 }
 
 Kernel::Kernel(DataArray&& data, size_t W, size_t H, size_t D)
@@ -653,7 +653,7 @@ Kernel::Kernel(DataArray&& data, size_t W, size_t H, size_t D)
   , m_H(H)
   , m_W(W) {
 
-  ASSERT(m_storage.size() == size());    
+  DBG_ASSERT(m_storage.size() == size());    
 }
 
 Kernel::Kernel(double* data, size_t W, size_t H, size_t D)
@@ -694,15 +694,15 @@ Kernel::Kernel(Kernel&& mv) {
 }
 
 void Kernel::convolve(const Array3& image, Array2& featureMap) const {
-  ASSERT(image.W() >= m_W);
-  ASSERT(image.H() >= m_H);
-  ASSERT(image.D() == m_D);
+  DBG_ASSERT(image.W() >= m_W);
+  DBG_ASSERT(image.H() >= m_H);
+  DBG_ASSERT(image.D() == m_D);
 
   size_t fmW = image.W() - m_W + 1;
   size_t fmH = image.H() - m_H + 1;
 
-  ASSERT(featureMap.W() == fmW);
-  ASSERT(featureMap.H() == fmH);
+  DBG_ASSERT(featureMap.W() == fmW);
+  DBG_ASSERT(featureMap.H() == fmH);
 
   for (size_t fmY = 0; fmY < fmH; ++fmY) {
     for (size_t fmX = 0; fmX < fmW; ++fmX) {
@@ -729,7 +729,7 @@ bool Kernel::operator==(const Kernel& rhs) const {
 
 Kernel& Kernel::operator=(const Kernel& rhs) {
   if (isShallow()) {
-    ASSERT(rhs.m_W == m_W && rhs.m_H == m_H && rhs.m_D == m_D);
+    DBG_ASSERT(rhs.m_W == m_W && rhs.m_H == m_H && rhs.m_D == m_D);
   }
   else {
     m_W = rhs.m_W;
@@ -871,12 +871,12 @@ void Kernel::transformInPlace(const std::function<double(double)>& f) {
 }
 
 KernelPtr Kernel::createShallow(DataArray& data, size_t W, size_t H, size_t D) {
-  TRUE_OR_THROW(data.size() == W * H * D, "W * H * D != data length");
+  DBG_ASSERT(data.size() == W * H * D);
   return std::unique_ptr<Kernel>(new Kernel(data.data(), W, H, D));
 }
 
 ConstKernelPtr Kernel::createShallow(const DataArray& data, size_t W, size_t H, size_t D) {
-  TRUE_OR_THROW(data.size() == W * H * D, "W * H * D != data length");
+  DBG_ASSERT(data.size() == W * H * D);
   return std::unique_ptr<const Kernel>(new Kernel(const_cast<double*>(data.data()), W, H, D));
 }
 

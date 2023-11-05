@@ -2,8 +2,8 @@
 
 #include <array>
 #include <functional>
+#include <cmath>
 #include "math.hpp"
-#include "util.hpp"
 #include "types.hpp"
 
 using ActivationFn = std::function<double(double)>;
@@ -50,7 +50,6 @@ class Layer {
     virtual void trainForward(const DataArray& inputs) = 0;
     virtual DataArray evalForward(const DataArray& inputs) const = 0;
     virtual void updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) = 0;
-    virtual nlohmann::json getConfig() const = 0;
     virtual void writeToStream(std::ostream& fout) const = 0;
     virtual const Matrix& W() const = 0;
 
@@ -63,3 +62,4 @@ class Layer {
 };
 
 std::ostream& operator<<(std::ostream& os, LayerType layerType);
+

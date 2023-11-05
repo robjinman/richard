@@ -1,5 +1,6 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
 #include <vector>
 #include "layer.hpp"
 
@@ -25,7 +26,6 @@ class ConvolutionalLayer : public Layer {
     void trainForward(const DataArray& inputs) override;
     DataArray evalForward(const DataArray& inputs) const override;
     void updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) override;
-    nlohmann::json getConfig() const override;
     void writeToStream(std::ostream& fout) const override;
     // Don't use. Use filters() instead.
     const Matrix& W() const override;

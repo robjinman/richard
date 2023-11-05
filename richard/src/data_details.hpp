@@ -8,7 +8,7 @@
 class NormalizationParams {
   public:
     NormalizationParams();
-    NormalizationParams(const nlohmann::json& json);
+    explicit NormalizationParams(const nlohmann::json& json);
 
     double min;
     double max;
@@ -23,7 +23,7 @@ inline double normalize(const NormalizationParams& params, double x) {
 class DataDetails {
   public:
     DataDetails();
-    DataDetails(const nlohmann::json& json);
+    explicit DataDetails(const nlohmann::json& json);
 
     NormalizationParams normalization;
     std::vector<std::string> classLabels;

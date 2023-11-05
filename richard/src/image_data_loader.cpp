@@ -10,12 +10,12 @@ ImageDataLoader::ImageDataLoader(const std::string& directoryPath,
   : m_normalization(normalization)
   , m_directoryPath(directoryPath) {
 
-  TRUE_OR_THROW(std::filesystem::is_directory(m_directoryPath),
+  ASSERT_MSG(std::filesystem::is_directory(m_directoryPath),
     "'" << m_directoryPath << "' is not a directory");
 
   std::filesystem::path directory{directoryPath};
   for (const std::string& label : labels) {
-    TRUE_OR_THROW(std::filesystem::is_directory(directory/label),
+    ASSERT_MSG(std::filesystem::is_directory(directory/label),
       "'" << directory/label << "' is not a directory");
 
     m_iterators.emplace_back(label, std::filesystem::directory_iterator{directory/label});

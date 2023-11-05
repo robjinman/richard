@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <max_pooling_layer.hpp>
-#include <convolutional_layer.hpp>
 
 class MaxPoolingLayerTest : public testing::Test {
   public:

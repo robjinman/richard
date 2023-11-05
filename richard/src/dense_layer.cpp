@@ -63,16 +63,6 @@ const Matrix& DenseLayer::W() const {
   return m_W;
 }
 
-nlohmann::json DenseLayer::getConfig() const {
-  nlohmann::json config;
-  config["type"] = "dense";
-  config["size"] = m_B.size();
-  config["learnRate"] = m_learnRate;
-  config["learnRateDecay"] = m_learnRateDecay;
-  config["dropoutRate"] = m_dropoutRate;
-  return config;
-}
-
 DataArray DenseLayer::evalForward(const DataArray& inputs) const {
   ConstVectorPtr pX = Vector::createShallow(inputs);
   const Vector& x = *pX;

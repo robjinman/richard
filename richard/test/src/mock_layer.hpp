@@ -13,7 +13,6 @@ class MockLayer : public Layer {
     MOCK_METHOD(DataArray, evalForward, (const DataArray& inputs), (const, override));
     MOCK_METHOD(void, updateDelta, (const DataArray& inputs, const Layer& nextLayer,
       size_t epoch), (override));
-    MOCK_METHOD(nlohmann::json, getConfig, (), (const, override));
     MOCK_METHOD(void, writeToStream, (std::ostream& fout), (const, override));
     MOCK_METHOD(const Matrix&, W, (), (const, override));
     MOCK_METHOD(void, setWeights, (const std::vector<DataArray>&), (override));

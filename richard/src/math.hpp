@@ -192,7 +192,7 @@ class Matrix {
 
   public:
     explicit Matrix(std::initializer_list<std::initializer_list<double>> data);
-    Matrix(size_t cols, size_t rows);
+    explicit Matrix(size_t cols, size_t rows);
     Matrix(const DataArray& data, size_t cols, size_t rows);
     Matrix(DataArray&& data, size_t cols, size_t rows);
     Matrix(const Matrix& cpy);
@@ -337,7 +337,7 @@ class Kernel {
   public:
     explicit Kernel(
       std::initializer_list<std::initializer_list<std::initializer_list<double>>> data);
-    Kernel(size_t W, size_t H, size_t D);
+    explicit Kernel(size_t W, size_t H, size_t D);
     Kernel(const DataArray& data, size_t W, size_t H, size_t D);
     Kernel(DataArray&& data, size_t W, size_t H, size_t D);
     Kernel(const Kernel& cpy);
@@ -408,7 +408,7 @@ class Kernel {
 };
 
 inline void Kernel::setData(DataArray&& data) {
-  ASSERT(data.size() == size());
+  DBG_ASSERT(data.size() == size());
 
   m_storage = std::move(data);
   m_data = m_storage.data();
