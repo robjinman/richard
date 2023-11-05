@@ -220,8 +220,6 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
   m_logger.info(STR("Epochs: " << m_params.epochs));
   m_logger.info(STR("Max batch size: " << m_params.maxBatchSize));
 
-  const size_t N = 500; // TODO
-
   m_abort = false;
   for (size_t epoch = 0; epoch < m_params.epochs; ++epoch) {
     if (m_abort) {
@@ -233,7 +231,7 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
     size_t samplesProcessed = 0;
 
     std::vector<Sample> samples;
-    while (trainingData.loadSamples(samples, N) > 0) {
+    while (trainingData.loadSamples(samples) > 0) {
       [[maybe_unused]] size_t netInputSize = m_inputShape[0] * m_inputShape[1] * m_inputShape[2];
       DBG_ASSERT_MSG(samples[0].data.size() == netInputSize,
         "Sample size is " << samples[0].data.size() << ", expected " << netInputSize);

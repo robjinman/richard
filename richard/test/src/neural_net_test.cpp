@@ -4,8 +4,9 @@
 #include <dense_layer.hpp>
 #include <output_layer.hpp>
 #include <convolutional_layer.hpp>
-#include <labelled_data_set.hpp>
 #include "mock_logger.hpp"
+#include "mock_data_loader.hpp"
+#include "mock_labelled_data_set.hpp"
 
 using testing::NiceMock;
 
@@ -13,21 +14,6 @@ class NeuralNetTest : public testing::Test {
   public:
     virtual void SetUp() override {}
     virtual void TearDown() override {}
-};
-
-class MockDataLoader : public DataLoader {
-  public:
-    MOCK_METHOD(size_t, loadSamples, (std::vector<Sample>& samples, size_t n), (override));
-    MOCK_METHOD(void, seekToBeginning, (), (override));
-};
-
-class MockLabelledDataSet : public LabelledDataSet {
-  public:
-    MockLabelledDataSet(DataLoaderPtr dataLoader, const std::vector<std::string>& labels)
-      : LabelledDataSet(std::move(dataLoader), labels) {}
-
-    MOCK_METHOD(size_t, loadSamples, (std::vector<Sample>& samples, size_t n), (override));
-    MOCK_METHOD(void, seekToBeginning, (), (override));
 };
 
 TEST_F(NeuralNetTest, evaluate) {
@@ -68,7 +54,7 @@ TEST_F(NeuralNetTest, evaluate) {
   std::unique_ptr<NeuralNet> net = createNeuralNet(inputShape, config, logger);
 
   Sample sample("a", Array3({{{ 0.5, 0.3, 0.7 }}}));
-  auto loadSample = [&sample](std::vector<Sample>& samples, size_t) {
+  auto loadSample = [&sample](std::vector<Sample>& samples) {
     samples.push_back(sample);
     return 1;
   };
@@ -187,7 +173,7 @@ TEST_F(NeuralNetTest, evaluateTrivialConvVsFullyConnected) {
     { 0.5, 0.4 },
     { 0.7, 0.6 },
    }}));
-  auto loadSample = [&sample](std::vector<Sample>& samples, size_t) {
+  auto loadSample = [&sample](std::vector<Sample>& samples) {
     samples.push_back(sample);
     return 1;
   };
@@ -276,7 +262,7 @@ TEST_F(NeuralNetTest, evaluateConv) {
     { 0.4, 0.1, 0.8, 0.2, 0.7 },
     { 0.2, 0.3, 0.7, 0.1, 0.4 }
    }}));
-  auto loadSample = [&sample](std::vector<Sample>& samples, size_t) {
+  auto loadSample = [&sample](std::vector<Sample>& samples) {
     samples.push_back(sample);
     return 1;
   };

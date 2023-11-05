@@ -20,29 +20,8 @@ void LabelledDataSet::seekToBeginning() {
   m_loader->seekToBeginning();
 }
 
-size_t LabelledDataSet::loadSamples(std::vector<Sample>& samples, size_t n) {
+size_t LabelledDataSet::loadSamples(std::vector<Sample>& samples) {
   samples.clear();
-  return m_loader->loadSamples(samples, n);
-}
-
-std::unique_ptr<LabelledDataSet> createDataSet(FileSystem& fileSystem,
-  const std::string& samplesPath, const DataDetails& dataDetails) {
-
-  DataLoaderPtr dataLoader = nullptr;
-  if (std::filesystem::is_directory(samplesPath)) {
-    dataLoader = std::make_unique<ImageDataLoader>(samplesPath, dataDetails.classLabels,
-      dataDetails.normalization);
-  }
-  else {
-    const Triple& shape = dataDetails.shape;
-    size_t inputSize = shape[0] * shape[1] * shape[2];
-    
-    auto fin = fileSystem.openFileForReading(samplesPath);
-
-    dataLoader = std::make_unique<CsvDataLoader>(std::move(fin), inputSize,
-      dataDetails.normalization);
-  }
-
-  return std::make_unique<LabelledDataSet>(std::move(dataLoader), dataDetails.classLabels);
+  return m_loader->loadSamples(samples);
 }
 

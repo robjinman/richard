@@ -57,8 +57,6 @@ void Classifier::train(LabelledDataSet& data) {
 Classifier::Results Classifier::test(LabelledDataSet& testData) const {
   ASSERT_MSG(m_isTrained, "Classifier not trained");
 
-  const size_t N = 500; // TODO
-
   Results results;
 
   std::vector<Sample> samples;
@@ -69,7 +67,7 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
 
   size_t totalSamples = 0;
   double totalCost = 0.0;
-  while (testData.loadSamples(samples, N) > 0) {
+  while (testData.loadSamples(samples) > 0) {
     for (const auto& sample : samples) {
       DBG_ASSERT_MSG(sample.data.size() == netInputSize,
         "Expected sample of size " << netInputSize << ", got " << sample.data.size());

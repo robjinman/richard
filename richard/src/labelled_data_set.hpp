@@ -14,7 +14,7 @@ class LabelledDataSet {
   public:
     LabelledDataSet(DataLoaderPtr loader, const std::vector<std::string>& labels);
 
-    virtual size_t loadSamples(std::vector<Sample>& samples, size_t n);
+    virtual size_t loadSamples(std::vector<Sample>& samples);
     virtual void seekToBeginning();
 
     inline const std::vector<std::string>& labels() const;
@@ -35,7 +35,4 @@ inline const std::vector<std::string>& LabelledDataSet::labels() const {
 inline const Vector& LabelledDataSet::classOutputVector(const std::string& label) const {
   return m_classOutputVectors.at(label);
 }
-
-std::unique_ptr<LabelledDataSet> createDataSet(FileSystem& fileSystem,
-  const std::string& samplesPath, const DataDetails& dataDetails);
 

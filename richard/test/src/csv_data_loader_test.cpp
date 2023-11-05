@@ -15,8 +15,8 @@ TEST_F(CsvDataLoaderTest, loadSamples) {
   normalization.min = 0;
   normalization.max = 255;
 
-  CsvDataLoader loader(std::move(ss), 3, normalization);
-  loader.loadSamples(samples, 1);
+  CsvDataLoader loader(std::move(ss), 3, normalization, 1000);
+  loader.loadSamples(samples);
 
   ASSERT_EQ(samples.size(), 1);
 

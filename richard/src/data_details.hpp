@@ -28,6 +28,7 @@ class DataDetails {
     NormalizationParams normalization;
     std::vector<std::string> classLabels;
     Triple shape;
+    size_t batchSize;
 
     static const nlohmann::json& exampleConfig();
 };

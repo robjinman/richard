@@ -22,7 +22,10 @@ ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const Options& opti
   m_classifier = std::make_unique<Classifier>(*m_dataDetails, getOrThrow(config, "classifier"),
     *fin, m_logger);
 
-  m_dataSet = createDataSet(m_fileSystem, m_opts.samplesPath, *m_dataDetails);
+  auto loader = createDataLoader(m_fileSystem, getOrThrow(config, "dataLoader"),
+    m_opts.samplesPath, *m_dataDetails);
+
+  m_dataSet = std::make_unique<LabelledDataSet>(std::move(loader), m_dataDetails->classLabels);
 }
 
 void ClassifierEvalApp::start() {

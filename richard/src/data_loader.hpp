@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include "math.hpp"
 
 struct Sample {
@@ -15,11 +16,19 @@ struct Sample {
 
 class DataLoader {
   public:
-    virtual size_t loadSamples(std::vector<Sample>& samples, size_t n) = 0;
+    virtual size_t loadSamples(std::vector<Sample>& samples) = 0;
     virtual void seekToBeginning() = 0;
 
     virtual ~DataLoader() {}
+    
+    static const nlohmann::json& exampleConfig();
 };
 
 using DataLoaderPtr = std::unique_ptr<DataLoader>;
+
+class FileSystem;
+class DataDetails;
+
+DataLoaderPtr createDataLoader(FileSystem& fileSystem, const nlohmann::json& config,
+  const std::string& samplesPath, const DataDetails& dataDetails);
 

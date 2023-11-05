@@ -18,7 +18,10 @@ ClassifierTrainingApp::ClassifierTrainingApp(FileSystem& fileSystem, const Optio
   m_classifier = std::make_unique<Classifier>(*m_dataDetails, getOrThrow(m_config, "classifier"),
     m_logger);
 
-  m_dataSet = createDataSet(m_fileSystem, m_opts.samplesPath, *m_dataDetails);
+  auto loader = createDataLoader(m_fileSystem, getOrThrow(m_config, "dataLoader"),
+    m_opts.samplesPath, *m_dataDetails);
+
+  m_dataSet = std::make_unique<LabelledDataSet>(std::move(loader), m_dataDetails->classLabels);
 }
 
 void ClassifierTrainingApp::start() {
@@ -49,6 +52,7 @@ const nlohmann::json& ClassifierTrainingApp::exampleConfig() {
 
   if (!done) {
     obj["data"] = DataDetails::exampleConfig();
+    obj["dataLoader"] = DataLoader::exampleConfig();
     obj["classifier"] = Classifier::exampleConfig();
 
     done = true;

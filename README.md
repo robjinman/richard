@@ -20,6 +20,9 @@ Examples
                 "max": 255
             }
         },
+        "dataLoader": {
+          "fetchSize": 500
+        },
         "classifier": {
             "network": {
                 "hyperparams": {
@@ -71,6 +74,9 @@ Examples
                 "min": 0,
                 "max": 255
             }
+        },
+        "dataLoader": {
+          "fetchSize": 500
         },
         "classifier": {
             "network": {
