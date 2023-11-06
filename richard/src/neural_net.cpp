@@ -53,6 +53,7 @@ class NeuralNetImpl : public NeuralNet {
 
   private:
     double feedForward(const Array3& x, const Vector& y);
+    void backPropagate(const Array3& x, const Vector& y, size_t epoch);
     OutputLayer& outputLayer();
     std::unique_ptr<Layer> constructLayer(const nlohmann::json& obj, std::istream& fin,
       const Triple& prevLayerSize);
@@ -216,6 +217,21 @@ OutputLayer& NeuralNetImpl::outputLayer() {
   return dynamic_cast<OutputLayer&>(*m_layers.back());
 }
 
+void NeuralNetImpl::backPropagate(const Array3& x, const Vector& y, size_t epoch) {
+  for (int l = static_cast<int>(m_layers.size()) - 1; l >= 0; --l) {
+    if (l == static_cast<int>(m_layers.size()) - 1) {
+      outputLayer().updateDelta(m_layers[m_layers.size() - 2]->activations(), y.storage(),
+        epoch);
+    }
+    else if (l == 0) {
+      m_layers[l]->updateDelta(x.storage(), *m_layers[l + 1], epoch);
+    }
+    else {
+      m_layers[l]->updateDelta(m_layers[l - 1]->activations(), *m_layers[l + 1], epoch);
+    }
+  }
+}
+
 void NeuralNetImpl::train(LabelledDataSet& trainingData) {
   m_logger.info(STR("Epochs: " << m_params.epochs));
   m_logger.info(STR("Max batch size: " << m_params.maxBatchSize));
@@ -242,19 +258,7 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
         const Vector& y = trainingData.classOutputVector(sample.label);
 
         cost += feedForward(x, y);
-
-        for (int l = static_cast<int>(m_layers.size()) - 1; l >= 0; --l) {
-          if (l == static_cast<int>(m_layers.size()) - 1) {
-            outputLayer().updateDelta(m_layers[m_layers.size() - 2]->activations(), y.storage(),
-              epoch);
-          }
-          else if (l == 0) {
-            m_layers[l]->updateDelta(x.storage(), *m_layers[l + 1], epoch);
-          }
-          else {
-            m_layers[l]->updateDelta(m_layers[l - 1]->activations(), *m_layers[l + 1], epoch);
-          }
-        }
+        backPropagate(x, y, epoch);
 
         m_logger.info(STR("\r  > " << samplesProcessed << "/" << m_params.maxBatchSize), false);
 
