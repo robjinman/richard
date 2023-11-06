@@ -62,11 +62,11 @@ size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples) {
         ++samplesLoaded;
       }
 
+      ++cursor.i;
+
       if (samplesLoaded >= m_fetchSize) {
         break;
       }
-
-      ++cursor.i;
     }
 
     if (numIteratorsFinished == m_iterators.size()) {
