@@ -7,6 +7,8 @@ OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize)
   , m_Z(1)
   , m_A(1)
   , m_delta(1)
+  , m_deltaB(1)
+  , m_deltaW(1, 1)
   , m_activationFn(sigmoid)
   , m_activationFnPrime(sigmoidPrime) {
 
@@ -18,6 +20,10 @@ OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize)
 
   m_W = Matrix(inputSize, size);
   m_W.randomize(0.1);
+  
+  m_delta = Vector(size);
+  m_deltaB = Vector(size);
+  m_deltaW = Matrix(inputSize, size);
 }
 
 OutputLayer::OutputLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize)
@@ -26,6 +32,8 @@ OutputLayer::OutputLayer(const nlohmann::json& obj, std::istream& fin, size_t in
   , m_Z(1)
   , m_A(1)
   , m_delta(1)
+  , m_deltaB(1)
+  , m_deltaW(1, 1)
   , m_activationFn(sigmoid)
   , m_activationFnPrime(sigmoidPrime) {
 
@@ -38,6 +46,10 @@ OutputLayer::OutputLayer(const nlohmann::json& obj, std::istream& fin, size_t in
 
   m_W = Matrix(inputSize, size);
   fin.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
+
+  m_delta = Vector(size);
+  m_deltaB = Vector(size);
+  m_deltaW = Matrix(inputSize, size);
 }
 
 void OutputLayer::writeToStream(std::ostream& fout) const {
@@ -78,27 +90,39 @@ void OutputLayer::trainForward(const DataArray& inputs) {
   m_A = m_Z.computeTransform(m_activationFn);
 }
 
-void OutputLayer::updateDelta(const DataArray&, const Layer&, size_t) {
+void OutputLayer::updateDelta(const DataArray&, const Layer&) {
   EXCEPTION("Use other OutputLayer::updateDelta() overload");
 }
 
-void OutputLayer::updateDelta(const DataArray& inputs, const DataArray& outputs, size_t epoch) {
+void OutputLayer::updateDelta(const DataArray& inputs, const DataArray& outputs) {
   ConstVectorPtr pY = Vector::createShallow(outputs);
   const Vector& y = *pY;
 
   Vector deltaC = quadraticCostDerivatives(m_A, y);
   m_delta = m_Z.computeTransform(m_activationFnPrime).hadamard(deltaC);
 
+  for (size_t j = 0; j < m_W.rows(); j++) {
+    for (size_t k = 0; k < m_W.cols(); k++) {
+      m_deltaW.set(k, j, m_deltaW.at(k, j) + inputs[k] * m_delta[j]);
+    }
+  }
+
+  m_deltaB += m_delta;
+}
+
+void OutputLayer::updateParams(size_t epoch) {
   double learnRate = m_learnRate * pow(m_learnRateDecay, epoch);
 
   for (size_t j = 0; j < m_W.rows(); j++) {
     for (size_t k = 0; k < m_W.cols(); k++) {
-      double dw = inputs[k] * m_delta[j] * learnRate;
-      m_W.set(k, j, m_W.at(k, j) - dw);
+      m_W.set(k, j, m_W.at(k, j) - m_deltaW.at(k, j) * learnRate);
     }
   }
 
-  m_B = m_B - m_delta * learnRate;
+  m_B -= m_deltaB * learnRate;
+
+  m_deltaB.zero();
+  m_deltaW.zero();
 }
 
 void OutputLayer::setWeights(const Matrix& W) {

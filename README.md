@@ -27,7 +27,8 @@ Examples
             "network": {
                 "hyperparams": {
                     "epochs": 30,
-                    "maxBatchSize": 1000
+                    "batchSize": 1000,
+                    "miniBatchSize": 10,
                 },
                 "hiddenLayers": [
                     {
@@ -82,7 +83,8 @@ Examples
             "network": {
                 "hyperparams": {
                     "epochs": 10,
-                    "maxBatchSize": 1000
+                    "batchSize": 1000,
+                    "miniBatchSize": 32,
                 },
                 "hiddenLayers": [
                     {

@@ -28,6 +28,12 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW,
     filter.b = 0.0;
 
     m_filters.push_back(filter);
+
+    Filter delta;
+    delta.K = Kernel(kernelSize[0], kernelSize[1], inputDepth);
+    delta.b = 0.0;
+
+    m_paramDeltas.push_back(delta);
   }
 
   auto sz = outputSize();
@@ -61,6 +67,12 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& 
       filter.K.W() * filter.K.H() * filter.K.D() * sizeof(double));
 
     m_filters.push_back(filter);
+
+    Filter delta;
+    delta.K = Kernel(kernelSize[0], kernelSize[1], inputDepth);
+    delta.b = 0.0;
+
+    m_paramDeltas.push_back(delta);
   }
 
   auto sz = outputSize();
@@ -138,9 +150,7 @@ DataArray ConvolutionalLayer::evalForward(const DataArray& inputs) const {
   return Z.storage();
 }
 
-void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& nextLayer,
-  size_t epoch) {
-
+void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& nextLayer) {
   ASSERT_MSG(nextLayer.type() == LayerType::MAX_POOLING,
     "Expect max pooling after convolutional layer");
 
@@ -154,31 +164,41 @@ void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& 
   ConstArray3Ptr pInputs = Array3::createShallow(layerInputs, m_inputW, m_inputH, m_inputDepth);
   const Array3& inputs = *pInputs;
 
-  double learnRate = m_learnRate * pow(m_learnRateDecay, epoch) / (fmW * fmH);
-
   for (size_t slice = 0; slice < depth; ++slice) {
-    Kernel& K = m_filters[slice].K;
-    double& b = m_filters[slice].b;
+    Kernel& dK = m_paramDeltas[slice].K;
+    double& db = m_paramDeltas[slice].b;
 
     for (size_t ymin = 0; ymin < fmH; ++ymin) {
       for (size_t xmin = 0; xmin < fmW; ++xmin) {
         double delta = reluPrime(m_Z.at(xmin, ymin, slice)) * nextDelta.at(xmin, ymin, slice);
         m_delta.set(xmin, ymin, slice, delta);
 
-        for (size_t z = 0; z < K.D(); ++z) {
-          for (size_t j = 0; j < K.H(); ++j) {
-            for (size_t i = 0; i < K.W(); ++i) {
+        for (size_t z = 0; z < dK.D(); ++z) {
+          for (size_t j = 0; j < dK.H(); ++j) {
+            for (size_t i = 0; i < dK.W(); ++i) {
               size_t inputX = xmin + i;
               size_t inputY = ymin + j;
-              double dw = inputs.at(inputX, inputY, z) * delta * learnRate;
 
-              K.set(i, j, z, K.at(i, j, z) - dw);
-              b = b - delta * learnRate;
+              dK.set(i, j, z, dK.at(i, j, z) + inputs.at(inputX, inputY, z) * delta);
+              db += delta;
             }
           }
         }
       }
     }
+  }
+}
+
+void ConvolutionalLayer::updateParams(size_t epoch) {
+  size_t featureMapSize = outputSize()[0] * outputSize()[1];
+  double learnRate = m_learnRate * pow(m_learnRateDecay, epoch) / featureMapSize;
+
+  for (size_t slice = 0; slice < m_filters.size(); ++slice) {
+    m_filters[slice].K -= m_paramDeltas[slice].K * learnRate;
+    m_filters[slice].b -= m_paramDeltas[slice].b * learnRate;
+
+    m_paramDeltas[slice].K.zero();
+    m_paramDeltas[slice].b = 0.0;
   }
 }
 

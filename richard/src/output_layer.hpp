@@ -14,8 +14,9 @@ class OutputLayer : public Layer {
     const DataArray& delta() const override;
     void trainForward(const DataArray& inputs) override;
     DataArray evalForward(const DataArray& inputs) const override;
-    void updateDelta(const DataArray&, const Layer&, size_t) override;
-    void updateDelta(const DataArray& inputs, const DataArray& y, size_t epoch);
+    void updateDelta(const DataArray&, const Layer&) override;
+    void updateDelta(const DataArray& inputs, const DataArray& outputs);
+    void updateParams(size_t epoch) override;
     void writeToStream(std::ostream& fout) const override;
     const Matrix& W() const override;
 
@@ -33,6 +34,8 @@ class OutputLayer : public Layer {
     Vector m_Z;
     Vector m_A;
     Vector m_delta;
+    Vector m_deltaB;
+    Matrix m_deltaW;
     double m_learnRate;
     double m_learnRateDecay;
     ActivationFn m_activationFn;

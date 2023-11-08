@@ -112,7 +112,7 @@ TEST_F(DenseLayerTest, updateDelta) {
   ON_CALL(nextLayer, delta).WillByDefault(testing::ReturnRef(nextDelta.storage()));
   ON_CALL(nextLayer, W).WillByDefault(testing::ReturnRef(nextW));
 
-  layer.updateDelta(X.storage(), nextLayer, 0);
+  layer.updateDelta(X.storage(), nextLayer);
 
   ConstVectorPtr delta = Vector::createShallow(layer.delta());
 

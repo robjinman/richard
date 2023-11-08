@@ -110,10 +110,13 @@ class Vector {
     Vector operator*(double x) const;
     Vector operator/(double x) const;
 
-    void operator+=(double x);
-    void operator-=(double x);
-    void operator*=(double x);
-    void operator/=(double x);
+    Vector& operator+=(const Vector& rhs);
+    Vector& operator-=(const Vector& rhs);
+
+    Vector& operator+=(double x);
+    Vector& operator-=(double x);
+    Vector& operator*=(double x);
+    Vector& operator/=(double x);
 
     Vector computeTransform(const std::function<double(double)>& f) const;
     void transformInPlace(const std::function<double(double)>& f);
@@ -227,10 +230,13 @@ class Matrix {
     Matrix operator*(double x) const;
     Matrix operator/(double x) const;
 
-    void operator+=(double x);
-    void operator-=(double x);
-    void operator*=(double x);
-    void operator/=(double x);
+    Matrix& operator+=(double x);
+    Matrix& operator-=(double x);
+    Matrix& operator*=(double x);
+    Matrix& operator/=(double x);
+
+    Matrix& operator+=(const Matrix& rhs);
+    Matrix& operator-=(const Matrix& rhs);
 
     Vector transposeMultiply(const Vector& rhs) const;
 
@@ -375,10 +381,13 @@ class Kernel {
     Kernel operator*(double x) const;
     Kernel operator/(double x) const;
 
-    void operator+=(double x);
-    void operator-=(double x);
-    void operator*=(double x);
-    void operator/=(double x);
+    Kernel& operator+=(double x);
+    Kernel& operator-=(double x);
+    Kernel& operator*=(double x);
+    Kernel& operator/=(double x);
+
+    Kernel& operator+=(const Kernel& rhs);
+    Kernel& operator-=(const Kernel& rhs);
 
     Kernel computeTransform(const std::function<double(double)>& f) const;
     void transformInPlace(const std::function<double(double)>& f);

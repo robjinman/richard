@@ -1,45 +1,57 @@
 #include "dense_layer.hpp"
 #include "util.hpp"
 
-DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize)
-  : m_W(1, 1)
-  , m_B(1)
-  , m_Z(1)
-  , m_A(1)
-  , m_delta(1)
-  , m_activationFn(sigmoid)
-  , m_activationFnPrime(sigmoidPrime) {
-
-  size_t numNeurons = getOrThrow(obj, "size").get<size_t>();
-  m_learnRate = getOrThrow(obj, "learnRate").get<double>();
-  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<double>();
-  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<double>();
-
-  m_B = Vector(numNeurons);
-  fin.read(reinterpret_cast<char*>(m_B.data()), numNeurons * sizeof(double));
-
-  m_W = Matrix(inputSize, numNeurons);
-  fin.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
-}
-
 DenseLayer::DenseLayer(const nlohmann::json& obj, size_t inputSize)
   : m_W(1, 1)
   , m_B(1)
   , m_Z(1)
   , m_A(1)
   , m_delta(1)
+  , m_deltaB(1)
+  , m_deltaW(1, 1)
   , m_activationFn(sigmoid)
   , m_activationFnPrime(sigmoidPrime) {
 
-  size_t numNeurons = getOrThrow(obj, "size").get<size_t>();
+  size_t size = getOrThrow(obj, "size").get<size_t>();
   m_learnRate = getOrThrow(obj, "learnRate").get<double>();
   m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<double>();
   m_dropoutRate = getOrThrow(obj, "dropoutRate").get<double>();
 
-  m_B = Vector(numNeurons);
-  m_W = Matrix(inputSize, numNeurons);
+  m_B = Vector(size);
+  m_W = Matrix(inputSize, size);
 
   m_W.randomize(0.1);
+
+  m_delta = Vector(size);
+  m_deltaB = Vector(size);
+  m_deltaW = Matrix(inputSize, size);
+}
+
+DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize)
+  : m_W(1, 1)
+  , m_B(1)
+  , m_Z(1)
+  , m_A(1)
+  , m_delta(1)
+  , m_deltaB(1)
+  , m_deltaW(1, 1)
+  , m_activationFn(sigmoid)
+  , m_activationFnPrime(sigmoidPrime) {
+
+  size_t size = getOrThrow(obj, "size").get<size_t>();
+  m_learnRate = getOrThrow(obj, "learnRate").get<double>();
+  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<double>();
+  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<double>();
+
+  m_B = Vector(size);
+  fin.read(reinterpret_cast<char*>(m_B.data()), size * sizeof(double));
+
+  m_W = Matrix(inputSize, size);
+  fin.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
+
+  m_delta = Vector(size);
+  m_deltaB = Vector(size);
+  m_deltaW = Matrix(inputSize, size);
 }
 
 void DenseLayer::writeToStream(std::ostream& fout) const {
@@ -90,22 +102,34 @@ void DenseLayer::trainForward(const DataArray& inputs) {
   }
 }
 
-void DenseLayer::updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) {
+void DenseLayer::updateDelta(const DataArray& inputs, const Layer& nextLayer) {
   ConstVectorPtr pNextDelta = Vector::createShallow(nextLayer.delta());
 
   m_delta = nextLayer.W().transposeMultiply(*pNextDelta)
                          .hadamard(m_Z.computeTransform(m_activationFnPrime));
 
+  for (size_t j = 0; j < m_W.rows(); j++) {
+    for (size_t k = 0; k < m_W.cols(); k++) {
+      m_deltaW.set(k, j, m_deltaW.at(k, j) + inputs[k] * m_delta[j]);
+    }
+  }
+
+  m_deltaB += m_delta;
+}
+
+void DenseLayer::updateParams(size_t epoch) {
   double learnRate = m_learnRate * pow(m_learnRateDecay, epoch);
 
   for (size_t j = 0; j < m_W.rows(); j++) {
     for (size_t k = 0; k < m_W.cols(); k++) {
-      double dw = inputs[k] * m_delta[j] * learnRate;
-      m_W.set(k, j, m_W.at(k, j) - dw);
+      m_W.set(k, j, m_W.at(k, j) - m_deltaW.at(k, j) * learnRate);
     }
   }
 
-  m_B = m_B - m_delta * learnRate;
+  m_B -= m_deltaB * learnRate;
+
+  m_deltaB.zero();
+  m_deltaW.zero();
 }
 
 void DenseLayer::setWeights(const Matrix& W) {

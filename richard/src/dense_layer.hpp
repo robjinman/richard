@@ -14,7 +14,8 @@ class DenseLayer : public Layer {
     const DataArray& delta() const override;
     void trainForward(const DataArray& inputs) override;
     DataArray evalForward(const DataArray& inputs) const override;
-    void updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) override;
+    void updateDelta(const DataArray& inputs, const Layer& nextLayer) override;
+    void updateParams(size_t epoch) override;
     void writeToStream(std::ostream& fout) const override;
     const Matrix& W() const override;
 
@@ -32,6 +33,8 @@ class DenseLayer : public Layer {
     Vector m_Z;
     Vector m_A;
     Vector m_delta;
+    Vector m_deltaB;
+    Matrix m_deltaW;
     double m_learnRate;
     double m_learnRateDecay;
     double m_dropoutRate;

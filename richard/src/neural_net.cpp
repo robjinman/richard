@@ -26,7 +26,8 @@ struct Hyperparams {
   explicit Hyperparams(const nlohmann::json& obj);
 
   size_t epochs;
-  size_t maxBatchSize;
+  size_t batchSize;
+  size_t miniBatchSize;
 
   static const nlohmann::json& exampleConfig();
 };
@@ -53,7 +54,8 @@ class NeuralNetImpl : public NeuralNet {
 
   private:
     double feedForward(const Array3& x, const Vector& y);
-    void backPropagate(const Array3& x, const Vector& y, size_t epoch);
+    void backPropagate(const Array3& x, const Vector& y);
+    void updateParams(size_t epoch);
     OutputLayer& outputLayer();
     std::unique_ptr<Layer> constructLayer(const nlohmann::json& obj, std::istream& fin,
       const Triple& prevLayerSize);
@@ -69,11 +71,13 @@ class NeuralNetImpl : public NeuralNet {
 
 Hyperparams::Hyperparams()
   : epochs(0)
-  , maxBatchSize(1000) {}
+  , batchSize(1000)
+  , miniBatchSize(16) {}
 
 Hyperparams::Hyperparams(const nlohmann::json& obj) {
   epochs = getOrThrow(obj, "epochs").get<size_t>();
-  maxBatchSize = getOrThrow(obj, "maxBatchSize").get<size_t>();
+  batchSize = getOrThrow(obj, "batchSize").get<size_t>();
+  miniBatchSize = getOrThrow(obj, "miniBatchSize").get<size_t>();
 }
 
 const nlohmann::json& Hyperparams::exampleConfig() {
@@ -82,7 +86,8 @@ const nlohmann::json& Hyperparams::exampleConfig() {
 
   if (!done) {
     obj["epochs"] = 10;
-    obj["maxBatchSize"] = 1000;
+    obj["batchSize"] = 1000;
+    obj["miniBatchSize"] = 16;
 
     done = true;
   }
@@ -217,24 +222,30 @@ OutputLayer& NeuralNetImpl::outputLayer() {
   return dynamic_cast<OutputLayer&>(*m_layers.back());
 }
 
-void NeuralNetImpl::backPropagate(const Array3& x, const Vector& y, size_t epoch) {
+void NeuralNetImpl::backPropagate(const Array3& x, const Vector& y) {
   for (int l = static_cast<int>(m_layers.size()) - 1; l >= 0; --l) {
     if (l == static_cast<int>(m_layers.size()) - 1) {
-      outputLayer().updateDelta(m_layers[m_layers.size() - 2]->activations(), y.storage(),
-        epoch);
+      outputLayer().updateDelta(m_layers[m_layers.size() - 2]->activations(), y.storage());
     }
     else if (l == 0) {
-      m_layers[l]->updateDelta(x.storage(), *m_layers[l + 1], epoch);
+      m_layers[l]->updateDelta(x.storage(), *m_layers[l + 1]);
     }
     else {
-      m_layers[l]->updateDelta(m_layers[l - 1]->activations(), *m_layers[l + 1], epoch);
+      m_layers[l]->updateDelta(m_layers[l - 1]->activations(), *m_layers[l + 1]);
     }
+  }
+}
+
+void NeuralNetImpl::updateParams(size_t epoch) { 
+  for (auto& layer : m_layers) {
+    layer->updateParams(epoch);
   }
 }
 
 void NeuralNetImpl::train(LabelledDataSet& trainingData) {
   m_logger.info(STR("Epochs: " << m_params.epochs));
-  m_logger.info(STR("Max batch size: " << m_params.maxBatchSize));
+  m_logger.info(STR("Batch size: " << m_params.batchSize));
+  m_logger.info(STR("Mini-batch size: " << m_params.miniBatchSize));
 
   m_abort = false;
   for (size_t epoch = 0; epoch < m_params.epochs; ++epoch) {
@@ -258,19 +269,24 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
         const Vector& y = trainingData.classOutputVector(sample.label);
 
         cost += feedForward(x, y);
-        backPropagate(x, y, epoch);
+        backPropagate(x, y);
 
-        m_logger.info(STR("\r  > " << samplesProcessed << "/" << m_params.maxBatchSize), false);
+        bool lastSample = samplesProcessed + 1 == m_params.batchSize;
+        if (((samplesProcessed + 1) % m_params.miniBatchSize == 0) || lastSample) {
+          updateParams(epoch);
+        }
+
+        m_logger.info(STR("\r  > " << samplesProcessed << "/" << m_params.batchSize), false);
 
         ++samplesProcessed;
-        if (samplesProcessed >= m_params.maxBatchSize) {
+        if (samplesProcessed >= m_params.batchSize) {
           break;
         }
       }
 
       samples.clear();
 
-      if (samplesProcessed >= m_params.maxBatchSize) {
+      if (samplesProcessed >= m_params.batchSize) {
         break;
       }
     }

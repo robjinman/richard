@@ -237,7 +237,7 @@ void Vector::fill(double x) {
 }
 
 Vector& Vector::randomize(double standardDeviation) {
-  static std::default_random_engine gen;
+  static std::mt19937 gen(0);
   std::normal_distribution<double> dist(0.0, standardDeviation);
 
   for (size_t i = 0; i < m_size; ++i) {
@@ -316,6 +316,48 @@ Vector Vector::operator-(double s) const {
     v[i] = m_data[i] - s;
   }
   return v;
+}
+
+Vector& Vector::operator+=(const Vector& rhs) {
+  for (size_t i = 0; i < m_size; ++i) {
+    m_data[i] += rhs.m_data[i];
+  }
+  return *this;
+}
+
+Vector& Vector::operator-=(const Vector& rhs) {
+  for (size_t i = 0; i < m_size; ++i) {
+    m_data[i] -= rhs.m_data[i];
+  }
+  return *this;
+}
+
+Vector& Vector::operator+=(double x) {
+  for (size_t i = 0; i < m_size; ++i) {
+    m_data[i] += x;
+  }
+  return *this;
+}
+
+Vector& Vector::operator-=(double x) {
+  for (size_t i = 0; i < m_size; ++i) {
+    m_data[i] -= x;
+  }
+  return *this;
+}
+
+Vector& Vector::operator*=(double x) {
+  for (size_t i = 0; i < m_size; ++i) {
+    m_data[i] *= x;
+  }
+  return *this;
+}
+
+Vector& Vector::operator/=(double x) {
+  for (size_t i = 0; i < m_size; ++i) {
+    m_data[i] /= x;
+  }
+  return *this;
 }
 
 double Vector::sum() const {
@@ -509,10 +551,46 @@ Matrix Matrix::operator-(const Matrix& rhs) const {
   return m;
 }
 
-void Matrix::operator+=(double x) {
+Matrix& Matrix::operator+=(double x) {
   for (size_t i = 0; i < size(); ++i) {
     m_data[i] += x;
   }
+  return *this;
+}
+
+Matrix& Matrix::operator-=(double x) {
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] -= x;
+  }
+  return *this;
+}
+
+Matrix& Matrix::operator*=(double x) {
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] *= x;
+  }
+  return *this;
+}
+
+Matrix& Matrix::operator/=(double x) {
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] /= x;
+  }
+  return *this;
+}
+
+Matrix& Matrix::operator+=(const Matrix& rhs) {
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] += rhs.m_data[i];
+  }
+  return *this;
+}
+
+Matrix& Matrix::operator-=(const Matrix& rhs) {
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] -= rhs.m_data[i];
+  }
+  return *this;
 }
 
 Vector Matrix::transposeMultiply(const Vector& rhs) const {
@@ -540,7 +618,7 @@ void Matrix::fill(double x) {
 }
 
 Matrix& Matrix::randomize(double standardDeviation) {
-  static std::default_random_engine gen;
+  static std::mt19937 gen(0);
   std::normal_distribution<double> dist(0.0, standardDeviation);
 
   for (size_t i = 0; i < size(); ++i) {
@@ -773,7 +851,7 @@ void Kernel::fill(double x) {
 }
 
 Kernel& Kernel::randomize(double standardDeviation) {
-  static std::default_random_engine gen;
+  static std::mt19937 gen(0);
   std::normal_distribution<double> dist(0.0, standardDeviation);
 
   for (size_t i = 0; i < size(); ++i) {
@@ -831,28 +909,46 @@ Kernel Kernel::operator/(double x) const {
   return K;
 }
 
-void Kernel::operator+=(double x) {
+Kernel& Kernel::operator+=(double x) {
   for (size_t i = 0; i < size(); ++i) {
     m_data[i] += x;
   }
+  return *this;
 }
 
-void Kernel::operator-=(double x) {
+Kernel& Kernel::operator-=(double x) {
   for (size_t i = 0; i < size(); ++i) {
     m_data[i] -= x;
   }
+  return *this;
 }
 
-void Kernel::operator*=(double x) {
+Kernel& Kernel::operator*=(double x) {
   for (size_t i = 0; i < size(); ++i) {
     m_data[i] *= x;
   }
+  return *this;
 }
 
-void Kernel::operator/=(double x) {
+Kernel& Kernel::operator/=(double x) {
   for (size_t i = 0; i < size(); ++i) {
     m_data[i] /= x;
   }
+  return *this;
+}
+
+Kernel& Kernel::operator+=(const Kernel& rhs) {
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] += rhs.m_data[i];
+  }
+  return *this;
+}
+
+Kernel& Kernel::operator-=(const Kernel& rhs) {
+  for (size_t i = 0; i < size(); ++i) {
+    m_data[i] -= rhs.m_data[i];
+  }
+  return *this;
 }
 
 Kernel Kernel::computeTransform(const std::function<double(double)>& f) const {

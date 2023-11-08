@@ -188,7 +188,7 @@ void MaxPoolingLayer::backpropFromConvLayer(const std::vector<ConvolutionalLayer
   }
 }
 
-void MaxPoolingLayer::updateDelta(const DataArray&, const Layer& nextLayer, size_t) {
+void MaxPoolingLayer::updateDelta(const DataArray&, const Layer& nextLayer) {
   m_delta.zero();
 
   switch (nextLayer.type()) {

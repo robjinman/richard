@@ -11,8 +11,8 @@ class MockLayer : public Layer {
     MOCK_METHOD(const DataArray&, delta, (), (const, override));
     MOCK_METHOD(void, trainForward, (const DataArray& inputs), (override));
     MOCK_METHOD(DataArray, evalForward, (const DataArray& inputs), (const, override));
-    MOCK_METHOD(void, updateDelta, (const DataArray& inputs, const Layer& nextLayer,
-      size_t epoch), (override));
+    MOCK_METHOD(void, updateDelta, (const DataArray& inputs, const Layer& nextLayer), (override));
+    MOCK_METHOD(void, updateParams, (size_t epoch), (override));
     MOCK_METHOD(void, writeToStream, (std::ostream& fout), (const, override));
     MOCK_METHOD(const Matrix&, W, (), (const, override));
 };

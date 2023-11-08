@@ -25,7 +25,8 @@ class ConvolutionalLayer : public Layer {
     const DataArray& delta() const override;
     void trainForward(const DataArray& inputs) override;
     DataArray evalForward(const DataArray& inputs) const override;
-    void updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) override;
+    void updateDelta(const DataArray& inputs, const Layer& nextLayer) override;
+    void updateParams(size_t epoch) override;
     void writeToStream(std::ostream& fout) const override;
     // Don't use. Use filters() instead.
     const Matrix& W() const override;
@@ -45,6 +46,7 @@ class ConvolutionalLayer : public Layer {
     Array3 m_Z;
     Array3 m_A;
     Array3 m_delta;
+    std::vector<Filter> m_paramDeltas;
     size_t m_inputW;
     size_t m_inputH;
     size_t m_inputDepth;

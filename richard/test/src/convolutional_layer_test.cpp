@@ -213,7 +213,7 @@ TEST_F(ConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
   ON_CALL(poolingLayer, type).WillByDefault(testing::Return(LayerType::MAX_POOLING));
   ON_CALL(poolingLayer, delta).WillByDefault(testing::ReturnRef(paddedPoolingLayerDelta.storage()));
 
-  layer.updateDelta(inputs.storage(), poolingLayer, 0);
+  layer.updateDelta(inputs.storage(), poolingLayer);
 
   // TODO
 }

@@ -14,7 +14,8 @@ class MaxPoolingLayer : public Layer {
     const DataArray& delta() const override;
     void trainForward(const DataArray& inputs) override;
     DataArray evalForward(const DataArray& inputs) const override;
-    void updateDelta(const DataArray& inputs, const Layer& nextLayer, size_t epoch) override;
+    void updateDelta(const DataArray& inputs, const Layer& nextLayer) override;
+    void updateParams(size_t) override {}
     void writeToStream(std::ostream&) const override {}
     const Matrix& W() const override;
 

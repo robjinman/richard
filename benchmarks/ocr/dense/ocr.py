@@ -75,7 +75,7 @@ model = keras.Sequential(
 
 model.summary()
 
-batch_size = 1
+batch_size = 10
 epochs = 30
 
 optimizer = keras.optimizers.SGD(learning_rate=0.7)
