@@ -1,12 +1,12 @@
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
+#include "mock_logger.hpp"
+#include "mock_data_loader.hpp"
+#include "mock_labelled_data_set.hpp"
 #include <neural_net.hpp>
 #include <dense_layer.hpp>
 #include <output_layer.hpp>
 #include <convolutional_layer.hpp>
-#include "mock_logger.hpp"
-#include "mock_data_loader.hpp"
-#include "mock_labelled_data_set.hpp"
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 using testing::NiceMock;
 

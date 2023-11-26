@@ -1,7 +1,7 @@
 #pragma once
 
-#include <gmock/gmock.h>
 #include <labelled_data_set.hpp>
+#include <gmock/gmock.h>
 
 class MockLabelledDataSet : public LabelledDataSet {
   public:

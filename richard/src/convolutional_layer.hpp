@@ -1,8 +1,8 @@
 #pragma once
 
+#include "layer.hpp"
 #include <nlohmann/json.hpp>
 #include <vector>
-#include "layer.hpp"
 
 class ConvolutionalLayer : public Layer {
   public:

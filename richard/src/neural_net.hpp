@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vector>
-#include <fstream>
-#include <nlohmann/json.hpp>
 #include "math.hpp"
 #include "types.hpp"
+#include <nlohmann/json.hpp>
+#include <vector>
+#include <fstream>
 
 class Logger;
 class LabelledDataSet;

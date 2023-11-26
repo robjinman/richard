@@ -1,5 +1,5 @@
-#include <iostream>
 #include "logger.hpp"
+#include <iostream>
 
 class StdoutLogger : public Logger {
   public:

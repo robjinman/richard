@@ -1,9 +1,9 @@
-#include <ostream>
-#include <cstring>
-#include <random>
 #include "math.hpp"
 #include "exception.hpp"
 #include "util.hpp"
+#include <ostream>
+#include <cstring>
+#include <random>
 
 namespace {
 

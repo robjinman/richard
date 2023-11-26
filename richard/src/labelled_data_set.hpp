@@ -1,11 +1,11 @@
 #pragma once
 
-#include <map>
-#include <string>
-#include <memory>
 #include "math.hpp"
 #include "data_loader.hpp"
 #include "types.hpp"
+#include <map>
+#include <string>
+#include <memory>
 
 class DataDetails;
 class FileSystem;

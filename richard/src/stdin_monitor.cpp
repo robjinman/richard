@@ -1,5 +1,5 @@
-#include <iostream>
 #include "stdin_monitor.hpp"
+#include <iostream>
 
 void StdinMonitor::onKey(char c, std::function<void()> handler) {
   std::lock_guard<std::mutex> lock(m_mutex);

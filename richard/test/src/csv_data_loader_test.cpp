@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include <csv_data_loader.hpp>
+#include <gtest/gtest.h>
 
 class CsvDataLoaderTest : public testing::Test {
   public:

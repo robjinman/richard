@@ -1,10 +1,10 @@
 #pragma once
 
+#include "exception.hpp"
 #include <memory>
 #include <initializer_list>
 #include <stdexcept>
 #include <functional>
-#include "exception.hpp"
 
 class DataArray {
   public:

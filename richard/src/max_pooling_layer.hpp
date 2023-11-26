@@ -1,8 +1,8 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
 #include "layer.hpp"
 #include "convolutional_layer.hpp"
+#include <nlohmann/json.hpp>
 
 class MaxPoolingLayer : public Layer {
   public:

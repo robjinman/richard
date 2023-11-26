@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-#include <convolutional_layer.hpp>
 #include "mock_layer.hpp"
+#include <convolutional_layer.hpp>
+#include <gtest/gtest.h>
 
 class ConvolutionalLayerTest : public testing::Test {
   public:

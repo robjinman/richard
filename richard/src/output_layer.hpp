@@ -1,7 +1,7 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
 #include "layer.hpp"
+#include <nlohmann/json.hpp>
 
 class OutputLayer : public Layer {
   public:

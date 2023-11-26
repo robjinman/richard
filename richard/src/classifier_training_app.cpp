@@ -1,9 +1,9 @@
-#include <iostream>
 #include "classifier_training_app.hpp"
 #include "stdin_monitor.hpp"
 #include "util.hpp"
 #include "file_system.hpp"
 #include "logger.hpp"
+#include <iostream>
 
 ClassifierTrainingApp::ClassifierTrainingApp(FileSystem& fileSystem, const Options& options,
   Logger& logger)

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <filesystem>
 #include "data_loader.hpp"
 #include "data_details.hpp"
+#include <filesystem>
 
 class ImageDataLoader : public DataLoader {
   public:

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "types.hpp"
+#include <nlohmann/json.hpp>
 #include <vector>
 #include <array>
-#include <nlohmann/json.hpp>
-#include "types.hpp"
 
 class NormalizationParams {
   public:

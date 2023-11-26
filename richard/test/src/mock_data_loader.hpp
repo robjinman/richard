@@ -1,7 +1,7 @@
 #pragma once
 
-#include <gmock/gmock.h>
 #include <data_loader.hpp>
+#include <gmock/gmock.h>
 
 class MockDataLoader : public DataLoader {
   public:

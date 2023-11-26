@@ -1,7 +1,7 @@
 #pragma once
 
-#include <gmock/gmock.h>
 #include <file_system.hpp>
+#include <gmock/gmock.h>
 
 class MockFileSystem : public FileSystem {
   public:

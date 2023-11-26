@@ -1,8 +1,8 @@
-#include <random>
 #include "convolutional_layer.hpp"
 #include "max_pooling_layer.hpp"
 #include "exception.hpp"
 #include "util.hpp"
+#include <random>
 
 ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW, size_t inputH,
   size_t inputDepth)

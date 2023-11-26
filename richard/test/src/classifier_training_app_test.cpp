@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
-#include <classifier_training_app.hpp>
 #include "mock_file_system.hpp"
 #include "mock_logger.hpp"
+#include <classifier_training_app.hpp>
+#include <gtest/gtest.h>
 
 using testing::NiceMock;
 

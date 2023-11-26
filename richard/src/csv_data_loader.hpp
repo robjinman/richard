@@ -1,9 +1,9 @@
 #pragma once
 
-#include <fstream>
-#include <memory>
 #include "data_loader.hpp"
 #include "data_details.hpp"
+#include <fstream>
+#include <memory>
 
 class CsvDataLoader : public DataLoader {
   public:

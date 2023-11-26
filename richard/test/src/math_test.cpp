@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include <math.hpp>
+#include <gtest/gtest.h>
 
 class MathTest : public testing::Test {
   public:

@@ -1,6 +1,6 @@
-#include <sstream>
 #include "csv_data_loader.hpp"
 #include "exception.hpp"
+#include <sstream>
 
 // Load training data from csv file
 //

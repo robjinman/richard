@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include <output_layer.hpp>
+#include <gtest/gtest.h>
 
 class OutputLayerTest : public testing::Test {
   public:

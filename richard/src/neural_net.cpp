@@ -1,9 +1,3 @@
-#include <cmath>
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-#include <sstream>
-#include <atomic>
 #include "neural_net.hpp"
 #include "util.hpp"
 #include "exception.hpp"
@@ -13,6 +7,11 @@
 #include "convolutional_layer.hpp"
 #include "output_layer.hpp"
 #include "logger.hpp"
+#include <cmath>
+#include <fstream>
+#include <algorithm>
+#include <sstream>
+#include <atomic>
 
 const NeuralNet::CostFn quadradicCost = [](const Vector& actual, const Vector& expected) {
   DBG_ASSERT(actual.size() == expected.size());

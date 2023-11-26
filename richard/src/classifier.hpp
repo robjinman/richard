@@ -1,7 +1,7 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
 #include "neural_net.hpp"
+#include <nlohmann/json.hpp>
 
 class LabelledDataSet;
 class DataDetails;

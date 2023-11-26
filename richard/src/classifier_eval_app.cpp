@@ -1,8 +1,8 @@
-#include <iostream>
 #include "classifier_eval_app.hpp"
 #include "util.hpp"
 #include "file_system.hpp"
 #include "logger.hpp"
+#include <iostream>
 
 ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const Options& options, Logger& logger)
   : m_logger(logger)

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <gmock/gmock.h>
 #include <logger.hpp>
+#include <gmock/gmock.h>
 
 class MockLogger : public Logger {
   public:

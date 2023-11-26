@@ -1,7 +1,7 @@
-#include <filesystem>
 #include "image_data_loader.hpp"
 #include "bitmap.hpp"
 #include "exception.hpp"
+#include <filesystem>
 
 using namespace cpputils;
 

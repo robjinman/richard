@@ -1,7 +1,7 @@
 #pragma once
 
-#include <gmock/gmock.h>
 #include <layer.hpp>
+#include <gmock/gmock.h>
 
 class MockLayer : public Layer {
   public:

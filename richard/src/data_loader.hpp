@@ -1,9 +1,9 @@
 #pragma once
 
+#include "math.hpp"
+#include <nlohmann/json.hpp>
 #include <vector>
 #include <memory>
-#include <nlohmann/json.hpp>
-#include "math.hpp"
 
 struct Sample {
   Sample(const std::string& label, const Array3& data)

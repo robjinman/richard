@@ -1,10 +1,10 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
 #include "application.hpp"
 #include "data_details.hpp"
 #include "classifier.hpp"
 #include "labelled_data_set.hpp"
+#include <nlohmann/json.hpp>
 
 class FileSystem;
 class Logger;
