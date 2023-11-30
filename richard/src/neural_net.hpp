@@ -12,7 +12,7 @@ class Layer;
 
 class NeuralNet {
   public:
-    using CostFn = std::function<double(const Vector&, const Vector&)>;
+    using CostFn = std::function<netfloat_t(const Vector&, const Vector&)>;
 
     virtual CostFn costFn() const = 0;
     virtual Triple inputSize() const = 0;

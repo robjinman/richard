@@ -42,7 +42,7 @@ size_t CsvDataLoader::loadSamples(std::vector<Sample>& samples) {
         label = token;
       }
       else {
-        double value = std::stod(token);
+        netfloat_t value = std::stod(token);
         v[i - 1] = normalize(m_normalization, value);
       }
     }

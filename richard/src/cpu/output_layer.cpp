@@ -1,4 +1,4 @@
-#include "output_layer.hpp"
+#include "cpu/output_layer.hpp"
 #include "util.hpp"
 
 OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize)

@@ -1,11 +1,11 @@
+#include "cpu/dense_layer.hpp"
+#include "cpu/max_pooling_layer.hpp"
+#include "cpu/convolutional_layer.hpp"
+#include "cpu/output_layer.hpp"
 #include "neural_net.hpp"
 #include "util.hpp"
 #include "exception.hpp"
 #include "labelled_data_set.hpp"
-#include "dense_layer.hpp"
-#include "max_pooling_layer.hpp"
-#include "convolutional_layer.hpp"
-#include "output_layer.hpp"
 #include "logger.hpp"
 #include <cmath>
 #include <fstream>
@@ -31,12 +31,12 @@ struct Hyperparams {
   static const nlohmann::json& exampleConfig();
 };
 
-class NeuralNetImpl : public NeuralNet {
+class CpuNeuralNet : public NeuralNet {
   public:
     using CostFn = std::function<netfloat_t(const Vector&, const Vector&)>;
 
-    NeuralNetImpl(const Triple& inputShape, const nlohmann::json& config, Logger& logger);
-    NeuralNetImpl(const Triple& inputShape, const nlohmann::json& config, std::istream& s,
+    CpuNeuralNet(const Triple& inputShape, const nlohmann::json& config, Logger& logger);
+    CpuNeuralNet(const Triple& inputShape, const nlohmann::json& config, std::istream& s,
       Logger& logger);
 
     CostFn costFn() const override;
@@ -94,11 +94,11 @@ const nlohmann::json& Hyperparams::exampleConfig() {
   return obj;
 }
 
-void NeuralNetImpl::abort() {
+void CpuNeuralNet::abort() {
   m_abort = true;
 }
 
-std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj, std::istream& fin,
+std::unique_ptr<Layer> CpuNeuralNet::constructLayer(const nlohmann::json& obj, std::istream& fin,
   const Triple& prevLayerSize) {
 
   size_t numInputs = prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2];
@@ -120,7 +120,7 @@ std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj, 
   }
 }
 
-std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj,
+std::unique_ptr<Layer> CpuNeuralNet::constructLayer(const nlohmann::json& obj,
   const Triple& prevLayerSize) {
 
   size_t numInputs = prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2];
@@ -142,7 +142,7 @@ std::unique_ptr<Layer> NeuralNetImpl::constructLayer(const nlohmann::json& obj,
   }
 }
 
-NeuralNetImpl::NeuralNetImpl(const Triple& inputShape, const nlohmann::json& config, Logger& logger)
+CpuNeuralNet::CpuNeuralNet(const Triple& inputShape, const nlohmann::json& config, Logger& logger)
   : m_logger(logger)
   , m_isTrained(false)
   , m_inputShape(inputShape)
@@ -164,7 +164,7 @@ NeuralNetImpl::NeuralNetImpl(const Triple& inputShape, const nlohmann::json& con
     prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2]));
 }
 
-NeuralNetImpl::NeuralNetImpl(const Triple& inputShape, const nlohmann::json& config,
+CpuNeuralNet::CpuNeuralNet(const Triple& inputShape, const nlohmann::json& config,
   std::istream& fin, Logger& logger)
   : m_logger(logger)
   , m_isTrained(false)
@@ -188,11 +188,11 @@ NeuralNetImpl::NeuralNetImpl(const Triple& inputShape, const nlohmann::json& con
   m_isTrained = true;
 }
 
-NeuralNet::CostFn NeuralNetImpl::costFn() const {
+NeuralNet::CostFn CpuNeuralNet::costFn() const {
   return quadradicCost;
 }
 
-void NeuralNetImpl::writeToStream(std::ostream& fout) const {
+void CpuNeuralNet::writeToStream(std::ostream& fout) const {
   ASSERT_MSG(m_isTrained, "Neural net is not trained");
 
   for (const auto& pLayer : m_layers) {
@@ -200,11 +200,11 @@ void NeuralNetImpl::writeToStream(std::ostream& fout) const {
   }
 }
 
-Triple NeuralNetImpl::inputSize() const {
+Triple CpuNeuralNet::inputSize() const {
   return m_inputShape;
 }
 
-netfloat_t NeuralNetImpl::feedForward(const Array3& x, const Vector& y) {
+netfloat_t CpuNeuralNet::feedForward(const Array3& x, const Vector& y) {
   const DataArray* A = &x.storage();
   for (auto& layer : m_layers) {
     layer->trainForward(*A);
@@ -216,12 +216,12 @@ netfloat_t NeuralNetImpl::feedForward(const Array3& x, const Vector& y) {
   return quadradicCost(*outputs, y);
 }
 
-OutputLayer& NeuralNetImpl::outputLayer() {
+OutputLayer& CpuNeuralNet::outputLayer() {
   ASSERT_MSG(!m_layers.empty(), "No output layer");
   return dynamic_cast<OutputLayer&>(*m_layers.back());
 }
 
-void NeuralNetImpl::backPropagate(const Array3& x, const Vector& y) {
+void CpuNeuralNet::backPropagate(const Array3& x, const Vector& y) {
   for (int l = static_cast<int>(m_layers.size()) - 1; l >= 0; --l) {
     if (l == static_cast<int>(m_layers.size()) - 1) {
       outputLayer().updateDelta(m_layers[m_layers.size() - 2]->activations(), y.storage());
@@ -235,13 +235,13 @@ void NeuralNetImpl::backPropagate(const Array3& x, const Vector& y) {
   }
 }
 
-void NeuralNetImpl::updateParams(size_t epoch) { 
+void CpuNeuralNet::updateParams(size_t epoch) { 
   for (auto& layer : m_layers) {
     layer->updateParams(epoch);
   }
 }
 
-void NeuralNetImpl::train(LabelledDataSet& trainingData) {
+void CpuNeuralNet::train(LabelledDataSet& trainingData) {
   m_logger.info(STR("Epochs: " << m_params.epochs));
   m_logger.info(STR("Batch size: " << m_params.batchSize));
   m_logger.info(STR("Mini-batch size: " << m_params.miniBatchSize));
@@ -299,7 +299,7 @@ void NeuralNetImpl::train(LabelledDataSet& trainingData) {
   m_isTrained = true;
 }
 
-VectorPtr NeuralNetImpl::evaluate(const Array3& x) const {
+VectorPtr CpuNeuralNet::evaluate(const Array3& x) const {
   DataArray A;
 
   for (size_t i = 0; i < m_layers.size(); ++i) {
@@ -350,7 +350,7 @@ const nlohmann::json& NeuralNet::exampleConfig() {
   return config;
 }
 
-Layer& NeuralNetImpl::getLayer(size_t index) {
+Layer& CpuNeuralNet::getLayer(size_t index) {
   ASSERT(index < m_layers.size());
   return *m_layers[index];
 }
@@ -358,13 +358,13 @@ Layer& NeuralNetImpl::getLayer(size_t index) {
 NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
   Logger& logger) {
 
-  return std::make_unique<NeuralNetImpl>(inputShape, config, logger);
+  return std::make_unique<CpuNeuralNet>(inputShape, config, logger);
 }
 
 NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
   std::istream& fin, Logger& logger) {
 
-  return std::make_unique<NeuralNetImpl>(inputShape, config, fin, logger);
+  return std::make_unique<CpuNeuralNet>(inputShape, config, fin, logger);
 }
 
 std::ostream& operator<<(std::ostream& os, LayerType layerType) {

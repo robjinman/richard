@@ -6,8 +6,8 @@ NormalizationParams::NormalizationParams()
   , max(0) {}
 
 NormalizationParams::NormalizationParams(const nlohmann::json& json)
-  : min(getOrThrow(json, "min").get<double>())
-  , max(getOrThrow(json, "max").get<double>()) {}
+  : min(getOrThrow(json, "min").get<netfloat_t>())
+  , max(getOrThrow(json, "max").get<netfloat_t>()) {}
 
 const nlohmann::json& NormalizationParams::exampleConfig() {
   static nlohmann::json obj;

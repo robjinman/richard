@@ -15,11 +15,11 @@ TEST_F(DenseLayerTest, evalForward) {
   json["learnRateDecay"] = 1.0;
   json["dropoutRate"] = 0.0;
 
-  ActivationFn activationFn = [](double x) {
+  ActivationFn activationFn = [](netfloat_t x) {
     return x * 2.0;
   };
 
-  ActivationFn activationFnPrime = [](double) {
+  ActivationFn activationFnPrime = [](netfloat_t) {
     return 2.0;
   };
 
@@ -44,11 +44,11 @@ TEST_F(DenseLayerTest, trainForward) {
   json["learnRateDecay"] = 1.0;
   json["dropoutRate"] = 0.0;
 
-  ActivationFn activationFn = [](double x) {
+  ActivationFn activationFn = [](netfloat_t x) {
     return x * 2.0;
   };
 
-  ActivationFn activationFnPrime = [](double) {
+  ActivationFn activationFnPrime = [](netfloat_t) {
     return 2.0;
   };
 
@@ -80,11 +80,11 @@ TEST_F(DenseLayerTest, updateDelta) {
   json["learnRateDecay"] = 1.0;
   json["dropoutRate"] = 0.0;
 
-  ActivationFn activationFn = [](double x) {
+  ActivationFn activationFn = [](netfloat_t x) {
     return 0.5 * x * x;
   };
 
-  ActivationFn activationFnPrime = [](double x) {
+  ActivationFn activationFnPrime = [](netfloat_t x) {
     return x;
   };
 

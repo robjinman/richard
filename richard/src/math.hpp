@@ -1,6 +1,7 @@
 #pragma once
 
 #include "exception.hpp"
+#include "types.hpp"
 #include <memory>
 #include <initializer_list>
 #include <stdexcept>
@@ -16,29 +17,29 @@ class DataArray {
     DataArray& operator=(const DataArray& cpy);
     DataArray& operator=(DataArray&& mv);
 
-    inline double* data();
-    inline const double* data() const;
-    inline std::unique_ptr<double[]>& uniquePtr();
+    inline netfloat_t* data();
+    inline const netfloat_t* data() const;
+    inline std::unique_ptr<netfloat_t[]>& uniquePtr();
 
     inline size_t size() const;
 
-    inline double& operator[](size_t i);
-    inline const double& operator[](size_t i) const;
+    inline netfloat_t& operator[](size_t i);
+    inline const netfloat_t& operator[](size_t i) const;
 
     static DataArray concat(const DataArray& A, const DataArray& B);
 
     friend std::ostream& operator<<(std::ostream& os, const DataArray& v);
 
   private:
-    std::unique_ptr<double[]> m_data;
+    std::unique_ptr<netfloat_t[]> m_data;
     size_t m_size;
 };
 
-double* DataArray::data() {
+netfloat_t* DataArray::data() {
   return m_data.get();
 }
 
-const double* DataArray::data() const {
+const netfloat_t* DataArray::data() const {
   return m_data.get();
 }
 
@@ -46,11 +47,11 @@ size_t DataArray::size() const {
   return m_size;
 }
 
-double& DataArray::operator[](size_t i) {
+netfloat_t& DataArray::operator[](size_t i) {
   return m_data.get()[i];
 }
 
-const double& DataArray::operator[](size_t i) const {
+const netfloat_t& DataArray::operator[](size_t i) const {
   return m_data.get()[i];
 }
 
@@ -65,7 +66,7 @@ class Vector {
   friend class Matrix;
 
   public:
-    explicit Vector(std::initializer_list<double> data);
+    explicit Vector(std::initializer_list<netfloat_t> data);
     explicit Vector(size_t length);
     Vector(const DataArray& data);
     Vector(DataArray&& data);
@@ -76,14 +77,14 @@ class Vector {
     inline const DataArray& storage() const;
     inline DataArray& storage();
 
-    inline double* data();
-    inline const double* data() const;
+    inline netfloat_t* data();
+    inline const netfloat_t* data() const;
 
     Vector& operator=(const Vector& rhs);
     Vector& operator=(Vector&& rhs);
 
-    inline double& operator[](size_t i);
-    inline const double& operator[](size_t i) const;
+    inline netfloat_t& operator[](size_t i);
+    inline const netfloat_t& operator[](size_t i) const;
     
     inline size_t size() const;
     
@@ -92,34 +93,34 @@ class Vector {
 
     void zero();
     void normalize();
-    Vector& randomize(double standardDeviation);
-    void fill(double x);
+    Vector& randomize(netfloat_t standardDeviation);
+    void fill(netfloat_t x);
 
-    double sum() const;
-    double magnitude() const;
-    double squareMagnitude() const;
-    double dot(const Vector& rhs) const;
+    netfloat_t sum() const;
+    netfloat_t magnitude() const;
+    netfloat_t squareMagnitude() const;
+    netfloat_t dot(const Vector& rhs) const;
 
     Vector operator+(const Vector& rhs) const;
     Vector operator-(const Vector& rhs) const;
     Vector hadamard(const Vector& rhs) const;
     Vector operator/(const Vector& rhs) const;
 
-    Vector operator+(double x) const;
-    Vector operator-(double x) const;
-    Vector operator*(double x) const;
-    Vector operator/(double x) const;
+    Vector operator+(netfloat_t x) const;
+    Vector operator-(netfloat_t x) const;
+    Vector operator*(netfloat_t x) const;
+    Vector operator/(netfloat_t x) const;
 
     Vector& operator+=(const Vector& rhs);
     Vector& operator-=(const Vector& rhs);
 
-    Vector& operator+=(double x);
-    Vector& operator-=(double x);
-    Vector& operator*=(double x);
-    Vector& operator/=(double x);
+    Vector& operator+=(netfloat_t x);
+    Vector& operator-=(netfloat_t x);
+    Vector& operator*=(netfloat_t x);
+    Vector& operator/=(netfloat_t x);
 
-    Vector computeTransform(const std::function<double(double)>& f) const;
-    void transformInPlace(const std::function<double(double)>& f);
+    Vector computeTransform(const std::function<netfloat_t(netfloat_t)>& f) const;
+    void transformInPlace(const std::function<netfloat_t(netfloat_t)>& f);
 
     // Returns shallow Vector
     inline VectorPtr subvector(size_t from, size_t size);
@@ -131,10 +132,10 @@ class Vector {
     friend std::ostream& operator<<(std::ostream& os, const Vector& v);
 
   private:
-    Vector(double* data, size_t size);
+    Vector(netfloat_t* data, size_t size);
 
     DataArray m_storage;
-    double* m_data;
+    netfloat_t* m_data;
     size_t m_size;
 };
 
@@ -150,19 +151,19 @@ DataArray& Vector::storage() {
   return m_storage;
 }
 
-double* Vector::data() {
+netfloat_t* Vector::data() {
   return m_data;
 }
 
-const double* Vector::data() const {
+const netfloat_t* Vector::data() const {
   return m_data;
 }
 
-double& Vector::operator[](size_t i) {
+netfloat_t& Vector::operator[](size_t i) {
   return m_data[i];
 }
 
-const double& Vector::operator[](size_t i) const {
+const netfloat_t& Vector::operator[](size_t i) const {
   return m_data[i];
 }
 
@@ -193,7 +194,7 @@ class Matrix {
   friend class Kernel;
 
   public:
-    explicit Matrix(std::initializer_list<std::initializer_list<double>> data);
+    explicit Matrix(std::initializer_list<std::initializer_list<netfloat_t>> data);
     explicit Matrix(size_t cols, size_t rows);
     Matrix(const DataArray& data, size_t cols, size_t rows);
     Matrix(DataArray&& data, size_t cols, size_t rows);
@@ -204,13 +205,13 @@ class Matrix {
     inline const DataArray& storage() const;
     inline DataArray& storage();
 
-    inline double* data();
-    inline const double* data() const;
+    inline netfloat_t* data();
+    inline const netfloat_t* data() const;
 
     inline size_t size() const;
 
-    inline double at(size_t col, size_t row) const;
-    inline void set(size_t col, size_t row, double value);
+    inline netfloat_t at(size_t col, size_t row) const;
+    inline void set(size_t col, size_t row, netfloat_t value);
 
     inline size_t cols() const;
     inline size_t rows() const;
@@ -225,15 +226,15 @@ class Matrix {
     Matrix operator+(const Matrix& rhs) const;
     Matrix operator-(const Matrix& rhs) const;
 
-    Matrix operator+(double x) const;
-    Matrix operator-(double x) const;
-    Matrix operator*(double x) const;
-    Matrix operator/(double x) const;
+    Matrix operator+(netfloat_t x) const;
+    Matrix operator-(netfloat_t x) const;
+    Matrix operator*(netfloat_t x) const;
+    Matrix operator/(netfloat_t x) const;
 
-    Matrix& operator+=(double x);
-    Matrix& operator-=(double x);
-    Matrix& operator*=(double x);
-    Matrix& operator/=(double x);
+    Matrix& operator+=(netfloat_t x);
+    Matrix& operator-=(netfloat_t x);
+    Matrix& operator*=(netfloat_t x);
+    Matrix& operator/=(netfloat_t x);
 
     Matrix& operator+=(const Matrix& rhs);
     Matrix& operator-=(const Matrix& rhs);
@@ -241,14 +242,14 @@ class Matrix {
     Vector transposeMultiply(const Vector& rhs) const;
 
     void zero();
-    void fill(double x);
-    Matrix& randomize(double standardDeviation);
+    void fill(netfloat_t x);
+    Matrix& randomize(netfloat_t standardDeviation);
 
-    double sum() const;
+    netfloat_t sum() const;
     Matrix transpose() const;
 
-    Matrix computeTransform(const std::function<double(double)>& f) const;
-    void transformInPlace(const std::function<double(double)>& f);
+    Matrix computeTransform(const std::function<netfloat_t(netfloat_t)>& f) const;
+    void transformInPlace(const std::function<netfloat_t(netfloat_t)>& f);
 
     // Returns shallow Vector
     inline VectorPtr slice(size_t row);
@@ -263,10 +264,10 @@ class Matrix {
     friend std::ostream& operator<<(std::ostream& os, const Matrix& m);
 
   private:
-    Matrix(double* data, size_t cols, size_t rows);
+    Matrix(netfloat_t* data, size_t cols, size_t rows);
   
     DataArray m_storage;
-    double* m_data;
+    netfloat_t* m_data;
     size_t m_rows;
     size_t m_cols;
 };
@@ -283,11 +284,11 @@ DataArray& Matrix::storage() {
   return m_storage;
 }
 
-double* Matrix::data() {
+netfloat_t* Matrix::data() {
   return m_data;
 }
 
-const double* Matrix::data() const {
+const netfloat_t* Matrix::data() const {
   return m_data;
 }
 
@@ -295,11 +296,11 @@ size_t Matrix::size() const {
   return m_cols * m_rows;
 }
 
-double Matrix::at(size_t col, size_t row) const {
+netfloat_t Matrix::at(size_t col, size_t row) const {
   return m_data[row * m_cols + col];
 }
 
-void Matrix::set(size_t col, size_t row, double value) {
+void Matrix::set(size_t col, size_t row, netfloat_t value) {
   m_data[row * m_cols + col] = value;
 }
 
@@ -341,7 +342,7 @@ using ConstArray3Ptr = ConstKernelPtr;
 class Kernel {
   public:
     explicit Kernel(
-      std::initializer_list<std::initializer_list<std::initializer_list<double>>> data);
+      std::initializer_list<std::initializer_list<std::initializer_list<netfloat_t>>> data);
     explicit Kernel(size_t W, size_t H, size_t D);
     Kernel(const DataArray& data, size_t W, size_t H, size_t D);
     Kernel(DataArray&& data, size_t W, size_t H, size_t D);
@@ -354,13 +355,13 @@ class Kernel {
     inline const DataArray& storage() const;
     inline DataArray& storage();
 
-    inline double* data();
-    inline const double* data() const;
+    inline netfloat_t* data();
+    inline const netfloat_t* data() const;
 
     inline size_t size() const;
 
-    inline double at(size_t x, size_t y, size_t z) const;
-    inline void set(size_t x, size_t y, size_t z, double value);
+    inline netfloat_t at(size_t x, size_t y, size_t z) const;
+    inline void set(size_t x, size_t y, size_t z, netfloat_t value);
 
     inline size_t W() const;
     inline size_t H() const;
@@ -370,27 +371,27 @@ class Kernel {
     Kernel& operator=(Kernel&& rhs);
 
     void zero();
-    void fill(double x);
-    Kernel& randomize(double standardDeviation);
+    void fill(netfloat_t x);
+    Kernel& randomize(netfloat_t standardDeviation);
 
     Kernel operator+(const Kernel& rhs) const;
     Kernel operator-(const Kernel& rhs) const;
 
-    Kernel operator+(double x) const;
-    Kernel operator-(double x) const;
-    Kernel operator*(double x) const;
-    Kernel operator/(double x) const;
+    Kernel operator+(netfloat_t x) const;
+    Kernel operator-(netfloat_t x) const;
+    Kernel operator*(netfloat_t x) const;
+    Kernel operator/(netfloat_t x) const;
 
-    Kernel& operator+=(double x);
-    Kernel& operator-=(double x);
-    Kernel& operator*=(double x);
-    Kernel& operator/=(double x);
+    Kernel& operator+=(netfloat_t x);
+    Kernel& operator-=(netfloat_t x);
+    Kernel& operator*=(netfloat_t x);
+    Kernel& operator/=(netfloat_t x);
 
     Kernel& operator+=(const Kernel& rhs);
     Kernel& operator-=(const Kernel& rhs);
 
-    Kernel computeTransform(const std::function<double(double)>& f) const;
-    void transformInPlace(const std::function<double(double)>& f);
+    Kernel computeTransform(const std::function<netfloat_t(netfloat_t)>& f) const;
+    void transformInPlace(const std::function<netfloat_t(netfloat_t)>& f);
 
     inline MatrixPtr slice(size_t z);
     inline ConstMatrixPtr slice(size_t z) const;
@@ -406,10 +407,10 @@ class Kernel {
     friend std::ostream& operator<<(std::ostream& os, const Kernel& k);
 
   private:
-    Kernel(double* data, size_t W, size_t H, size_t D);
+    Kernel(netfloat_t* data, size_t W, size_t H, size_t D);
 
     DataArray m_storage;
-    double* m_data;
+    netfloat_t* m_data;
     size_t m_D;
     size_t m_H;
     size_t m_W;
@@ -434,11 +435,11 @@ DataArray& Kernel::storage() {
   return m_storage;
 }
 
-double* Kernel::data() {
+netfloat_t* Kernel::data() {
   return m_data;
 }
 
-const double* Kernel::data() const {
+const netfloat_t* Kernel::data() const {
   return m_data;
 }
 
@@ -446,11 +447,11 @@ size_t Kernel::size() const {
   return m_W * m_H * m_D;
 }
 
-double Kernel::at(size_t x, size_t y, size_t z) const {
+netfloat_t Kernel::at(size_t x, size_t y, size_t z) const {
   return m_data[z * m_W * m_H + y * m_W + x];
 }
 
-void Kernel::set(size_t x, size_t y, size_t z, double value) {
+void Kernel::set(size_t x, size_t y, size_t z, netfloat_t value) {
   m_data[z * m_W * m_H + y * m_W + x] = value;
 }
 

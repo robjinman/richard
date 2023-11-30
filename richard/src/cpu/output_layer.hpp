@@ -1,20 +1,21 @@
 #pragma once
 
-#include "layer.hpp"
+#include "cpu/layer.hpp"
 #include <nlohmann/json.hpp>
 
-class DenseLayer : public Layer {
+class OutputLayer : public Layer {
   public:
-    DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize);
-    DenseLayer(const nlohmann::json& obj, size_t inputSize);
+    OutputLayer(const nlohmann::json& obj, size_t inputSize);
+    OutputLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize);
 
-    LayerType type() const override { return LayerType::DENSE; }
+    LayerType type() const override { return LayerType::OUTPUT; }
     Triple outputSize() const override;
     const DataArray& activations() const override;
     const DataArray& delta() const override;
     void trainForward(const DataArray& inputs) override;
     DataArray evalForward(const DataArray& inputs) const override;
-    void updateDelta(const DataArray& inputs, const Layer& nextLayer) override;
+    void updateDelta(const DataArray&, const Layer&) override;
+    void updateDelta(const DataArray& inputs, const DataArray& outputs);
     void updateParams(size_t epoch) override;
     void writeToStream(std::ostream& fout) const override;
     const Matrix& W() const override;
@@ -37,7 +38,6 @@ class DenseLayer : public Layer {
     Matrix m_deltaW;
     netfloat_t m_learnRate;
     netfloat_t m_learnRateDecay;
-    netfloat_t m_dropoutRate;
     ActivationFn m_activationFn;
     ActivationFn m_activationFnPrime;
 };

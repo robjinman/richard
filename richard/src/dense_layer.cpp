@@ -13,9 +13,9 @@ DenseLayer::DenseLayer(const nlohmann::json& obj, size_t inputSize)
   , m_activationFnPrime(sigmoidPrime) {
 
   size_t size = getOrThrow(obj, "size").get<size_t>();
-  m_learnRate = getOrThrow(obj, "learnRate").get<double>();
-  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<double>();
-  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<double>();
+  m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
+  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
+  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
 
   m_B = Vector(size);
   m_W = Matrix(inputSize, size);
@@ -39,15 +39,15 @@ DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inpu
   , m_activationFnPrime(sigmoidPrime) {
 
   size_t size = getOrThrow(obj, "size").get<size_t>();
-  m_learnRate = getOrThrow(obj, "learnRate").get<double>();
-  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<double>();
-  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<double>();
+  m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
+  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
+  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
 
   m_B = Vector(size);
-  fin.read(reinterpret_cast<char*>(m_B.data()), size * sizeof(double));
+  fin.read(reinterpret_cast<char*>(m_B.data()), size * sizeof(netfloat_t));
 
   m_W = Matrix(inputSize, size);
-  fin.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
+  fin.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 
   m_delta = Vector(size);
   m_deltaB = Vector(size);
@@ -55,8 +55,9 @@ DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inpu
 }
 
 void DenseLayer::writeToStream(std::ostream& fout) const {
-  fout.write(reinterpret_cast<const char*>(m_B.data()), m_B.size() * sizeof(double));
-  fout.write(reinterpret_cast<const char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(double));
+  fout.write(reinterpret_cast<const char*>(m_B.data()), m_B.size() * sizeof(netfloat_t));
+  fout.write(reinterpret_cast<const char*>(m_W.data()),
+    m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
 Triple DenseLayer::outputSize() const {
@@ -118,7 +119,7 @@ void DenseLayer::updateDelta(const DataArray& inputs, const Layer& nextLayer) {
 }
 
 void DenseLayer::updateParams(size_t epoch) {
-  double learnRate = m_learnRate * pow(m_learnRateDecay, epoch);
+  netfloat_t learnRate = m_learnRate * pow(m_learnRateDecay, epoch);
 
   for (size_t j = 0; j < m_W.rows(); j++) {
     for (size_t k = 0; k < m_W.cols(); k++) {

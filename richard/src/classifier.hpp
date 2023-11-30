@@ -12,7 +12,7 @@ class Classifier {
     struct Results {
       size_t good = 0;
       size_t bad = 0;
-      double cost = 0.0;
+      netfloat_t cost = 0.0;
     };
 
     Classifier(const DataDetails& dataDetails, const nlohmann::json& config, Logger& logger);

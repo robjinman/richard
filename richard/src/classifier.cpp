@@ -9,7 +9,7 @@ namespace {
 
 bool outputsMatch(const Vector& x, const Vector& y) {
   auto largestComponent = [](const Vector& v) {
-    double largest = std::numeric_limits<double>::min();
+    netfloat_t largest = std::numeric_limits<netfloat_t>::min();
     size_t largestIdx = 0;
     for (size_t i = 0; i < v.size(); ++i) {
       if (v[i] > largest) {
@@ -66,7 +66,7 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
   [[maybe_unused]] size_t netInputSize = inputSz[0] * inputSz[1] * inputSz[2];
 
   size_t totalSamples = 0;
-  double totalCost = 0.0;
+  netfloat_t totalCost = 0.0;
   while (testData.loadSamples(samples) > 0) {
     for (const auto& sample : samples) {
       DBG_ASSERT_MSG(sample.data.size() == netInputSize,

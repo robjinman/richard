@@ -1,5 +1,5 @@
-#include "convolutional_layer.hpp"
-#include "max_pooling_layer.hpp"
+#include "cpu/convolutional_layer.hpp"
+#include "cpu/max_pooling_layer.hpp"
 #include "exception.hpp"
 #include "util.hpp"
 #include <random>

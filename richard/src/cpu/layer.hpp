@@ -1,10 +1,10 @@
 #pragma once
 
+#include "math.hpp"
+#include "types.hpp"
 #include <array>
 #include <functional>
 #include <cmath>
-#include "math.hpp"
-#include "types.hpp"
 
 using ActivationFn = std::function<netfloat_t(netfloat_t)>;
 using CostDerivativesFn = std::function<Vector(const Vector&, const Vector&)>;

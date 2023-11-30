@@ -1,4 +1,4 @@
-#include "max_pooling_layer.hpp"
+#include "cpu/max_pooling_layer.hpp"
 #include "exception.hpp"
 #include "util.hpp"
 

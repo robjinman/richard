@@ -36,8 +36,8 @@ class OutputLayer : public Layer {
     Vector m_delta;
     Vector m_deltaB;
     Matrix m_deltaW;
-    double m_learnRate;
-    double m_learnRateDecay;
+    netfloat_t m_learnRate;
+    netfloat_t m_learnRateDecay;
     ActivationFn m_activationFn;
     ActivationFn m_activationFnPrime;
 };

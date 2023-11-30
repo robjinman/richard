@@ -13,11 +13,11 @@ TEST_F(OutputLayerTest, evalForward) {
   json["learnRate"] = 0.5;
   json["learnRateDecay"] = 1.0;
 
-  ActivationFn activationFn = [](double x) {
+  ActivationFn activationFn = [](netfloat_t x) {
     return x * 2.0;
   };
 
-  ActivationFn activationFnPrime = [](double) {
+  ActivationFn activationFnPrime = [](netfloat_t) {
     return 2.0;
   };
 

@@ -10,13 +10,13 @@ class NormalizationParams {
     NormalizationParams();
     explicit NormalizationParams(const nlohmann::json& json);
 
-    double min;
-    double max;
+    netfloat_t min;
+    netfloat_t max;
   
     static const nlohmann::json& exampleConfig();
 };
 
-inline double normalize(const NormalizationParams& params, double x) {
+inline netfloat_t normalize(const NormalizationParams& params, netfloat_t x) {
   return (x - params.min) / (params.max - params.min);
 }
 

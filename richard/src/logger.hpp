@@ -1,10 +1,7 @@
 #pragma once
 
 #include <string>
-#include <sstream>
 #include <memory>
-
-#define STR(x) (std::stringstream("") << x).str()
 
 class Logger {
   public:
