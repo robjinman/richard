@@ -38,7 +38,9 @@ class Vulkan : public Gpu {
       VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT* data, void*);
 
     void checkValidationLayerSupport() const;
+#ifndef NDEBUG
     VkDebugUtilsMessengerCreateInfoEXT getDebugMessengerCreateInfo() const;
+#endif
     std::vector<const char*> getRequiredExtensions() const;
     void createVulkanInstance();
     void setupDebugMessenger();
@@ -56,14 +58,18 @@ class Vulkan : public Gpu {
     void createCommandBuffer();
     void recordCommandBuffer(VkCommandBuffer commandBuffer, size_t numWorkgroups);
     void createSyncObjects();
+#ifndef NDEBUG
     void destroyDebugMessenger();
+#endif
     void destroyBuffer();
     void destroyStagingBuffer();
     VkShaderModule createShaderModule(const std::string& source) const;
     inline VkPipeline currentPipeline() const;
 
     VkInstance m_instance;
+#ifndef NDEBUG
     VkDebugUtilsMessengerEXT m_debugMessenger;
+#endif
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
     VkQueue m_computeQueue;
@@ -223,6 +229,7 @@ VkPipeline Vulkan::currentPipeline() const {
   return m_pipelines.at(m_currentPipelineIdx);
 }
 
+#ifndef NDEBUG
 void Vulkan::checkValidationLayerSupport() const {
   uint32_t layerCount;
   VK_CHECK(vkEnumerateInstanceLayerProperties(&layerCount, nullptr),
@@ -265,16 +272,6 @@ VkDebugUtilsMessengerCreateInfoEXT Vulkan::getDebugMessengerCreateInfo() const {
   return createInfo;
 }
 
-std::vector<const char*> Vulkan::getRequiredExtensions() const {
-  std::vector<const char*> extensions;
-
-#ifndef NDEBUG
-  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
-
-  return extensions;
-}
-
 void Vulkan::setupDebugMessenger() {
   auto createInfo = getDebugMessengerCreateInfo();
 
@@ -285,6 +282,23 @@ void Vulkan::setupDebugMessenger() {
   }
   VK_CHECK(func(m_instance, &createInfo, nullptr, &m_debugMessenger),
     "Error setting up debug messenger");
+}
+
+void Vulkan::destroyDebugMessenger() {
+  auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+    vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
+  func(m_instance, m_debugMessenger, nullptr);
+}
+#endif
+
+std::vector<const char*> Vulkan::getRequiredExtensions() const {
+  std::vector<const char*> extensions;
+
+#ifndef NDEBUG
+  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
+
+  return extensions;
 }
 
 void Vulkan::pickPhysicalDevice() {
@@ -604,12 +618,6 @@ void Vulkan::createSyncObjects() {
 
   VK_CHECK(vkCreateFence(m_device, &fenceInfo, nullptr, &m_taskCompleteFence),
     "Failed to create fence");
-}
-
-void Vulkan::destroyDebugMessenger() {
-  auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-    vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
-  func(m_instance, m_debugMessenger, nullptr);
 }
 
 Vulkan::~Vulkan() {

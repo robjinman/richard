@@ -1,4 +1,4 @@
-#include <output_layer.hpp>
+#include <cpu/output_layer.hpp>
 #include <gtest/gtest.h>
 
 class OutputLayerTest : public testing::Test {

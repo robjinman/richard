@@ -1,22 +1,22 @@
 #include "mock_logger.hpp"
 #include "mock_data_loader.hpp"
 #include "mock_labelled_data_set.hpp"
-#include <neural_net.hpp>
-#include <dense_layer.hpp>
-#include <output_layer.hpp>
-#include <convolutional_layer.hpp>
+#include <cpu/cpu_neural_net.hpp>
+#include <cpu/dense_layer.hpp>
+#include <cpu/output_layer.hpp>
+#include <cpu/convolutional_layer.hpp>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
 using testing::NiceMock;
 
-class NeuralNetTest : public testing::Test {
+class CpuNeuralNetTest : public testing::Test {
   public:
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
 
-TEST_F(NeuralNetTest, evaluate) {
+TEST_F(CpuNeuralNetTest, evaluate) {
   const std::string configString =     ""
   "{                                    "
   "  \"hyperparams\": {                 "
@@ -52,7 +52,7 @@ TEST_F(NeuralNetTest, evaluate) {
   Triple inputShape({ 3, 1, 1 });
 
   nlohmann::json config = nlohmann::json::parse(configString);
-  std::unique_ptr<NeuralNet> net = createNeuralNet(inputShape, config, logger);
+  CpuNeuralNetPtr net = createCpuNeuralNet(inputShape, config, logger);
 
   Sample sample("a", Array3({{{ 0.5, 0.3, 0.7 }}}));
   auto loadSample = [&sample](std::vector<Sample>& samples) {
@@ -105,7 +105,7 @@ TEST_F(NeuralNetTest, evaluate) {
 // should have no effect. Likewise, a max pooling layer with region size of 1x1 will have no effect.
 // Here we compare the behaviour of a convnet containing these "dummy" layers with a fully connected
 // network and assert that they are essentially identical.
-TEST_F(NeuralNetTest, evaluateTrivialConvVsFullyConnected) {
+TEST_F(CpuNeuralNetTest, evaluateTrivialConvVsFullyConnected) {
   const std::string convNetConfigString =  ""
   "{                                        "
   "  \"hyperparams\": {                     "
@@ -168,10 +168,10 @@ TEST_F(NeuralNetTest, evaluateTrivialConvVsFullyConnected) {
 
   Triple inputShape({ 2, 2, 1 });
 
-  NeuralNetPtr convNet = createNeuralNet(inputShape, nlohmann::json::parse(convNetConfigString),
-    logger);
-  NeuralNetPtr denseNet = createNeuralNet(inputShape, nlohmann::json::parse(denseNetConfigString),
-    logger);
+  CpuNeuralNetPtr convNet = createCpuNeuralNet(inputShape,
+    nlohmann::json::parse(convNetConfigString), logger);
+  CpuNeuralNetPtr denseNet = createCpuNeuralNet(inputShape,
+    nlohmann::json::parse(denseNetConfigString), logger);
 
   Sample sample("a", Array3({{
     { 0.5, 0.4 },
@@ -225,7 +225,7 @@ TEST_F(NeuralNetTest, evaluateTrivialConvVsFullyConnected) {
   // TODO: Add some assertions
 }
 
-TEST_F(NeuralNetTest, evaluateConv) {
+TEST_F(CpuNeuralNetTest, evaluateConv) {
   const std::string configString =       ""
   "{                                      "
   "  \"hyperparams\": {                   "
@@ -259,7 +259,7 @@ TEST_F(NeuralNetTest, evaluateConv) {
   Triple inputShape({ 5, 5, 1 });
 
   nlohmann::json config = nlohmann::json::parse(configString);
-  std::unique_ptr<NeuralNet> net = createNeuralNet(inputShape, config, logger);
+  CpuNeuralNetPtr net = createCpuNeuralNet(inputShape, config, logger);
 
   Sample sample("a", Array3({{
     { 0.5, 0.4, 0.3, 0.9, 0.8 },

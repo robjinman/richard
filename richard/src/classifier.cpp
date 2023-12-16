@@ -4,6 +4,7 @@
 #include "data_details.hpp"
 #include "util.hpp"
 #include "logger.hpp"
+#include "cpu/cpu_neural_net.hpp"
 
 namespace {
 
@@ -30,7 +31,7 @@ Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& con
   : m_logger(logger)
   , m_isTrained(false) {
 
-  m_neuralNet = createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin, m_logger);
+  m_neuralNet = createCpuNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin, m_logger);
 
   m_isTrained = true;
 }
@@ -40,7 +41,7 @@ Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& con
   , m_neuralNet(nullptr)
   , m_isTrained(false) {
 
-  m_neuralNet = createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), m_logger);
+  m_neuralNet = createCpuNeuralNet(dataDetails.shape, getOrThrow(config, "network"), m_logger);
 }
 
 void Classifier::writeToStream(std::ostream& fout) const {

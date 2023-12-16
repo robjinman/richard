@@ -3,8 +3,29 @@ Richard
 
 Richard is gaining power.
 
+
+Building
+--------
+
+From the richard subdirectory, to make a release build, run
+
+```
+    cmake -B build/release -D CMAKE_BUILD_TYPE=Release
+    cmake --build build/release
+```
+
+And for a debug build:
+
+```
+    cmake -B build/debug -D CMAKE_BUILD_TYPE=Debug
+    cmake --build build/debug
+```
+
+
 Examples
 --------
+
+All examples are run from the richard subdirectory.
 
 ### Classifying hand-written digits with a fully connected network
 
@@ -58,8 +79,8 @@ Examples
 ```
 
 ```
-    ./richard --train --samples ../../data/ocr/train.csv --config ../../data/ocr/config.json --network ../../data/ocr/network
-    ./richard --eval --samples ../../data/ocr/test.csv --network ../../data/ocr/network
+    ./build/release/richard --train --samples ../data/ocr/train.csv --config ../data/ocr/config.json --network ../data/ocr/network
+    ./build/release/richard --eval --samples ../data/ocr/test.csv --network ../data/ocr/network
 ```
 
 ### Classifying cats and dogs with a CNN
@@ -130,7 +151,7 @@ Examples
 ```
 
 ```
-    ./richard --train --samples ../../data/catdog/train --config ../../data/catdog/config.json --network ../../data/catdog/network
-    ./richard --eval --samples ../../data/catdog/test --network ../../data/catdog/network
+    ./build/release/richard --train --samples ../data/catdog/train --config ../data/catdog/config.json --network ../data/catdog/network
+    ./build/release/richard --eval --samples ../data/catdog/test --network ../data/catdog/network
 ```
 

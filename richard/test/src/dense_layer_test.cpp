@@ -1,5 +1,5 @@
 #include "mock_layer.hpp"
-#include <dense_layer.hpp>
+#include <cpu/dense_layer.hpp>
 #include <gtest/gtest.h>
 
 class DenseLayerTest : public testing::Test {

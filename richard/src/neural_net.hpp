@@ -3,12 +3,19 @@
 #include "math.hpp"
 #include "types.hpp"
 #include <nlohmann/json.hpp>
-#include <vector>
-#include <fstream>
 
-class Logger;
 class LabelledDataSet;
-class Layer;
+
+struct Hyperparams {
+  Hyperparams();
+  explicit Hyperparams(const nlohmann::json& obj);
+
+  size_t epochs;
+  size_t batchSize;
+  size_t miniBatchSize;
+
+  static const nlohmann::json& exampleConfig();
+};
 
 class NeuralNet {
   public:
@@ -26,16 +33,6 @@ class NeuralNet {
     static const nlohmann::json& exampleConfig();
 
     virtual ~NeuralNet() {}
-
-    // Exposed for testing
-    //
-    virtual Layer& getLayer(size_t index) = 0;
 };
 
 using NeuralNetPtr = std::unique_ptr<NeuralNet>;
-
-NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
-  Logger& logger);
-NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
-  std::istream& fin, Logger& logger);
-

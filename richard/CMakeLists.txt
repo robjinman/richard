@@ -104,6 +104,8 @@ FetchContent_MakeAvailable(json)
 file(GLOB
   CPP_SOURCES
   "${PROJECT_SOURCE_DIR}/src/*.cpp"
+  "${PROJECT_SOURCE_DIR}/src/cpu/*.cpp"
+  "${PROJECT_SOURCE_DIR}/src/gpu/*.cpp"
   "${PROJECT_SOURCE_DIR}/../common/*.cpp")
 list(REMOVE_ITEM CPP_SOURCES "${PROJECT_SOURCE_DIR}/src/main.cpp")
 
