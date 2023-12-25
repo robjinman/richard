@@ -5,12 +5,14 @@
 
 using namespace cpputils;
 
+namespace richard {
+
 ImageDataLoader::ImageDataLoader(const std::string& directoryPath,
   const std::vector<std::string>& labels, const NormalizationParams& normalization,
   size_t fetchSize)
-  : m_normalization(normalization)
-  , m_directoryPath(directoryPath)
-  , m_fetchSize(fetchSize) {
+  : DataLoader(fetchSize)
+  , m_normalization(normalization)
+  , m_directoryPath(directoryPath) {
 
   ASSERT_MSG(std::filesystem::is_directory(m_directoryPath),
     "'" << m_directoryPath << "' is not a directory");
@@ -33,7 +35,7 @@ void ImageDataLoader::seekToBeginning() {
 size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples) {
   size_t samplesLoaded = 0;
 
-  while (samplesLoaded < m_fetchSize) {
+  while (samplesLoaded < fetchSize()) {
     size_t numIteratorsFinished = 0;
     for (auto& cursor : m_iterators) {
       if (cursor.i == std::filesystem::directory_iterator{}) {
@@ -64,7 +66,7 @@ size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples) {
 
       ++cursor.i;
 
-      if (samplesLoaded >= m_fetchSize) {
+      if (samplesLoaded >= fetchSize()) {
         break;
       }
     }
@@ -77,3 +79,4 @@ size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples) {
   return samplesLoaded;
 }
 
+}

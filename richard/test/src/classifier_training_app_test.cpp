@@ -3,6 +3,7 @@
 #include <classifier_training_app.hpp>
 #include <gtest/gtest.h>
 
+using namespace richard;
 using testing::NiceMock;
 
 class ClassifierTrainingAppTest : public testing::Test {

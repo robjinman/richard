@@ -1,6 +1,8 @@
 #include <csv_data_loader.hpp>
 #include <gtest/gtest.h>
 
+using namespace richard;
+
 class CsvDataLoaderTest : public testing::Test {
   public:
     virtual void SetUp() override {}

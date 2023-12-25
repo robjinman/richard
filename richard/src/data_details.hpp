@@ -5,6 +5,8 @@
 #include <vector>
 #include <array>
 
+namespace richard {
+
 class NormalizationParams {
   public:
     NormalizationParams();
@@ -33,3 +35,4 @@ class DataDetails {
     static const nlohmann::json& exampleConfig();
 };
 
+}

@@ -2,6 +2,8 @@
 
 #include <memory>
 
+namespace richard {
+
 class Application {
   public:
     virtual void start() = 0;
@@ -11,3 +13,4 @@ class Application {
 
 using ApplicationPtr = std::unique_ptr<Application>;
 
+}

@@ -1,15 +1,11 @@
 #include "cpu/dense_layer.hpp"
 #include "util.hpp"
 
+namespace richard {
+namespace cpu {
+
 DenseLayer::DenseLayer(const nlohmann::json& obj, size_t inputSize)
-  : m_W(1, 1)
-  , m_B(1)
-  , m_Z(1)
-  , m_A(1)
-  , m_delta(1)
-  , m_deltaB(1)
-  , m_deltaW(1, 1)
-  , m_activationFn(sigmoid)
+  : m_activationFn(sigmoid)
   , m_activationFnPrime(sigmoidPrime) {
 
   size_t size = getOrThrow(obj, "size").get<size_t>();
@@ -27,15 +23,8 @@ DenseLayer::DenseLayer(const nlohmann::json& obj, size_t inputSize)
   m_deltaW = Matrix(inputSize, size);
 }
 
-DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize)
-  : m_W(1, 1)
-  , m_B(1)
-  , m_Z(1)
-  , m_A(1)
-  , m_delta(1)
-  , m_deltaB(1)
-  , m_deltaW(1, 1)
-  , m_activationFn(sigmoid)
+DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize)
+  : m_activationFn(sigmoid)
   , m_activationFnPrime(sigmoidPrime) {
 
   size_t size = getOrThrow(obj, "size").get<size_t>();
@@ -44,19 +33,19 @@ DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inpu
   m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
 
   m_B = Vector(size);
-  fin.read(reinterpret_cast<char*>(m_B.data()), size * sizeof(netfloat_t));
+  stream.read(reinterpret_cast<char*>(m_B.data()), size * sizeof(netfloat_t));
 
   m_W = Matrix(inputSize, size);
-  fin.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
+  stream.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 
   m_delta = Vector(size);
   m_deltaB = Vector(size);
   m_deltaW = Matrix(inputSize, size);
 }
 
-void DenseLayer::writeToStream(std::ostream& fout) const {
-  fout.write(reinterpret_cast<const char*>(m_B.data()), m_B.size() * sizeof(netfloat_t));
-  fout.write(reinterpret_cast<const char*>(m_W.data()),
+void DenseLayer::writeToStream(std::ostream& stream) const {
+  stream.write(reinterpret_cast<const char*>(m_B.data()), m_B.size() * sizeof(netfloat_t));
+  stream.write(reinterpret_cast<const char*>(m_W.data()),
     m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
@@ -152,4 +141,7 @@ void DenseLayer::setBiases(const DataArray& B) {
 void DenseLayer::setActivationFn(ActivationFn f, ActivationFn fPrime) {
   m_activationFn = f;
   m_activationFnPrime = fPrime;
+}
+
+}
 }

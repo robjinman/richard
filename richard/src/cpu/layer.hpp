@@ -6,6 +6,9 @@
 #include <functional>
 #include <cmath>
 
+namespace richard {
+namespace cpu {
+
 using ActivationFn = std::function<netfloat_t(netfloat_t)>;
 using CostDerivativesFn = std::function<Vector(const Vector&, const Vector&)>;
 
@@ -51,11 +54,15 @@ class Layer {
     virtual DataArray evalForward(const DataArray& inputs) const = 0;
     virtual void updateDelta(const DataArray& inputs, const Layer& nextLayer) = 0;
     virtual void updateParams(size_t epoch) = 0;
-    virtual void writeToStream(std::ostream& fout) const = 0;
+    virtual void writeToStream(std::ostream& stream) const = 0;
     virtual const Matrix& W() const = 0;
 
     virtual ~Layer() {}
 };
 
+using LayerPtr = std::unique_ptr<Layer>;
+
 std::ostream& operator<<(std::ostream& os, LayerType layerType);
 
+}
+}

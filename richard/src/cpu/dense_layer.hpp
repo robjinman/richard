@@ -3,9 +3,12 @@
 #include "cpu/layer.hpp"
 #include <nlohmann/json.hpp>
 
+namespace richard {
+namespace cpu {
+
 class DenseLayer : public Layer {
   public:
-    DenseLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize);
+    DenseLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize);
     DenseLayer(const nlohmann::json& obj, size_t inputSize);
 
     LayerType type() const override { return LayerType::DENSE; }
@@ -16,7 +19,7 @@ class DenseLayer : public Layer {
     DataArray evalForward(const DataArray& inputs) const override;
     void updateDelta(const DataArray& inputs, const Layer& nextLayer) override;
     void updateParams(size_t epoch) override;
-    void writeToStream(std::ostream& fout) const override;
+    void writeToStream(std::ostream& stream) const override;
     const Matrix& W() const override;
 
     // Exposed for testing
@@ -42,3 +45,5 @@ class DenseLayer : public Layer {
     ActivationFn m_activationFnPrime;
 };
 
+}
+}

@@ -1,6 +1,8 @@
 #include "logger.hpp"
 #include <iostream>
 
+namespace richard {
+
 class StdoutLogger : public Logger {
   public:
     void info(const std::string& msg, bool newline = true) override;
@@ -39,3 +41,4 @@ LoggerPtr createStdoutLogger() {
   return std::make_unique<StdoutLogger>();
 }
 
+}

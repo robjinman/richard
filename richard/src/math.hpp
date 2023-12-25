@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <functional>
 
+namespace richard {
+
 class DataArray {
   public:
     DataArray();
@@ -66,6 +68,7 @@ class Vector {
   friend class Matrix;
 
   public:
+    explicit Vector();
     explicit Vector(std::initializer_list<netfloat_t> data);
     explicit Vector(size_t length);
     Vector(const DataArray& data);
@@ -140,7 +143,7 @@ class Vector {
 };
 
 bool Vector::isShallow() const {
-  return m_storage.size() == 0;
+  return m_storage.size() == 0 && m_data != nullptr;
 }
 
 const DataArray& Vector::storage() const {
@@ -194,6 +197,7 @@ class Matrix {
   friend class Kernel;
 
   public:
+    explicit Matrix();
     explicit Matrix(std::initializer_list<std::initializer_list<netfloat_t>> data);
     explicit Matrix(size_t cols, size_t rows);
     Matrix(const DataArray& data, size_t cols, size_t rows);
@@ -273,7 +277,7 @@ class Matrix {
 };
 
 bool Matrix::isShallow() const {
-  return m_storage.size() == 0;
+  return m_storage.size() == 0 && m_data != nullptr;
 }
 
 const DataArray& Matrix::storage() const {
@@ -341,6 +345,7 @@ using ConstArray3Ptr = ConstKernelPtr;
 
 class Kernel {
   public:
+    explicit Kernel();
     explicit Kernel(
       std::initializer_list<std::initializer_list<std::initializer_list<netfloat_t>>> data);
     explicit Kernel(size_t W, size_t H, size_t D);
@@ -424,7 +429,7 @@ inline void Kernel::setData(DataArray&& data) {
 }
 
 bool Kernel::isShallow() const {
-  return m_storage.size() == 0;
+  return m_storage.size() == 0 && m_data != nullptr;
 }
 
 const DataArray& Kernel::storage() const {
@@ -479,3 +484,4 @@ bool Kernel::operator!=(const Kernel& rhs) const {
   return !(*this == rhs);
 }
 
+}

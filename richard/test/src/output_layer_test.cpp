@@ -1,6 +1,9 @@
 #include <cpu/output_layer.hpp>
 #include <gtest/gtest.h>
 
+using namespace richard;
+using namespace richard::cpu;
+
 class OutputLayerTest : public testing::Test {
   public:
     virtual void SetUp() override {}

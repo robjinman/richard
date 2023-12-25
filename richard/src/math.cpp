@@ -5,6 +5,7 @@
 #include <cstring>
 #include <random>
 
+namespace richard {
 namespace {
 
 bool arraysEqual(const netfloat_t* A, const netfloat_t* B, size_t size) {
@@ -119,6 +120,10 @@ std::ostream& operator<<(std::ostream& os, const DataArray& v) {
 
   return os;
 }
+
+Vector::Vector()
+  : m_data(nullptr)
+  , m_size(0) {}
 
 Vector::Vector(std::initializer_list<netfloat_t> data)
   : m_storage(data.size())
@@ -404,6 +409,11 @@ std::ostream& operator<<(std::ostream& os, const Vector& v) {
   return os;
 }
 
+Matrix::Matrix()
+  : m_data(nullptr)
+  , m_rows(0)
+  , m_cols(0) {}
+
 Matrix::Matrix(std::initializer_list<std::initializer_list<netfloat_t>> data)
   : m_storage(count(data))
   , m_data(m_storage.data())
@@ -683,6 +693,12 @@ std::ostream& operator<<(std::ostream& os, const Matrix& m) {
 
   return os;
 }
+
+Kernel::Kernel()
+  : m_data(nullptr)
+  , m_D(0)
+  , m_H(0)
+  , m_W(0) {}
 
 Kernel::Kernel(std::initializer_list<std::initializer_list<std::initializer_list<netfloat_t>>> data)
   : m_storage(count(data))
@@ -998,3 +1014,4 @@ std::ostream& operator<<(std::ostream& os, const Kernel& k) {
   return os;
 }
 
+}

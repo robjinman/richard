@@ -4,6 +4,11 @@
 #include "csv_data_loader.hpp"
 #include "file_system.hpp"
 
+namespace richard {
+
+DataLoader::DataLoader(size_t fetchSize)
+  : m_fetchSize(fetchSize) {}
+
 const nlohmann::json& DataLoader::exampleConfig() {
   static nlohmann::json obj;
   static bool done = false;
@@ -37,3 +42,4 @@ DataLoaderPtr createDataLoader(FileSystem& fileSystem, const nlohmann::json& con
   }
 }
 
+}

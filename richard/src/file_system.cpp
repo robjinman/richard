@@ -1,5 +1,7 @@
 #include "file_system.hpp"
 
+namespace richard {
+
 class FileSystemImpl : public FileSystem {
   public:
     std::unique_ptr<std::ostream> openFileForWriting(const std::string& path) override;
@@ -18,3 +20,4 @@ FileSystemPtr createFileSystem() {
   return std::make_unique<FileSystemImpl>();
 }
 
+}

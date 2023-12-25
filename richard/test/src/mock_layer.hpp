@@ -3,6 +3,9 @@
 #include <cpu/layer.hpp>
 #include <gmock/gmock.h>
 
+using namespace richard;
+using namespace richard::cpu;
+
 class MockLayer : public Layer {
   public:
     MOCK_METHOD(LayerType, type, (), (const, override));

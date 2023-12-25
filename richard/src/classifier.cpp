@@ -5,7 +5,9 @@
 #include "util.hpp"
 #include "logger.hpp"
 #include "cpu/cpu_neural_net.hpp"
+#include "gpu/gpu_neural_net.hpp"
 
+namespace richard {
 namespace {
 
 bool outputsMatch(const Vector& x, const Vector& y) {
@@ -27,21 +29,34 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 }
 
 Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config,
-  std::istream& fin, Logger& logger)
+  std::istream& fin, Logger& logger, bool gpuAccelerated)
   : m_logger(logger)
   , m_isTrained(false) {
 
-  m_neuralNet = createCpuNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin, m_logger);
+  if (gpuAccelerated) {
+    m_neuralNet = gpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin,
+      m_logger);
+  }
+  else {
+    m_neuralNet = cpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin,
+      m_logger);
+  }
 
   m_isTrained = true;
 }
 
-Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config, Logger& logger)
+Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config, Logger& logger,
+  bool gpuAccelerated)
   : m_logger(logger)
   , m_neuralNet(nullptr)
   , m_isTrained(false) {
 
-  m_neuralNet = createCpuNeuralNet(dataDetails.shape, getOrThrow(config, "network"), m_logger);
+  if (gpuAccelerated) {
+    m_neuralNet = gpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), m_logger);
+  }
+  else {
+    m_neuralNet = cpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), m_logger);
+  }
 }
 
 void Classifier::writeToStream(std::ostream& fout) const {
@@ -113,3 +128,4 @@ const nlohmann::json& Classifier::exampleConfig() {
   return obj;
 }
 
+}

@@ -9,6 +9,7 @@
 
 namespace po = boost::program_options;
 
+using namespace richard;
 using std::chrono::duration_cast;
 
 namespace {
@@ -55,6 +56,9 @@ ApplicationPtr constructApp(Logger& logger, FileSystem& fileSystem, po::variable
     opts.samplesPath = getOpt(vm, "samples", true).as<std::string>();
     opts.configFile = getOpt(vm, "config", true).as<std::string>();
     opts.networkFile = getOpt(vm, "network", true).as<std::string>();
+    opts.gpuAccelerated = vm.count("gpu");
+
+    vm.erase("gpu");
 
     app = std::make_unique<ClassifierTrainingApp>(fileSystem, opts, logger);
   }
@@ -65,6 +69,9 @@ ApplicationPtr constructApp(Logger& logger, FileSystem& fileSystem, po::variable
 
     opts.samplesPath = getOpt(vm, "samples", true).as<std::string>();
     opts.networkFile = getOpt(vm, "network", true).as<std::string>();
+    opts.gpuAccelerated = vm.count("gpu");
+
+    vm.erase("gpu");
 
     app = std::make_unique<ClassifierEvalApp>(fileSystem, opts, logger);
   }
@@ -106,7 +113,8 @@ int main(int argc, char** argv) {
       ("gen,g", po::value<std::string>(), "Generate example config file for app type [train]")
       ("samples,s", po::value<std::string>())
       ("config,c", po::value<std::string>(), "JSON configuration file")
-      ("network,n", po::value<std::string>()->required(), "File to save/load neural network state");
+      ("network,n", po::value<std::string>()->required(), "File to save/load neural network state")
+      ("gpu,x", "Use GPU acceleration");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);

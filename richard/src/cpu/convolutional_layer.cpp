@@ -4,12 +4,12 @@
 #include "util.hpp"
 #include <random>
 
+namespace richard {
+namespace cpu {
+
 ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW, size_t inputH,
   size_t inputDepth)
-  : m_Z(1, 1, 1)
-  , m_A(1, 1, 1)
-  , m_delta(1, 1, 1)
-  , m_inputW(inputW)
+  : m_inputW(inputW)
   , m_inputH(inputH)
   , m_inputDepth(inputDepth) {
 
@@ -43,12 +43,9 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, size_t inputW,
   m_delta = Array3(sz[0], sz[1], sz[2]);
 }
 
-ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& fin, size_t inputW,
-  size_t inputH, size_t inputDepth)
-  : m_Z(1, 1, 1)
-  , m_A(1, 1, 1)
-  , m_delta(1, 1, 1)
-  , m_inputW(inputW)
+ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& stream,
+  size_t inputW, size_t inputH, size_t inputDepth)
+  : m_inputW(inputW)
   , m_inputH(inputH)
   , m_inputDepth(inputDepth) {
 
@@ -62,8 +59,8 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& 
 
     filter.K = Kernel(kernelSize[0], kernelSize[1], inputDepth);
 
-    fin.read(reinterpret_cast<char*>(&filter.b), sizeof(netfloat_t));
-    fin.read(reinterpret_cast<char*>(filter.K.data()),
+    stream.read(reinterpret_cast<char*>(&filter.b), sizeof(netfloat_t));
+    stream.read(reinterpret_cast<char*>(filter.K.data()),
       filter.K.W() * filter.K.H() * filter.K.D() * sizeof(netfloat_t));
 
     m_filters.push_back(filter);
@@ -202,10 +199,10 @@ void ConvolutionalLayer::updateParams(size_t epoch) {
   }
 }
 
-void ConvolutionalLayer::writeToStream(std::ostream& fout) const {
+void ConvolutionalLayer::writeToStream(std::ostream& stream) const {
   for (const Filter& filter : m_filters) {
-    fout.write(reinterpret_cast<const char*>(&filter.b), sizeof(netfloat_t));
-    fout.write(reinterpret_cast<const char*>(filter.K.data()),
+    stream.write(reinterpret_cast<const char*>(&filter.b), sizeof(netfloat_t));
+    stream.write(reinterpret_cast<const char*>(filter.K.data()),
       filter.K.size() * sizeof(netfloat_t));
   }
 }
@@ -234,3 +231,5 @@ void ConvolutionalLayer::setFilters(const std::vector<ConvolutionalLayer::Filter
   m_filters = filters;
 }
 
+}
+}

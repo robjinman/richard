@@ -1,4 +1,4 @@
-#include "gpu/gpu.hpp"
+#include "gpu.hpp"
 #include "exception.hpp"
 #include <vulkan/vulkan.h>
 #include <shaderc/shaderc.hpp>
@@ -6,7 +6,12 @@
 #include <vector>
 #include <cstring>
 #include <algorithm>
-#include <map>
+#include <filesystem>
+#include <sstream>
+#include <fstream>
+
+namespace richard {
+namespace gpu {
 
 #define VK_CHECK(fnCall, msg) \
   { \
@@ -18,18 +23,93 @@
 
 namespace {
 
+class SourceIncluder : public shaderc::CompileOptions::IncluderInterface {
+  public:
+    SourceIncluder(const std::filesystem::path& sourcesDirectory)
+      : m_sourcesDirectory(sourcesDirectory) {}
+
+    shaderc_include_result* GetInclude(const char* requested_source,
+      shaderc_include_type type, const char* requesting_source, size_t include_depth) override;
+
+    void ReleaseInclude(shaderc_include_result* data) override;
+
+  private:
+    std::filesystem::path m_sourcesDirectory;
+    std::string m_errorMessage;
+};
+
+shaderc_include_result* SourceIncluder::GetInclude(const char* requested_source,
+  shaderc_include_type, const char*, size_t) {
+
+  auto result = new shaderc_include_result{};
+
+  try {
+    auto sourcePath = m_sourcesDirectory.append(requested_source);
+    std::ifstream stream(sourcePath, std::ios::binary | std::ios::ate);
+
+    ASSERT_MSG(stream.good(), "Error opening file " << sourcePath);
+
+    size_t contentLength = stream.tellg();
+    stream.seekg(0);
+
+    char* contentBuffer = new char[contentLength];
+    stream.read(contentBuffer, contentLength);
+
+    size_t sourceNameLength = sourcePath.string().length();
+    char* nameBuffer = new char[sourceNameLength];
+    strcpy(nameBuffer, sourcePath.c_str());
+
+    result->source_name = nameBuffer;
+    result->source_name_length = sourceNameLength;
+    result->content = contentBuffer;
+    result->content_length = contentLength;
+    result->user_data = nullptr;
+  }
+  catch (const std::exception& ex) {
+    m_errorMessage = ex.what();
+    result->content = m_errorMessage.c_str();
+    result->content_length = m_errorMessage.length();
+  }
+
+  return result;
+}
+
+void SourceIncluder::ReleaseInclude(shaderc_include_result* data) {
+  delete[] data->content;
+  delete[] data->source_name;
+  delete data;
+}
+
 const std::vector<const char*> ValidationLayers = {
   "VK_LAYER_KHRONOS_validation"
+};
+
+struct Buffer {
+  VkBuffer handle = VK_NULL_HANDLE;
+  VkDeviceMemory memory = VK_NULL_HANDLE;
+  VkDeviceSize size = 0;
+  VkDescriptorType type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+};
+
+struct Pipeline {
+  VkPipeline handle = VK_NULL_HANDLE;
+  VkPipelineLayout layout = VK_NULL_HANDLE;
+  VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+  VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
 };
 
 class Vulkan : public Gpu {
   public:
     Vulkan();
 
-    ShaderHandle compileShader(const std::string& shaderSource);
-    void submitBuffer(const void* buffer, size_t bufferSize) override;
-    void executeShader(size_t shaderIndex, size_t numWorkgroups) override;
-    void retrieveBuffer(void* data) override;
+    ShaderHandle compileShader(const std::string& sourcePath,
+      const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
+      const Size3& workgroupSize) override;
+    GpuBuffer allocateBuffer(size_t size, GpuBufferFlags flags) override;
+    void submitBufferData(GpuBufferHandle buffer, const void* data) override;
+    void queueShader(ShaderHandle shaderHandle) override;
+    void retrieveBuffer(GpuBufferHandle buffer, void* data) override;
+    void flushQueue() override;
 
     ~Vulkan();
 
@@ -37,11 +117,7 @@ class Vulkan : public Gpu {
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT,
       VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT* data, void*);
 
-    void checkValidationLayerSupport() const;
-#ifndef NDEBUG
     VkDebugUtilsMessengerCreateInfoEXT getDebugMessengerCreateInfo() const;
-#endif
-    std::vector<const char*> getRequiredExtensions() const;
     void createVulkanInstance();
     void setupDebugMessenger();
     void pickPhysicalDevice();
@@ -50,187 +126,267 @@ class Vulkan : public Gpu {
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
       VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
-    void createDescriptorSetLayout();
-    void createPipelineLayout();
+    VkDescriptorSetLayout createDescriptorSetLayout(const GpuBufferBindings& buffers);
+    VkPipelineLayout createPipelineLayout(VkDescriptorSetLayout descriptorSetLayout);
     void createCommandPool();
     void createDescriptorPool();
-    void createDescriptorSets();
-    void createCommandBuffer();
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, size_t numWorkgroups);
+    VkDescriptorSet createDescriptorSet(const GpuBufferBindings& buffers,
+      VkDescriptorSetLayout layout);
+    VkCommandBuffer createCommandBuffer();
+    void dispatchWorkgroups(VkCommandBuffer commandBuffer, size_t pipelineIdx,
+      const Size3& numWorkgroups);
     void createSyncObjects();
-#ifndef NDEBUG
     void destroyDebugMessenger();
-#endif
-    void destroyBuffer();
-    void destroyStagingBuffer();
-    VkShaderModule createShaderModule(const std::string& source) const;
-    inline VkPipeline currentPipeline() const;
+    VkShaderModule createShaderModule(const std::string& sourcePath) const;
 
     VkInstance m_instance;
-#ifndef NDEBUG
     VkDebugUtilsMessengerEXT m_debugMessenger;
-#endif
     VkPhysicalDevice m_physicalDevice;
     VkDevice m_device;
-    VkQueue m_computeQueue;
-    VkBuffer m_buffer;
-    VkDeviceMemory m_bufferMemory;
-    VkDeviceSize m_bufferSize;
-    VkBuffer m_stagingBuffer;
-    VkDeviceMemory m_stagingBufferMemory;
-    VkDescriptorSetLayout m_descriptorSetLayout;
-    VkPipelineLayout m_pipelineLayout;
-    std::vector<VkPipeline> m_pipelines;
-    size_t m_currentPipelineIdx;
+    VkQueue m_computeQueue; // TODO: Separate queue for transfers?
+    std::vector<Buffer> m_buffers;
+    std::vector<Pipeline> m_pipelines;
     VkCommandPool m_commandPool;
-    VkCommandBuffer m_commandBuffer;
+    std::vector<VkCommandBuffer> m_commandBuffers;
     VkDescriptorPool m_descriptorPool;
-    VkDescriptorSet m_descriptorSet;
     VkFence m_taskCompleteFence;
 };
 
-Vulkan::Vulkan()
-  : m_buffer(VK_NULL_HANDLE)
-  , m_bufferMemory(VK_NULL_HANDLE)
-  , m_bufferSize(0)
-  , m_stagingBuffer(VK_NULL_HANDLE)
-  , m_stagingBufferMemory(VK_NULL_HANDLE) {
-
+Vulkan::Vulkan() {
   createVulkanInstance();
 #ifndef NDEBUG
   setupDebugMessenger();
 #endif
   pickPhysicalDevice();
   createLogicalDevice();
-  createDescriptorSetLayout();
-  createPipelineLayout();
   createCommandPool();
   createDescriptorPool();
-  createCommandBuffer();
   createSyncObjects();
 }
 
-void Vulkan::destroyBuffer() {
-    vkDestroyBuffer(m_device, m_buffer, nullptr);
-    vkFreeMemory(m_device, m_bufferMemory, nullptr);
-    m_buffer = VK_NULL_HANDLE;
-    m_bufferMemory = VK_NULL_HANDLE;
-    m_bufferSize = 0;
+void chooseVulkanBufferFlags(GpuBufferFlags flags, VkMemoryPropertyFlags& memProps,
+  VkBufferUsageFlags& usage, VkDescriptorType& type, bool& memoryMapped) {
+
+  if (!!(flags & GpuBufferFlags::shaderReadonly) && !(flags & GpuBufferFlags::large)) {
+    type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    memProps = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    memoryMapped = true;
+  }
+  else {
+    type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    if (!!(flags & GpuBufferFlags::frequentHostAccess)) {
+      memoryMapped = true;
+      memProps = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    }
+    else {
+      if (!!(flags & GpuBufferFlags::hostReadAccess)) {
+        usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        memoryMapped = false;
+      }
+      if (!!(flags & GpuBufferFlags::hostWriteAccess)) {
+        usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        memoryMapped = false;
+      }
+      memProps = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    }
+  }
 }
 
-void Vulkan::destroyStagingBuffer() {
-  vkDestroyBuffer(m_device, m_stagingBuffer, nullptr);
-  vkFreeMemory(m_device, m_stagingBufferMemory, nullptr);
-  m_stagingBuffer = VK_NULL_HANDLE;
-  m_stagingBufferMemory = VK_NULL_HANDLE;
+GpuBuffer Vulkan::allocateBuffer(size_t size, GpuBufferFlags flags) {
+  Buffer buffer;
+  buffer.size = size;
+
+  VkMemoryPropertyFlags memProps = 0;
+  VkBufferUsageFlags usage = 0;
+  bool memoryMapped = false;
+
+  chooseVulkanBufferFlags(flags, memProps, usage, buffer.type, memoryMapped);
+
+  GpuBuffer gpuBuffer;
+  gpuBuffer.size = size;
+
+  createBuffer(size, usage, memProps, buffer.handle, buffer.memory);
+  if (memoryMapped) {
+    vkMapMemory(m_device, buffer.memory, 0, buffer.size, 0,
+      reinterpret_cast<void**>(&gpuBuffer.data));
+  }
+
+  m_buffers.push_back(buffer);
+
+  // TODO: Can't just be an index if we allow buffer deletion
+  gpuBuffer.handle = m_buffers.size() - 1;
+
+  return gpuBuffer;
 }
 
-void Vulkan::submitBuffer(const void* data, size_t size) {
-  VK_CHECK(vkDeviceWaitIdle(m_device), "Error waiting for device to be idle");
+void Vulkan::submitBufferData(GpuBufferHandle bufferHandle, const void* data) {
+  VkBuffer stagingBuffer;
+  VkDeviceMemory stagingBufferMemory;
 
-  if (m_buffer != VK_NULL_HANDLE) {
-    destroyBuffer();
-  }
-
-  if (m_stagingBuffer != VK_NULL_HANDLE) {
-    destroyStagingBuffer();
-  }
+  Buffer& buffer = m_buffers[bufferHandle];
 
   VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                               | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
                               | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 
-  createBuffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, flags, m_stagingBuffer,
-    m_stagingBufferMemory);
+  VkBufferUsageFlags stagingUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+                                  | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  createBuffer(buffer.size, stagingUsage, flags, stagingBuffer, stagingBufferMemory);
 
   void* stagingBufferMapped = nullptr;
-  vkMapMemory(m_device, m_stagingBufferMemory, 0, size, 0, &stagingBufferMapped);
-  memcpy(stagingBufferMapped, data, size);
-  vkUnmapMemory(m_device, m_stagingBufferMemory);
+  vkMapMemory(m_device, stagingBufferMemory, 0, buffer.size, 0, &stagingBufferMapped);
+  memcpy(stagingBufferMapped, data, buffer.size);
+  vkUnmapMemory(m_device, stagingBufferMemory);
 
-  VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT
-                           | VK_BUFFER_USAGE_TRANSFER_SRC_BIT
-                           | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-  createBuffer(size, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_buffer, m_bufferMemory);
+  copyBuffer(stagingBuffer, buffer.handle, buffer.size);
+  flushQueue();
 
-  copyBuffer(m_stagingBuffer, m_buffer, size);
-
-  m_bufferSize = size;
-
-  createDescriptorSets();
+  vkFreeMemory(m_device, stagingBufferMemory, nullptr);
+  vkDestroyBuffer(m_device, stagingBuffer, nullptr);
 }
 
-ShaderHandle Vulkan::compileShader(const std::string& shaderSource) {
-  VkShaderModule shaderModule = createShaderModule(shaderSource);
+ShaderHandle Vulkan::compileShader(const std::string& sourcePath,
+  const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
+  const Size3& workgroupSize) {
+
+  VkShaderModule shaderModule = createShaderModule(sourcePath);
+
+  std::vector<uint8_t> specializationData;
+  std::vector<VkSpecializationMapEntry> entries;
+
+  specializationData.reserve((3 + constants.size()) * sizeof(uint32_t));
+
+  for (uint32_t i = 0; i < 3; ++i) {
+    size_t offset = specializationData.size();
+    entries.push_back({
+      .constantID = i,
+      .offset = static_cast<uint32_t>(offset),
+      .size = sizeof(uint32_t)
+    });
+    specializationData.resize(offset + sizeof(uint32_t));
+    memcpy(specializationData.data() + offset, &workgroupSize[i], sizeof(uint32_t));
+  }
+
+  for (const auto& constant : constants) {
+    uint32_t constantId = entries.size();
+    size_t offset = specializationData.size();
+    size_t typeSize = 0;
+    switch (constant.type) {
+      case SpecializationConstant::Type::float_type: {
+        typeSize = sizeof(float);
+        specializationData.resize(offset + typeSize);
+        memcpy(specializationData.data() + offset, &std::get<float>(constant.value), typeSize);
+        break;
+      }
+      case SpecializationConstant::Type::uint_type: {
+        typeSize = sizeof(uint32_t);
+        specializationData.resize(offset + typeSize);
+        memcpy(specializationData.data() + offset, &std::get<uint32_t>(constant.value), typeSize);
+        break;
+      }
+    }
+    entries.push_back({
+      .constantID = constantId,
+      .offset = static_cast<uint32_t>(offset),
+      .size = typeSize
+    });
+  }
+
+  const VkSpecializationInfo specializationInfo = {
+    .mapEntryCount = static_cast<uint32_t>(entries.size()),
+    .pMapEntries  = entries.data(),
+    .dataSize = specializationData.size(),
+    .pData = specializationData.data()
+  };
+
+  Pipeline pipeline;
+  pipeline.descriptorSetLayout = createDescriptorSetLayout(bufferBindings);
+  pipeline.layout = createPipelineLayout(pipeline.descriptorSetLayout);
 
   VkPipelineShaderStageCreateInfo shaderStageInfo{};
   shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
   shaderStageInfo.module = shaderModule;
   shaderStageInfo.pName = "main";
+  shaderStageInfo.pSpecializationInfo = &specializationInfo;
 
   VkComputePipelineCreateInfo pipelineInfo{};
   pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-  pipelineInfo.layout = m_pipelineLayout;
+  pipelineInfo.layout = pipeline.layout;
   pipelineInfo.stage = shaderStageInfo;
 
-  VkPipeline pipeline = VK_NULL_HANDLE;
-
   VK_CHECK(vkCreateComputePipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
-    &pipeline), "Failed to create compute pipeline");
+    &pipeline.handle), "Failed to create compute pipeline");
 
   vkDestroyShaderModule(m_device, shaderModule, nullptr);
+
+  pipeline.descriptorSet = createDescriptorSet(bufferBindings, pipeline.descriptorSetLayout);
 
   m_pipelines.push_back(pipeline);
 
   return m_pipelines.size() - 1;
 }
 
-void Vulkan::executeShader(size_t shaderIndex, size_t numWorkgroups) {
-  //VK_CHECK(vkDeviceWaitIdle(m_device), "Error waiting for device to be idle");
+void Vulkan::queueShader(ShaderHandle shaderHandle) {
+  VkCommandBuffer commandBuffer = createCommandBuffer();
+  m_commandBuffers.push_back(commandBuffer);
 
-  m_currentPipelineIdx = shaderIndex;
+  dispatchWorkgroups(commandBuffer, shaderHandle, { 1, 1, 1 }); // TODO
+}
 
-  vkResetCommandBuffer(m_commandBuffer, 0);
-  recordCommandBuffer(m_commandBuffer, numWorkgroups);
+void Vulkan::flushQueue() {
+  if (m_commandBuffers.empty()) {
+    return;
+  }
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &m_commandBuffer;
+  submitInfo.commandBufferCount = m_commandBuffers.size();
+  submitInfo.pCommandBuffers = m_commandBuffers.data();
 
   VK_CHECK(vkQueueSubmit(m_computeQueue, 1, &submitInfo, m_taskCompleteFence),
     "Failed to submit compute command buffer");
+
+  // TODO: Remove fences?
 
   VK_CHECK(vkWaitForFences(m_device, 1, &m_taskCompleteFence, VK_TRUE, UINT64_MAX),
     "Error waiting for fence");
 
   VK_CHECK(vkResetFences(m_device, 1, &m_taskCompleteFence), "Error resetting fence");
+
+  vkFreeCommandBuffers(m_device, m_commandPool, m_commandBuffers.size(), m_commandBuffers.data());
+  m_commandBuffers.clear();
 }
 
-void Vulkan::retrieveBuffer(void* data) {
-//  VK_CHECK(vkDeviceWaitIdle(m_device), "Error waiting for device to be idle");
+void Vulkan::retrieveBuffer(GpuBufferHandle bufIdx, void* data) {
+  Buffer& buffer = m_buffers[bufIdx];
 
-  if (m_buffer == VK_NULL_HANDLE) {
-    EXCEPTION("Error retrieving buffer; Buffer has not been created yet");
-  }
+  VkBuffer stagingBuffer;
+  VkDeviceMemory stagingBufferMemory;
 
-  DBG_ASSERT(m_stagingBuffer != VK_NULL_HANDLE);
+  VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                              | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+                              | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 
-  copyBuffer(m_buffer, m_stagingBuffer, m_bufferSize);
+  VkBufferUsageFlags stagingUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+                                  | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  createBuffer(buffer.size, stagingUsage, flags, stagingBuffer, stagingBufferMemory);
+
+  copyBuffer(buffer.handle, stagingBuffer, buffer.size);
+  flushQueue();
 
   void* stagingBufferMapped = nullptr;
-  vkMapMemory(m_device, m_stagingBufferMemory, 0, m_bufferSize, 0, &stagingBufferMapped);
-  memcpy(data, stagingBufferMapped, m_bufferSize);
-  vkUnmapMemory(m_device, m_stagingBufferMemory);
+  vkMapMemory(m_device, stagingBufferMemory, 0, buffer.size, 0, &stagingBufferMapped);
+  memcpy(data, stagingBufferMapped, buffer.size);
+  vkUnmapMemory(m_device, stagingBufferMemory);
+
+  vkFreeMemory(m_device, stagingBufferMemory, nullptr);
+  vkDestroyBuffer(m_device, stagingBuffer, nullptr);
 }
 
-VkPipeline Vulkan::currentPipeline() const {
-  return m_pipelines.at(m_currentPipelineIdx);
-}
-
-#ifndef NDEBUG
-void Vulkan::checkValidationLayerSupport() const {
+void checkValidationLayerSupport() {
   uint32_t layerCount;
   VK_CHECK(vkEnumerateInstanceLayerProperties(&layerCount, nullptr),
     "Failed to enumerate instance layer properties");
@@ -272,6 +428,16 @@ VkDebugUtilsMessengerCreateInfoEXT Vulkan::getDebugMessengerCreateInfo() const {
   return createInfo;
 }
 
+std::vector<const char*> getRequiredExtensions() {
+  std::vector<const char*> extensions;
+
+#ifndef NDEBUG
+  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
+
+  return extensions;
+}
+
 void Vulkan::setupDebugMessenger() {
   auto createInfo = getDebugMessengerCreateInfo();
 
@@ -282,23 +448,6 @@ void Vulkan::setupDebugMessenger() {
   }
   VK_CHECK(func(m_instance, &createInfo, nullptr, &m_debugMessenger),
     "Error setting up debug messenger");
-}
-
-void Vulkan::destroyDebugMessenger() {
-  auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-    vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
-  func(m_instance, m_debugMessenger, nullptr);
-}
-#endif
-
-std::vector<const char*> Vulkan::getRequiredExtensions() const {
-  std::vector<const char*> extensions;
-
-#ifndef NDEBUG
-  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
-
-  return extensions;
 }
 
 void Vulkan::pickPhysicalDevice() {
@@ -366,38 +515,23 @@ void Vulkan::createLogicalDevice() {
 }
 
 void Vulkan::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool = m_commandPool; // TODO: Separate pool for temp buffers?
-  allocInfo.commandBufferCount = 1;
-  
-  VkCommandBuffer commandBuffer;
-  vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer);
-  
+  VkCommandBuffer commandBuffer = createCommandBuffer();
+
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
   vkBeginCommandBuffer(commandBuffer, &beginInfo);
-  
+
   VkBufferCopy copyRegion{};
   copyRegion.srcOffset = 0;
   copyRegion.dstOffset = 0;
   copyRegion.size = size;
   vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-  
+
   vkEndCommandBuffer(commandBuffer);
 
-  VkSubmitInfo submitInfo{};
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffer;
-  
-  vkQueueSubmit(m_computeQueue, 1, &submitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(m_computeQueue); // Use fence if doing multiple transfers simultaneously
-  
-  vkFreeCommandBuffers(m_device, m_commandPool, 1, &commandBuffer);
+  m_commandBuffers.push_back(commandBuffer);
 }
 
 void Vulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
@@ -486,20 +620,41 @@ void Vulkan::createCommandPool() {
     "Failed to create command pool");
 }
 
-void Vulkan::createCommandBuffer() {
+VkCommandBuffer Vulkan::createCommandBuffer() {
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.commandPool = m_commandPool;
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = 1;
 
-  VK_CHECK(vkAllocateCommandBuffers(m_device, &allocInfo, &m_commandBuffer),
+  VkCommandBuffer commandBuffer;
+
+  VK_CHECK(vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer),
     "Failed to allocate command buffer");
+
+  return commandBuffer;
 }
 
-VkShaderModule Vulkan::createShaderModule(const std::string& source) const {
+std::string loadFile(const std::string& path) {
+  std::ifstream fin(path);
+  std::stringstream ss;
+  std::string line;
+  while (std::getline(fin, line)) {
+    ss << line << std::endl;
+  }
+  return ss.str();
+}
+
+VkShaderModule Vulkan::createShaderModule(const std::string& sourcePath) const {
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
+
+  auto sourcesDirectory = std::filesystem::path(sourcePath).parent_path();
+
+  options.SetIncluder(std::make_unique<SourceIncluder>(sourcesDirectory));
+
+  std::string source = loadFile(sourcePath);
+
   auto result = compiler.CompileGlslToSpv(source, shaderc_shader_kind::shaderc_glsl_compute_shader,
     "shader", options);
 
@@ -522,79 +677,117 @@ VkShaderModule Vulkan::createShaderModule(const std::string& source) const {
   return shaderModule;
 }
 
-void Vulkan::createDescriptorSetLayout() {
-  VkDescriptorSetLayoutBinding layoutBinding{};
-  layoutBinding.binding = 0;
-  layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  layoutBinding.descriptorCount = 1;
-  layoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-  layoutBinding.pImmutableSamplers = nullptr;
+VkDescriptorSetLayout Vulkan::createDescriptorSetLayout(const GpuBufferBindings& buffers) {
+  std::vector<VkDescriptorSetLayoutBinding> bindings;
+
+  for (uint32_t slot = 0; slot < buffers.size(); ++slot) {
+    GpuBufferHandle index = buffers[slot];
+    const Buffer& buffer = m_buffers[index];
+
+    VkDescriptorSetLayoutBinding binding{};
+    binding.binding = slot;
+    binding.descriptorType = buffer.type;
+    binding.descriptorCount = 1;  // TODO: Support arrays of buffers
+    binding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    binding.pImmutableSamplers = nullptr;
+
+    bindings.push_back(binding);
+  }
 
   VkDescriptorSetLayoutCreateInfo layoutInfo{};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutInfo.bindingCount = 1;
-  layoutInfo.pBindings = &layoutBinding;
-  
-  VK_CHECK(vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout),
+  layoutInfo.bindingCount = bindings.size();
+  layoutInfo.pBindings = bindings.data();
+
+  VkDescriptorSetLayout layout;
+
+  VK_CHECK(vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &layout),
     "Failed to create descriptor set layout");
+
+  return layout;
 }
 
 void Vulkan::createDescriptorPool() {
-  VkDescriptorPoolSize poolSize{};
-  poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  poolSize.descriptorCount = 1;
+  std::array<VkDescriptorPoolSize, 2> poolSizes{};
+  poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  poolSizes[0].descriptorCount = 16; // TODO
+
+  poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  poolSizes[1].descriptorCount = 16; // TODO
 
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.poolSizeCount = 1;
-  poolInfo.pPoolSizes = &poolSize;
-  poolInfo.maxSets = 1;
+  poolInfo.poolSizeCount = poolSizes.size();
+  poolInfo.pPoolSizes = poolSizes.data();
+  poolInfo.maxSets = 4; // TODO
 
   VK_CHECK(vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool),
     "Failed to create descriptor pool");
 }
 
-void Vulkan::createDescriptorSets() {
+VkDescriptorSet Vulkan::createDescriptorSet(const GpuBufferBindings& buffers,
+  VkDescriptorSetLayout layout) {
+
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = m_descriptorPool;
   allocInfo.descriptorSetCount = 1;
-  allocInfo.pSetLayouts = &m_descriptorSetLayout;
+  allocInfo.pSetLayouts = &layout;
 
-  VK_CHECK(vkAllocateDescriptorSets(m_device, &allocInfo, &m_descriptorSet),
+  VkDescriptorSet descriptorSet;
+
+  VK_CHECK(vkAllocateDescriptorSets(m_device, &allocInfo, &descriptorSet),
     "Failed to allocate descriptor set");
 
-  VkDescriptorBufferInfo bufferInfo{};
-  bufferInfo.buffer = m_buffer;
-  bufferInfo.offset = 0;
-  bufferInfo.range = m_bufferSize;
+  std::vector<VkDescriptorBufferInfo> bufferInfos(buffers.size());
+  std::vector<VkWriteDescriptorSet> descriptorWrites(buffers.size());
 
-  VkWriteDescriptorSet descriptorWrite{};
-  descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  descriptorWrite.dstSet = m_descriptorSet;
-  descriptorWrite.dstBinding = 0;
-  descriptorWrite.dstArrayElement = 0;
-  descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  descriptorWrite.descriptorCount = 1;
-  descriptorWrite.pBufferInfo = &bufferInfo;
-  descriptorWrite.pImageInfo = nullptr;
-  descriptorWrite.pTexelBufferView = nullptr;
+  for (size_t slot = 0; slot < buffers.size(); ++slot) {
+    GpuBufferHandle bufIdx = buffers[slot];
+    const Buffer& buffer = m_buffers[bufIdx];
 
-  vkUpdateDescriptorSets(m_device, 1, &descriptorWrite, 0, nullptr);
+    auto& bufferInfo = bufferInfos[slot];
+    bufferInfo.buffer = buffer.handle;
+    bufferInfo.offset = 0;
+    bufferInfo.range = buffer.size;
+
+    auto& descriptorWrite = descriptorWrites[slot];
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = descriptorSet;
+    descriptorWrite.dstBinding = slot;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = buffer.type;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &bufferInfo;
+    descriptorWrite.pImageInfo = nullptr;
+    descriptorWrite.pTexelBufferView = nullptr;
+  }
+
+  vkUpdateDescriptorSets(m_device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+
+  return descriptorSet;
 }
 
-void Vulkan::createPipelineLayout() { 
+VkPipelineLayout Vulkan::createPipelineLayout(VkDescriptorSetLayout descriptorSetLayout) {
+  VkPipelineLayout pipelineLayout;
+
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
-  pipelineLayoutInfo.pushConstantRangeCount = 0;
+  pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+  pipelineLayoutInfo.pushConstantRangeCount = 0;  // TODO: Support push constants
   pipelineLayoutInfo.pPushConstantRanges = nullptr;
-  VK_CHECK(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout),
+  VK_CHECK(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &pipelineLayout),
     "Failed to create pipeline layout");
+
+  return pipelineLayout;
 }
 
-void Vulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, size_t numWorkgroups) {
+void Vulkan::dispatchWorkgroups(VkCommandBuffer commandBuffer, size_t pipelineIdx,
+  const Size3& numWorkgroups) {
+
+  const Pipeline& pipeline = m_pipelines[pipelineIdx];
+
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = 0;
@@ -603,10 +796,10 @@ void Vulkan::recordCommandBuffer(VkCommandBuffer commandBuffer, size_t numWorkgr
   VK_CHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo),
     "Failed to begin recording command buffer");
 
-  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, currentPipeline());
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1,
-    &m_descriptorSet, 0, 0);
-  vkCmdDispatch(commandBuffer, numWorkgroups, 1, 1);
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.handle);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.layout, 0, 1,
+    &pipeline.descriptorSet, 0, 0);
+  vkCmdDispatch(commandBuffer, numWorkgroups[0], numWorkgroups[1], numWorkgroups[2]);
 
   VK_CHECK(vkEndCommandBuffer(commandBuffer), "Failed to record command buffer");
 }
@@ -620,17 +813,25 @@ void Vulkan::createSyncObjects() {
     "Failed to create fence");
 }
 
+void Vulkan::destroyDebugMessenger() {
+  auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+    vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
+  func(m_instance, m_debugMessenger, nullptr);
+}
+
 Vulkan::~Vulkan() {
   vkDestroyFence(m_device, m_taskCompleteFence, nullptr);
   vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-  for (VkPipeline pipeline : m_pipelines) {
-    vkDestroyPipeline(m_device, pipeline, nullptr);
+  for (const auto& pipeline : m_pipelines) {
+    vkDestroyPipeline(m_device, pipeline.handle, nullptr);
+    vkDestroyPipelineLayout(m_device, pipeline.layout, nullptr);
+    vkDestroyDescriptorSetLayout(m_device, pipeline.descriptorSetLayout, nullptr);
   }
-  vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
-  destroyBuffer();
-  destroyStagingBuffer();
+  for (auto& buffer : m_buffers) {
+    vkDestroyBuffer(m_device, buffer.handle, nullptr);
+    vkFreeMemory(m_device, buffer.memory, nullptr);
+  }
   vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
-  vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
 #ifndef NDEBUG
   destroyDebugMessenger();
 #endif
@@ -642,4 +843,7 @@ Vulkan::~Vulkan() {
 
 GpuPtr createGpu() {
   return std::make_unique<Vulkan>();
+}
+
+}
 }

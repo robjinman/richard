@@ -2,10 +2,16 @@
 
 #include "neural_net.hpp"
 
+namespace richard {
+
 class Logger;
 
-NeuralNetPtr createGpuNeuralNet(const Triple& inputShape, const nlohmann::json& config,
-  Logger& logger);
-NeuralNetPtr createGpuNeuralNet(const Triple& inputShape, const nlohmann::json& config,
-  std::istream& fin, Logger& logger);
+namespace gpu {
 
+NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+  Logger& logger);
+NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+  std::istream& stream, Logger& logger);
+
+}
+}

@@ -5,18 +5,20 @@
 #include "logger.hpp"
 #include <iostream>
 
+namespace richard {
+
 ClassifierTrainingApp::ClassifierTrainingApp(FileSystem& fileSystem, const Options& options,
   Logger& logger)
   : m_logger(logger)
   , m_fileSystem(fileSystem)
   , m_opts(options) {
 
-  auto fin = m_fileSystem.openFileForReading(options.configFile);
+  auto fin = m_fileSystem.openFileForReading(m_opts.configFile);
   m_config = nlohmann::json::parse(*fin);
 
   m_dataDetails = std::make_unique<DataDetails>(getOrThrow(m_config, "data"));
   m_classifier = std::make_unique<Classifier>(*m_dataDetails, getOrThrow(m_config, "classifier"),
-    m_logger);
+    m_logger, m_opts.gpuAccelerated);
 
   auto loader = createDataLoader(m_fileSystem, getOrThrow(m_config, "dataLoader"),
     m_opts.samplesPath, *m_dataDetails);
@@ -61,3 +63,4 @@ const nlohmann::json& ClassifierTrainingApp::exampleConfig() {
   return obj;
 }
 
+}

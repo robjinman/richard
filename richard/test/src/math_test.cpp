@@ -1,6 +1,8 @@
 #include <math.hpp>
 #include <gtest/gtest.h>
 
+using namespace richard;
+
 class MathTest : public testing::Test {
   public:
     virtual void SetUp() override {}

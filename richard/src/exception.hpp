@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <sstream>
 
+namespace richard {
+
 // DBG_ macros expand to nothing in release builds. Use in performance critical areas.
 
 #define EXCEPTION(msg) \
@@ -35,3 +37,4 @@ class Exception : public std::runtime_error {
       : runtime_error(msg + " (" + file + ", " + std::to_string(line) + ")") {}
 };
 
+}

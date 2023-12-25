@@ -4,6 +4,8 @@
 #include "types.hpp"
 #include <nlohmann/json.hpp>
 
+namespace richard {
+
 class LabelledDataSet;
 
 struct Hyperparams {
@@ -36,3 +38,5 @@ class NeuralNet {
 };
 
 using NeuralNetPtr = std::unique_ptr<NeuralNet>;
+
+}

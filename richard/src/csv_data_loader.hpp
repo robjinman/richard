@@ -5,6 +5,8 @@
 #include <fstream>
 #include <memory>
 
+namespace richard {
+
 class CsvDataLoader : public DataLoader {
   public:
     CsvDataLoader(std::unique_ptr<std::istream>, size_t inputSize,
@@ -16,7 +18,7 @@ class CsvDataLoader : public DataLoader {
   private:
     size_t m_inputSize;
     NormalizationParams m_normalization;
-    size_t m_fetchSize;
     std::unique_ptr<std::istream> m_fin;
 };
 
+}

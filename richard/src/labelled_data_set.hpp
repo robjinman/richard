@@ -7,6 +7,8 @@
 #include <string>
 #include <memory>
 
+namespace richard {
+
 class DataDetails;
 class FileSystem;
 
@@ -19,6 +21,7 @@ class LabelledDataSet {
 
     inline const std::vector<std::string>& labels() const;
     inline const Vector& classOutputVector(const std::string& label) const;
+    inline size_t fetchSize() const;
 
     virtual ~LabelledDataSet() {}
 
@@ -36,3 +39,8 @@ inline const Vector& LabelledDataSet::classOutputVector(const std::string& label
   return m_classOutputVectors.at(label);
 }
 
+inline size_t LabelledDataSet::fetchSize() const {
+  return m_loader->fetchSize();
+}
+
+}

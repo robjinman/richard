@@ -3,10 +3,13 @@
 #include "cpu/layer.hpp"
 #include <nlohmann/json.hpp>
 
+namespace richard {
+namespace cpu {
+
 class OutputLayer : public Layer {
   public:
     OutputLayer(const nlohmann::json& obj, size_t inputSize);
-    OutputLayer(const nlohmann::json& obj, std::istream& fin, size_t inputSize);
+    OutputLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize);
 
     LayerType type() const override { return LayerType::OUTPUT; }
     Triple outputSize() const override;
@@ -17,7 +20,7 @@ class OutputLayer : public Layer {
     void updateDelta(const DataArray&, const Layer&) override;
     void updateDelta(const DataArray& inputs, const DataArray& outputs);
     void updateParams(size_t epoch) override;
-    void writeToStream(std::ostream& fout) const override;
+    void writeToStream(std::ostream& stream) const override;
     const Matrix& W() const override;
 
     // Exposed for testing
@@ -42,3 +45,5 @@ class OutputLayer : public Layer {
     ActivationFn m_activationFnPrime;
 };
 
+}
+}

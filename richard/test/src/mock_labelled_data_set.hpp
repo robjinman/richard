@@ -3,6 +3,8 @@
 #include <labelled_data_set.hpp>
 #include <gmock/gmock.h>
 
+using namespace richard;
+
 class MockLabelledDataSet : public LabelledDataSet {
   public:
     MockLabelledDataSet(DataLoaderPtr dataLoader, const std::vector<std::string>& labels)

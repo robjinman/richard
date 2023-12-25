@@ -4,12 +4,14 @@
 #include "logger.hpp"
 #include <iostream>
 
+namespace richard {
+
 ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const Options& options, Logger& logger)
   : m_logger(logger)
   , m_fileSystem(fileSystem)
   , m_opts(options) {
 
-  auto fin = m_fileSystem.openFileForReading(options.networkFile);
+  auto fin = m_fileSystem.openFileForReading(m_opts.networkFile);
 
   size_t configSize = 0;
   fin->read(reinterpret_cast<char*>(&configSize), sizeof(size_t));
@@ -20,7 +22,7 @@ ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const Options& opti
 
   m_dataDetails = std::make_unique<DataDetails>(getOrThrow(config, "data"));
   m_classifier = std::make_unique<Classifier>(*m_dataDetails, getOrThrow(config, "classifier"),
-    *fin, m_logger);
+    *fin, m_logger, m_opts.gpuAccelerated);
 
   auto loader = createDataLoader(m_fileSystem, getOrThrow(config, "dataLoader"),
     m_opts.samplesPath, *m_dataDetails);
@@ -39,3 +41,4 @@ void ClassifierEvalApp::start() {
   m_logger.info(STR("Average cost: " << results.cost));
 }
 
+}

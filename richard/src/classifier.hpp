@@ -3,6 +3,8 @@
 #include "neural_net.hpp"
 #include <nlohmann/json.hpp>
 
+namespace richard {
+
 class LabelledDataSet;
 class DataDetails;
 class Logger;
@@ -15,9 +17,10 @@ class Classifier {
       netfloat_t cost = 0.0;
     };
 
-    Classifier(const DataDetails& dataDetails, const nlohmann::json& config, Logger& logger);
+    Classifier(const DataDetails& dataDetails, const nlohmann::json& config, Logger& logger,
+      bool gpuAccelerated);
     Classifier(const DataDetails& dataDetails, const nlohmann::json& config, std::istream& fin,
-      Logger& logger);
+      Logger& logger, bool gpuAccelerated);
 
     void writeToStream(std::ostream& fout) const;
     void train(LabelledDataSet& trainingData);
@@ -34,3 +37,4 @@ class Classifier {
     bool m_isTrained;
 };
 
+}

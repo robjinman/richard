@@ -8,6 +8,8 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
+using namespace richard;
+using namespace richard::cpu;
 using testing::NiceMock;
 
 class CpuNeuralNetTest : public testing::Test {
@@ -52,7 +54,7 @@ TEST_F(CpuNeuralNetTest, evaluate) {
   Triple inputShape({ 3, 1, 1 });
 
   nlohmann::json config = nlohmann::json::parse(configString);
-  CpuNeuralNetPtr net = createCpuNeuralNet(inputShape, config, logger);
+  CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);
 
   Sample sample("a", Array3({{{ 0.5, 0.3, 0.7 }}}));
   auto loadSample = [&sample](std::vector<Sample>& samples) {
@@ -168,9 +170,9 @@ TEST_F(CpuNeuralNetTest, evaluateTrivialConvVsFullyConnected) {
 
   Triple inputShape({ 2, 2, 1 });
 
-  CpuNeuralNetPtr convNet = createCpuNeuralNet(inputShape,
+  CpuNeuralNetPtr convNet = createNeuralNet(inputShape,
     nlohmann::json::parse(convNetConfigString), logger);
-  CpuNeuralNetPtr denseNet = createCpuNeuralNet(inputShape,
+  CpuNeuralNetPtr denseNet = createNeuralNet(inputShape,
     nlohmann::json::parse(denseNetConfigString), logger);
 
   Sample sample("a", Array3({{
@@ -259,7 +261,7 @@ TEST_F(CpuNeuralNetTest, evaluateConv) {
   Triple inputShape({ 5, 5, 1 });
 
   nlohmann::json config = nlohmann::json::parse(configString);
-  CpuNeuralNetPtr net = createCpuNeuralNet(inputShape, config, logger);
+  CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);
 
   Sample sample("a", Array3({{
     { 0.5, 0.4, 0.3, 0.9, 0.8 },

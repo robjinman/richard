@@ -1,6 +1,8 @@
 #include "neural_net.hpp"
 #include "util.hpp"
 
+namespace richard {
+
 Hyperparams::Hyperparams()
   : epochs(0)
   , batchSize(1000)
@@ -66,3 +68,4 @@ const nlohmann::json& NeuralNet::exampleConfig() {
   return config;
 }
 
+}

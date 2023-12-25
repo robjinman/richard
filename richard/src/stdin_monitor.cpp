@@ -1,6 +1,8 @@
 #include "stdin_monitor.hpp"
 #include <iostream>
 
+namespace richard {
+
 void StdinMonitor::onKey(char c, std::function<void()> handler) {
   std::lock_guard<std::mutex> lock(m_mutex);
   m_handlers[c] = handler;
@@ -26,3 +28,4 @@ void StdinMonitor::waitForInput() {
   }
 }
 
+}

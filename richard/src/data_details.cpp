@@ -1,6 +1,8 @@
 #include "data_details.hpp"
 #include "util.hpp"
 
+namespace richard {
+
 NormalizationParams::NormalizationParams()
   : min(0)
   , max(0) {}
@@ -45,3 +47,4 @@ const nlohmann::json& DataDetails::exampleConfig() {
   return obj;
 }
 
+}

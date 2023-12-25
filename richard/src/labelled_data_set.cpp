@@ -4,6 +4,8 @@
 #include "image_data_loader.hpp"
 #include "file_system.hpp"
 
+namespace richard {
+
 LabelledDataSet::LabelledDataSet(DataLoaderPtr loader, const std::vector<std::string>& labels)
   : m_loader(std::move(loader))
   , m_labels(labels) {
@@ -25,3 +27,4 @@ size_t LabelledDataSet::loadSamples(std::vector<Sample>& samples) {
   return m_loader->loadSamples(samples);
 }
 
+}

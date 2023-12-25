@@ -2,11 +2,12 @@
 #include "exception.hpp"
 #include "util.hpp"
 
+namespace richard {
+namespace cpu {
+
 MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_t inputH,
   size_t inputDepth)
-  : m_Z(1, 1, 1)
-  , m_delta(1, 1, 1)
-  , m_paddedDelta(inputW, inputH, inputDepth)
+  : m_paddedDelta(inputW, inputH, inputDepth)
   , m_inputW(inputW)
   , m_inputH(inputH)
   , m_inputDepth(inputDepth)
@@ -214,3 +215,5 @@ const Array3& MaxPoolingLayer::mask() const {
   return m_mask;
 }
 
+}
+}

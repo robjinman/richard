@@ -2,6 +2,8 @@
 #include "exception.hpp"
 #include <sstream>
 
+namespace richard {
+
 // Load training data from csv file
 //
 // Each line is a label followed by data values.
@@ -13,9 +15,9 @@
 // ...
 CsvDataLoader::CsvDataLoader(std::unique_ptr<std::istream> fin, size_t inputSize,
   const NormalizationParams& normalization, size_t fetchSize)
-  : m_inputSize(inputSize)
+  : DataLoader(fetchSize)
+  , m_inputSize(inputSize)
   , m_normalization(normalization)
-  , m_fetchSize(fetchSize)
   , m_fin(std::move(fin)) {}
 
 void CsvDataLoader::seekToBeginning() {
@@ -52,7 +54,7 @@ size_t CsvDataLoader::loadSamples(std::vector<Sample>& samples) {
     samples.emplace_back(label, asArr3);
     ++numSamples;
 
-    if (numSamples >= m_fetchSize) {
+    if (numSamples >= fetchSize()) {
       break;
     }
   }
@@ -60,3 +62,4 @@ size_t CsvDataLoader::loadSamples(std::vector<Sample>& samples) {
   return numSamples;
 }
 
+}

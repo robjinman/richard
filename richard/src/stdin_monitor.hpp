@@ -5,6 +5,8 @@
 #include <mutex>
 #include <map>
 
+namespace richard {
+
 class StdinMonitor {
   public:
     StdinMonitor();
@@ -17,3 +19,4 @@ class StdinMonitor {
     void waitForInput();
 };
 
+}

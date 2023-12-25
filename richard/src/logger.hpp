@@ -3,6 +3,8 @@
 #include <string>
 #include <memory>
 
+namespace richard {
+
 class Logger {
   public:
     virtual void info(const std::string& msg, bool newline = true) = 0;
@@ -16,3 +18,4 @@ using LoggerPtr = std::unique_ptr<Logger>;
 
 LoggerPtr createStdoutLogger();
 
+}

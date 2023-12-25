@@ -6,6 +6,8 @@
 #include "labelled_data_set.hpp"
 #include <nlohmann/json.hpp>
 
+namespace richard {
+
 class FileSystem;
 class Logger;
 
@@ -15,6 +17,7 @@ class ClassifierTrainingApp : public Application {
       std::string samplesPath;
       std::string configFile;
       std::string networkFile;
+      bool gpuAccelerated;
     };
 
     ClassifierTrainingApp(FileSystem& fileSystem, const Options& options, Logger& logger);
@@ -35,3 +38,4 @@ class ClassifierTrainingApp : public Application {
     void saveStateToFile() const;
 };
 
+}

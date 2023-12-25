@@ -4,6 +4,9 @@
 #include "cpu/convolutional_layer.hpp"
 #include <nlohmann/json.hpp>
 
+namespace richard {
+namespace cpu {
+
 class MaxPoolingLayer : public Layer {
   public:
     MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_t inputH, size_t inputDepth);
@@ -39,3 +42,5 @@ class MaxPoolingLayer : public Layer {
     void backpropFromDenseLayer(const Layer& nextLayer, Array3& delta);
 };
 
+}
+}

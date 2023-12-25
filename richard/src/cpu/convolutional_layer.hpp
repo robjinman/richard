@@ -4,6 +4,9 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 
+namespace richard {
+namespace cpu {
+
 class ConvolutionalLayer : public Layer {
   public:
     struct Filter {
@@ -16,8 +19,8 @@ class ConvolutionalLayer : public Layer {
     };
 
     ConvolutionalLayer(const nlohmann::json& obj, size_t inputW, size_t inputH, size_t inputDepth);
-    ConvolutionalLayer(const nlohmann::json& obj, std::istream& fin, size_t inputW, size_t inputH,
-      size_t inputDepth);
+    ConvolutionalLayer(const nlohmann::json& obj, std::istream& stream, size_t inputW,
+      size_t inputH, size_t inputDepth);
 
     LayerType type() const override { return LayerType::CONVOLUTIONAL; }
     Triple outputSize() const override;
@@ -27,7 +30,7 @@ class ConvolutionalLayer : public Layer {
     DataArray evalForward(const DataArray& inputs) const override;
     void updateDelta(const DataArray& inputs, const Layer& nextLayer) override;
     void updateParams(size_t epoch) override;
-    void writeToStream(std::ostream& fout) const override;
+    void writeToStream(std::ostream& stream) const override;
     // Don't use. Use filters() instead.
     const Matrix& W() const override;
     const std::vector<Filter>& filters() const;
@@ -57,3 +60,5 @@ class ConvolutionalLayer : public Layer {
     size_t numOutputs() const;
 };
 
+}
+}

@@ -4,6 +4,8 @@
 #include "data_details.hpp"
 #include <filesystem>
 
+namespace richard {
+
 class ImageDataLoader : public DataLoader {
   public:
     ImageDataLoader(const std::string& directoryPath, const std::vector<std::string>& labels,
@@ -24,7 +26,7 @@ class ImageDataLoader : public DataLoader {
 
     NormalizationParams m_normalization;
     std::filesystem::path m_directoryPath;
-    size_t m_fetchSize;
     std::vector<ClassCursor> m_iterators;
 };
 
+}

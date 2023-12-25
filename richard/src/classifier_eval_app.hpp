@@ -5,6 +5,8 @@
 #include "data_details.hpp"
 #include "labelled_data_set.hpp"
 
+namespace richard {
+
 class FileSystem;
 class Logger;
 
@@ -13,6 +15,7 @@ class ClassifierEvalApp : public Application {
     struct Options {
       std::string samplesPath;
       std::string networkFile;
+      bool gpuAccelerated;
     };
 
     ClassifierEvalApp(FileSystem& fileSystem, const Options& options, Logger& logger);
@@ -28,3 +31,4 @@ class ClassifierEvalApp : public Application {
     std::unique_ptr<LabelledDataSet> m_dataSet;
 };
 
+}

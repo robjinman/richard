@@ -6,6 +6,8 @@
 #include "math.hpp"
 #include "types.hpp"
 
+namespace richard {
+
 using ActivationFn = std::function<netfloat_t(netfloat_t)>;
 using CostDerivativesFn = std::function<Vector(const Vector&, const Vector&)>;
 
@@ -59,3 +61,4 @@ class Layer {
 
 std::ostream& operator<<(std::ostream& os, LayerType layerType);
 
+}

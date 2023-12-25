@@ -2,6 +2,9 @@
 #include <cpu/dense_layer.hpp>
 #include <gtest/gtest.h>
 
+using namespace richard;
+using namespace richard::cpu;
+
 class DenseLayerTest : public testing::Test {
   public:
     virtual void SetUp() override {}
