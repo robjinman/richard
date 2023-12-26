@@ -177,14 +177,6 @@ Triple GpuNeuralNet::inputSize() const {
 }
 
 void GpuNeuralNet::allocateGpuResources() {
-  GpuBufferHandle X = m_bufferX.handle;
-  for (size_t i = 0; i < m_layers.size(); ++i) {
-    Layer& layer = *m_layers[i];
-    const Layer* nextLayer = i + 1 == m_layers.size() ? nullptr : m_layers[i + 1].get();
-    layer.allocateGpuResources(X, m_statusBuffer.handle, nextLayer, m_bufferY.handle);
-    X = layer.outputBuffer();
-  }
-
   size_t inputSize = m_inputShape[0] * m_inputShape[1] * m_inputShape[2];
   size_t bufferXSize = m_params.miniBatchSize * inputSize * sizeof(netfloat_t);
 
@@ -201,9 +193,18 @@ void GpuNeuralNet::allocateGpuResources() {
   ASSERT_MSG(m_bufferY.data != nullptr, "Expected Y buffer to be memory mapped");
 
   GpuBufferFlags statusBufferFlags = GpuBufferFlags::frequentHostAccess
-                                   | GpuBufferFlags::hostReadAccess;
+                                   | GpuBufferFlags::hostReadAccess
+                                   | GpuBufferFlags::hostWriteAccess;
   m_statusBuffer = m_gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
   ASSERT_MSG(m_statusBuffer.data != nullptr, "Expected status buffer to be memory mapped");
+
+  GpuBufferHandle X = m_bufferX.handle;
+  for (size_t i = 0; i < m_layers.size(); ++i) {
+    Layer& layer = *m_layers[i];
+    const Layer* nextLayer = i + 1 == m_layers.size() ? nullptr : m_layers[i + 1].get();
+    layer.allocateGpuResources(X, m_statusBuffer.handle, nextLayer, m_bufferY.handle);
+    X = layer.outputBuffer();
+  }
 }
 
 void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,
@@ -234,7 +235,6 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
   allocateGpuResources();
 
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(m_statusBuffer.data);
-  status.sampleIndex = 0;
 
   m_abort = false;
   for (size_t epoch = 0; epoch < m_params.epochs; ++epoch) {
@@ -243,6 +243,8 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
     }
 
     status.epoch = epoch;
+    status.cost = 0.f;
+    status.sampleIndex = 0;
 
     m_logger.info(STR("Epoch " << epoch + 1 << "/" << m_params.epochs));
     size_t samplesProcessed = 0;
