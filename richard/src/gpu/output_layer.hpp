@@ -28,6 +28,12 @@ class OutputLayer : public Layer {
     void updateParams() override;
     void writeToStream(std::ostream& stream) const override;
 
+    // Exposed for testing
+    //
+    void setWeights(const Matrix& weights);
+    void setBiases(const Vector& biases);
+    GpuBufferHandle activationsBuffer() const;
+
   private:
     Gpu& m_gpu;
     netfloat_t m_learnRate;

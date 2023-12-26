@@ -180,5 +180,17 @@ void OutputLayer::writeToStream(std::ostream& stream) const {
     m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
+void OutputLayer::setWeights(const Matrix& W) {
+  m_W = W;
+}
+
+void OutputLayer::setBiases(const Vector& B) {
+  m_B = B;
+}
+
+GpuBufferHandle OutputLayer::activationsBuffer() const {
+  return m_bufferA.handle;
+}
+
 }
 }
