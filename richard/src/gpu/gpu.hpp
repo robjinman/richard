@@ -7,6 +7,9 @@
 #include <variant>
 
 namespace richard {
+
+class Logger;
+
 namespace gpu {
 
 using ShaderHandle = uint32_t;
@@ -68,7 +71,7 @@ class Gpu {
 
 using GpuPtr = std::unique_ptr<Gpu>;
 
-GpuPtr createGpu();
+GpuPtr createGpu(Logger& logger);
 
 }
 }

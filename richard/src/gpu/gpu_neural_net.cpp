@@ -115,7 +115,7 @@ GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& confi
   , m_isTrained(false)
   , m_inputShape(inputShape)
   , m_params(getOrThrow(config, "hyperparams"))
-  , m_gpu(createGpu()) {
+  , m_gpu(createGpu(logger)) {
 
   Triple prevLayerSize = m_inputShape;
 
@@ -141,7 +141,7 @@ GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& confi
   , m_isTrained(false)
   , m_inputShape(inputShape)
   , m_params(getOrThrow(config, "hyperparams"))
-  , m_gpu(createGpu()) {
+  , m_gpu(createGpu(logger)) {
 
   nlohmann::json layersJson = getOrThrow(config, "hiddenLayers");
   nlohmann::json outLayerJson = getOrThrow(config, "outputLayer");

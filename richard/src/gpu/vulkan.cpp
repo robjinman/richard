@@ -1,6 +1,8 @@
 #include "gpu.hpp"
 #include "exception.hpp"
 #include "trace.hpp"
+#include "logger.hpp"
+#include "util.hpp"
 #include <vulkan/vulkan.h>
 #include <shaderc/shaderc.hpp>
 #include <vector>
@@ -101,7 +103,7 @@ struct Pipeline {
 
 class Vulkan : public Gpu {
   public:
-    Vulkan();
+    Vulkan(Logger& logger);
 
     ShaderHandle compileShader(const std::string& sourcePath,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
@@ -140,6 +142,7 @@ class Vulkan : public Gpu {
     void destroyDebugMessenger();
     VkShaderModule createShaderModule(const std::string& sourcePath) const;
 
+    Logger& m_logger;
     VkInstance m_instance;
     VkDebugUtilsMessengerEXT m_debugMessenger;
     VkPhysicalDevice m_physicalDevice;
@@ -153,7 +156,9 @@ class Vulkan : public Gpu {
     VkFence m_taskCompleteFence;
 };
 
-Vulkan::Vulkan() {
+Vulkan::Vulkan(Logger& logger)
+  : m_logger(logger) {
+
   createVulkanInstance();
 #ifndef NDEBUG
   setupDebugMessenger();
@@ -418,9 +423,10 @@ void checkValidationLayerSupport() {
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
   VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
-  const VkDebugUtilsMessengerCallbackDataEXT* data, void*) {
+  const VkDebugUtilsMessengerCallbackDataEXT* data, void* userData) {
 
-  std::cerr << "Validation layer: " << data->pMessage << std::endl;
+  Logger& logger = *reinterpret_cast<Logger*>(userData);
+  logger.info(STR("Validation layer: " << data->pMessage));
 
   return VK_FALSE;
 }
@@ -435,7 +441,7 @@ VkDebugUtilsMessengerCreateInfoEXT Vulkan::getDebugMessengerCreateInfo() const {
                          | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                          | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
   createInfo.pfnUserCallback = debugCallback;
-  createInfo.pUserData = nullptr;
+  createInfo.pUserData = &m_logger;
   return createInfo;
 }
 
@@ -866,8 +872,8 @@ Vulkan::~Vulkan() {
 
 }
 
-GpuPtr createGpu() {
-  return std::make_unique<Vulkan>();
+GpuPtr createGpu(Logger& logger) {
+  return std::make_unique<Vulkan>(logger);
 }
 
 }
