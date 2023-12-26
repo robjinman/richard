@@ -1,10 +1,11 @@
 #include "gpu.hpp"
 #include "exception.hpp"
+#include "trace.hpp"
 #include <vulkan/vulkan.h>
 #include <shaderc/shaderc.hpp>
-#include <iostream>
 #include <vector>
 #include <cstring>
+#include <iostream>
 #include <algorithm>
 #include <filesystem>
 #include <sstream>
@@ -195,6 +196,8 @@ void chooseVulkanBufferFlags(GpuBufferFlags flags, VkMemoryPropertyFlags& memPro
 }
 
 GpuBuffer Vulkan::allocateBuffer(size_t size, GpuBufferFlags flags) {
+  DBG_TRACE
+
   Buffer buffer;
   buffer.size = size;
 
@@ -222,6 +225,8 @@ GpuBuffer Vulkan::allocateBuffer(size_t size, GpuBufferFlags flags) {
 }
 
 void Vulkan::submitBufferData(GpuBufferHandle bufferHandle, const void* data) {
+  DBG_TRACE
+
   VkBuffer stagingBuffer;
   VkDeviceMemory stagingBufferMemory;
 
@@ -250,6 +255,8 @@ void Vulkan::submitBufferData(GpuBufferHandle bufferHandle, const void* data) {
 ShaderHandle Vulkan::compileShader(const std::string& sourcePath,
   const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
   const Size3& workgroupSize) {
+  
+  DBG_TRACE
 
   VkShaderModule shaderModule = createShaderModule(sourcePath);
 
@@ -337,6 +344,8 @@ void Vulkan::queueShader(ShaderHandle shaderHandle) {
 }
 
 void Vulkan::flushQueue() {
+  DBG_TRACE
+
   if (m_commandBuffers.empty()) {
     return;
   }
@@ -361,6 +370,8 @@ void Vulkan::flushQueue() {
 }
 
 void Vulkan::retrieveBuffer(GpuBufferHandle bufIdx, void* data) {
+  DBG_TRACE
+
   Buffer& buffer = m_buffers[bufIdx];
 
   VkBuffer stagingBuffer;
@@ -515,6 +526,8 @@ void Vulkan::createLogicalDevice() {
 }
 
 void Vulkan::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+  DBG_TRACE
+
   VkCommandBuffer commandBuffer = createCommandBuffer();
 
   VkCommandBufferBeginInfo beginInfo{};
@@ -536,6 +549,8 @@ void Vulkan::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize siz
 
 void Vulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
   VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const {
+
+  DBG_TRACE
 
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -646,6 +661,8 @@ std::string loadFile(const std::string& path) {
 }
 
 VkShaderModule Vulkan::createShaderModule(const std::string& sourcePath) const {
+  DBG_TRACE
+
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
 
@@ -659,7 +676,7 @@ VkShaderModule Vulkan::createShaderModule(const std::string& sourcePath) const {
     "shader", options);
 
   if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-    EXCEPTION("Error compiling shader: " << result.GetErrorMessage());
+    EXCEPTION("Error compiling shader '" << sourcePath << "': " << result.GetErrorMessage());
   }
 
   std::vector<uint32_t> code;
@@ -678,6 +695,8 @@ VkShaderModule Vulkan::createShaderModule(const std::string& sourcePath) const {
 }
 
 VkDescriptorSetLayout Vulkan::createDescriptorSetLayout(const GpuBufferBindings& buffers) {
+  DBG_TRACE
+
   std::vector<VkDescriptorSetLayoutBinding> bindings;
 
   for (uint32_t slot = 0; slot < buffers.size(); ++slot) {
@@ -710,16 +729,16 @@ VkDescriptorSetLayout Vulkan::createDescriptorSetLayout(const GpuBufferBindings&
 void Vulkan::createDescriptorPool() {
   std::array<VkDescriptorPoolSize, 2> poolSizes{};
   poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  poolSizes[0].descriptorCount = 16; // TODO
+  poolSizes[0].descriptorCount = 128; // TODO
 
   poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  poolSizes[1].descriptorCount = 16; // TODO
+  poolSizes[1].descriptorCount = 32; // TODO
 
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   poolInfo.poolSizeCount = poolSizes.size();
   poolInfo.pPoolSizes = poolSizes.data();
-  poolInfo.maxSets = 4; // TODO
+  poolInfo.maxSets = 16; // TODO
 
   VK_CHECK(vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool),
     "Failed to create descriptor pool");
@@ -727,6 +746,8 @@ void Vulkan::createDescriptorPool() {
 
 VkDescriptorSet Vulkan::createDescriptorSet(const GpuBufferBindings& buffers,
   VkDescriptorSetLayout layout) {
+
+  DBG_TRACE
 
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -769,6 +790,8 @@ VkDescriptorSet Vulkan::createDescriptorSet(const GpuBufferBindings& buffers,
 }
 
 VkPipelineLayout Vulkan::createPipelineLayout(VkDescriptorSetLayout descriptorSetLayout) {
+  DBG_TRACE
+
   VkPipelineLayout pipelineLayout;
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -785,6 +808,8 @@ VkPipelineLayout Vulkan::createPipelineLayout(VkDescriptorSetLayout descriptorSe
 
 void Vulkan::dispatchWorkgroups(VkCommandBuffer commandBuffer, size_t pipelineIdx,
   const Size3& numWorkgroups) {
+
+  DBG_TRACE
 
   const Pipeline& pipeline = m_pipelines[pipelineIdx];
 

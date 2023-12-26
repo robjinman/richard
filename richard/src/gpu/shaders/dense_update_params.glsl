@@ -1,3 +1,5 @@
+#version 430
+
 #include "utils.glsl"
 
 layout(constant_id = 3) const uint LAYER_NUM_INPUTS = 1;

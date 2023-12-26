@@ -1,5 +1,3 @@
-#version 450
-
 #define FN_READ(BUF) \
   float read##BUF(uint pos) { \
     return BUF[pos / 4][pos % 4]; \

@@ -155,3 +155,7 @@ target_link_libraries(richard ${RICHARD_LIB_NAME})
 
 add_subdirectory(test)
 
+add_custom_target(
+  link_shaders ALL
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${PROJECT_SOURCE_DIR}/src/gpu/shaders ${PROJECT_BINARY_DIR}/shaders
+)

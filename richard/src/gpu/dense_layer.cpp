@@ -116,14 +116,14 @@ void DenseLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHand
     { SpecializationConstant::Type::float_type, m_learnRateDecay },
   };
 
-  m_gpu.compileShader("./shaders/dense_eval_forward.glsl", evalForwardBuffers,
+  m_evalForwardShader = m_gpu.compileShader("./shaders/dense_eval_forward.glsl", evalForwardBuffers,
     evalForwardConstants, workgroupSize);
-  m_gpu.compileShader("./shaders/dense_train_forward.glsl", trainForwardBuffers,
-    trainForwardConstants, workgroupSize);
-  m_gpu.compileShader("./shaders/dense_backprop.glsl", backpropBuffers, backpropConstants,
-    workgroupSize);
-  m_gpu.compileShader("./shaders/dense_update_params.glsl", updateParamsBuffers,
-    updateParamsConstants, workgroupSize);
+  m_trainForwardShader = m_gpu.compileShader("./shaders/dense_train_forward.glsl",
+    trainForwardBuffers, trainForwardConstants, workgroupSize);
+  m_backpropShader = m_gpu.compileShader("./shaders/dense_backprop.glsl", backpropBuffers,
+    backpropConstants, workgroupSize);
+  m_updateParamsShader = m_gpu.compileShader("./shaders/dense_update_params.glsl",
+    updateParamsBuffers, updateParamsConstants, workgroupSize);
 }
 
 size_t DenseLayer::size() const {

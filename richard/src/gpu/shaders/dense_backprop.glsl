@@ -1,3 +1,5 @@
+#version 430
+
 #include "utils.glsl"
 
 layout(constant_id = 3) const uint LAYER_NUM_INPUTS = 1;
@@ -80,7 +82,7 @@ void main() {
   writeD(index, weightedSum * sigmoidPrime(readZ(index)));
 
   for (uint i = 0; i < LAYER_NUM_INPUTS; ++i) {
-    float wIdx = index * LAYER_NUM_INPUTS + i;
+    uint wIdx = index * LAYER_NUM_INPUTS + i;
     float dw = readDeltaW(wIdx);
     writeDeltaW(wIdx, dw + readX(Status.sampleIndex * LAYER_NUM_INPUTS + i) * readD(index));
   }

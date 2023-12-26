@@ -1,3 +1,5 @@
+#version 430
+
 #include "utils.glsl"
 
 layout(constant_id = 3) const uint LAYER_NUM_INPUTS = 1;
@@ -71,7 +73,7 @@ void main() {
   writeD(index, deltaC * sigmoidPrime(readZ(index)));
 
   for (uint i = 0; i < LAYER_NUM_INPUTS; ++i) {
-    float wIdx = index * LAYER_NUM_INPUTS + i;
+    uint wIdx = index * LAYER_NUM_INPUTS + i;
     float dw = readDeltaW(wIdx);
     writeDeltaW(wIdx, dw + readX(Status.sampleIndex * LAYER_NUM_INPUTS + i) * readD(index));
   }
@@ -79,7 +81,7 @@ void main() {
   writeDeltaB(index, readDeltaB(index) + readD(index));
 
   if (index == 0) {
-    // TODO: Need barrier here?
+    barrier();
     Status.sampleIndex = (Status.sampleIndex + 1) % MINI_BATCH_SIZE;
   }
 }

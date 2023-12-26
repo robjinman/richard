@@ -1,3 +1,5 @@
+#version 430
+
 #include "utils.glsl"
 
 layout(constant_id = 3) const uint LAYER_NUM_INPUTS = 1;
@@ -13,11 +15,12 @@ layout(std140, binding = 1) readonly buffer XSsbo {
 
 FN_READ(X)
 
-layout(std140, binding = 2) readonly buffer YSsbo {
+layout(std140, binding = 2) buffer YSsbo {
   vec4 Y[];
 };
 
 FN_READ(Y)
+FN_WRITE(Y)
 
 layout(std140, binding = 3) readonly buffer BSsbo {
   vec4 B[];
@@ -37,10 +40,11 @@ layout(std140, binding = 5) writeonly buffer ZSsbo {
 
 FN_WRITE(Z)
 
-layout(std140, binding = 6) writeonly buffer ASsbo {
+layout(std140, binding = 6) buffer ASsbo {
   vec4 A[];
 };
 
+FN_READ(A)
 FN_WRITE(A)
 
 void main() {
@@ -57,10 +61,11 @@ void main() {
   writeA(index, sigmoid(weightedSum));
 
   float diff = readY(index) - readA(index);
-  writeY(index, 0.5 * diff * diff); // Reuse Y to compute cost
+  writeY(index, 0.5 * diff * diff); // Reuse Y buffer
 
   if (index == 0) {
-    // TODO: Use barrier?
+    barrier();
+
     Status.sampleIndex = (Status.sampleIndex + 1) % MINI_BATCH_SIZE;
 
     const uint layerSize = gl_NumWorkGroups.x * gl_WorkGroupSize.x;
