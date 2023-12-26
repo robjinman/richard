@@ -58,9 +58,9 @@ struct GpuBuffer {
 class Gpu {
   public:
     virtual GpuBuffer allocateBuffer(size_t size, GpuBufferFlags flags) = 0;
-    virtual ShaderHandle compileShader(const std::string& sourcePath,
+    virtual ShaderHandle compileShader(const std::string& source,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-      const Size3& workgroupSize) = 0;
+      const Size3& workgroupSize, const std::string& includesPath = std::string()) = 0;
     virtual void submitBufferData(GpuBufferHandle buffer, const void* data) = 0;
     virtual void queueShader(ShaderHandle shaderHandle) = 0;
     virtual void retrieveBuffer(GpuBufferHandle buffer, void* data) = 0;

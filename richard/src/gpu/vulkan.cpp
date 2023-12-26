@@ -78,9 +78,15 @@ shaderc_include_result* SourceIncluder::GetInclude(const char* requested_source,
 }
 
 void SourceIncluder::ReleaseInclude(shaderc_include_result* data) {
-  delete[] data->content;
-  delete[] data->source_name;
-  delete data;
+  if (data) {
+    if (data->content) {
+      delete[] data->content;
+    }
+    if (data->source_name) {
+      delete[] data->source_name;
+    }
+    delete data;
+  }
 }
 
 const std::vector<const char*> ValidationLayers = {
@@ -105,9 +111,9 @@ class Vulkan : public Gpu {
   public:
     Vulkan(Logger& logger);
 
-    ShaderHandle compileShader(const std::string& sourcePath,
+    ShaderHandle compileShader(const std::string& source,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-      const Size3& workgroupSize) override;
+      const Size3& workgroupSize, const std::string& includesPath) override;
     GpuBuffer allocateBuffer(size_t size, GpuBufferFlags flags) override;
     void submitBufferData(GpuBufferHandle buffer, const void* data) override;
     void queueShader(ShaderHandle shaderHandle) override;
@@ -140,7 +146,8 @@ class Vulkan : public Gpu {
       const Size3& numWorkgroups);
     void createSyncObjects();
     void destroyDebugMessenger();
-    VkShaderModule createShaderModule(const std::string& sourcePath) const;
+    VkShaderModule createShaderModule(const std::string& sourcePath,
+      const std::string& includesPath) const;
 
     Logger& m_logger;
     VkInstance m_instance;
@@ -257,13 +264,13 @@ void Vulkan::submitBufferData(GpuBufferHandle bufferHandle, const void* data) {
   vkDestroyBuffer(m_device, stagingBuffer, nullptr);
 }
 
-ShaderHandle Vulkan::compileShader(const std::string& sourcePath,
+ShaderHandle Vulkan::compileShader(const std::string& source,
   const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-  const Size3& workgroupSize) {
-  
+  const Size3& workgroupSize, const std::string& includesPath) {
+
   DBG_TRACE
 
-  VkShaderModule shaderModule = createShaderModule(sourcePath);
+  VkShaderModule shaderModule = createShaderModule(source, includesPath);
 
   std::vector<uint8_t> specializationData;
   std::vector<VkSpecializationMapEntry> entries;
@@ -656,33 +663,23 @@ VkCommandBuffer Vulkan::createCommandBuffer() {
   return commandBuffer;
 }
 
-std::string loadFile(const std::string& path) {
-  std::ifstream fin(path);
-  std::stringstream ss;
-  std::string line;
-  while (std::getline(fin, line)) {
-    ss << line << std::endl;
-  }
-  return ss.str();
-}
+VkShaderModule Vulkan::createShaderModule(const std::string& source,
+  const std::string& includesPath) const {
 
-VkShaderModule Vulkan::createShaderModule(const std::string& sourcePath) const {
   DBG_TRACE
 
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
 
-  auto sourcesDirectory = std::filesystem::path(sourcePath).parent_path();
-
-  options.SetIncluder(std::make_unique<SourceIncluder>(sourcesDirectory));
-
-  std::string source = loadFile(sourcePath);
+  if (!includesPath.empty()) {
+    options.SetIncluder(std::make_unique<SourceIncluder>(includesPath));
+  }
 
   auto result = compiler.CompileGlslToSpv(source, shaderc_shader_kind::shaderc_glsl_compute_shader,
     "shader", options);
 
   if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-    EXCEPTION("Error compiling shader '" << sourcePath << "': " << result.GetErrorMessage());
+    EXCEPTION("Error compiling shader: " << result.GetErrorMessage());
   }
 
   std::vector<uint32_t> code;

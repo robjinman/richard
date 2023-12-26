@@ -116,14 +116,21 @@ void OutputLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHan
     { SpecializationConstant::Type::float_type, m_learnRateDecay },
   };
 
-  m_evalForwardShader = m_gpu.compileShader("./shaders/output_eval_forward.glsl",
-    evalForwardBuffers, evalForwardConstants, workgroupSize);
-  m_trainForwardShader = m_gpu.compileShader("./shaders/output_train_forward.glsl",
-    trainForwardBuffers, trainForwardConstants, workgroupSize);
-  m_backpropShader = m_gpu.compileShader("./shaders/output_backprop.glsl", backpropBuffers,
-    backpropConstants, workgroupSize);
-  m_updateParamsShader = m_gpu.compileShader("./shaders/output_update_params.glsl",
-    updateParamsBuffers, updateParamsConstants, workgroupSize);
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string evalForwardSrc = loadFile("./shaders/output_eval_forward.glsl");
+  const std::string trainForwardSrc = loadFile("./shaders/output_train_forward.glsl");
+  const std::string backpropSrc = loadFile("./shaders/output_backprop.glsl");
+  const std::string updateParamsSrc = loadFile("./shaders/output_update_params.glsl");
+
+  m_evalForwardShader = m_gpu.compileShader(evalForwardSrc, evalForwardBuffers,
+    evalForwardConstants, workgroupSize, includesDir);
+  m_trainForwardShader = m_gpu.compileShader(trainForwardSrc, trainForwardBuffers,
+    trainForwardConstants, workgroupSize, includesDir);
+  m_backpropShader = m_gpu.compileShader(backpropSrc, backpropBuffers, backpropConstants,
+    workgroupSize, includesDir);
+  m_updateParamsShader = m_gpu.compileShader(updateParamsSrc, updateParamsBuffers,
+    updateParamsConstants, workgroupSize, includesDir);
 }
 
 size_t OutputLayer::size() const {
