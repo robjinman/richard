@@ -224,7 +224,8 @@ void GpuNeuralNet::allocateGpuResources() {
                                   | GpuBufferFlags::large
                                   | GpuBufferFlags::hostReadAccess;
 
-  m_costsBuffer = m_gpu->allocateBuffer(m_params.miniBatchSize, costsBufferFlags);
+  m_costsBuffer = m_gpu->allocateBuffer(m_params.miniBatchSize * sizeof(netfloat_t),
+    costsBufferFlags);
   ASSERT_MSG(m_costsBuffer.data != nullptr, "Expected costs buffer to be memory mapped");
 
   GpuBufferBindings computeCostsBuffers{
@@ -233,8 +234,8 @@ void GpuNeuralNet::allocateGpuResources() {
     m_costsBuffer.handle
   };
 
-  m_computeCostsShader = m_gpu->compileShader(computeCostsSrc, computeCostsBuffers, {}, {},
-    shaderIncludesDir);
+  m_computeCostsShader = m_gpu->compileShader(computeCostsSrc, computeCostsBuffers, {},
+    { static_cast<uint32_t>(m_params.miniBatchSize), 1, 1 }, shaderIncludesDir);
 }
 
 void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,
