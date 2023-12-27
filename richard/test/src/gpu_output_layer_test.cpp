@@ -12,6 +12,11 @@ using richard::gpu::GpuBufferFlags;
 
 const double FLOAT_TOLERANCE = 0.0001;
 
+struct StatusBuffer {
+  uint32_t epoch;
+  uint32_t sampleIndex;
+};
+
 class GpuOutputLayerTest : public testing::Test {
   public:
     virtual void SetUp() override {}
@@ -34,12 +39,6 @@ Vector cpuOutputLayerTrainForward(const nlohmann::json& config, const Matrix& W,
 TEST_F(GpuOutputLayerTest, trainForward) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
-
-  struct StatusBuffer {
-    uint32_t epoch;
-    netfloat_t cost;
-    uint32_t sampleIndex;
-  };
 
   GpuBufferFlags statusBufferFlags = GpuBufferFlags::frequentHostAccess
                                    | GpuBufferFlags::hostReadAccess
@@ -71,7 +70,6 @@ TEST_F(GpuOutputLayerTest, trainForward) {
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
   status.epoch = 0;
   status.sampleIndex = 0;
-  status.cost = 0;
 
   nlohmann::json config;
   config["size"] = outputSize;
@@ -123,12 +121,6 @@ TEST_F(GpuOutputLayerTest, backprop) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
 
-  struct StatusBuffer {
-    uint32_t epoch;
-    netfloat_t cost;
-    uint32_t sampleIndex;
-  };
-
   GpuBufferFlags statusBufferFlags = GpuBufferFlags::frequentHostAccess
                                    | GpuBufferFlags::hostReadAccess
                                    | GpuBufferFlags::hostWriteAccess;
@@ -162,7 +154,6 @@ TEST_F(GpuOutputLayerTest, backprop) {
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
   status.epoch = 0;
   status.sampleIndex = 0;
-  status.cost = 0;
 
   nlohmann::json config;
   config["size"] = outputSize;

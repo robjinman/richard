@@ -4,13 +4,13 @@
 using namespace richard;
 using namespace richard::cpu;
 
-class OutputLayerTest : public testing::Test {
+class CpuOutputLayerTest : public testing::Test {
   public:
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
 
-TEST_F(OutputLayerTest, evalForward) {
+TEST_F(CpuOutputLayerTest, evalForward) {
   nlohmann::json json;
   json["size"] = 2;
   json["learnRate"] = 0.5;
@@ -42,6 +42,6 @@ TEST_F(OutputLayerTest, evalForward) {
   ASSERT_EQ(Y, Vector({ (3*2+4*1+2*3+5)*2, (3*1+4*4+2*2+7)*2 }));
 }
 
-TEST_F(OutputLayerTest, trainForward) {
+TEST_F(CpuOutputLayerTest, trainForward) {
   // TODO
 }

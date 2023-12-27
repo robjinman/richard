@@ -5,13 +5,13 @@
 using namespace richard;
 using namespace richard::cpu;
 
-class ConvolutionalLayerTest : public testing::Test {
+class CpuConvolutionalLayerTest : public testing::Test {
   public:
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
 
-TEST_F(ConvolutionalLayerTest, forwardPass_depth1) {
+TEST_F(CpuConvolutionalLayerTest, forwardPass_depth1) {
   nlohmann::json json;
   json["depth"] = 1;
   json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
@@ -46,7 +46,7 @@ TEST_F(ConvolutionalLayerTest, forwardPass_depth1) {
   ASSERT_EQ(Z, expectedZ);
 }
 
-TEST_F(ConvolutionalLayerTest, forwardPass_depth2) {
+TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
   nlohmann::json json;
   json["depth"] = 2;
   json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
@@ -91,7 +91,7 @@ TEST_F(ConvolutionalLayerTest, forwardPass_depth2) {
   ASSERT_EQ(Z, expectedZ);
 }
 
-TEST_F(ConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
+TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
   nlohmann::json json;
   json["depth"] = 2;
   json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
@@ -152,7 +152,7 @@ TEST_F(ConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
   ASSERT_EQ(Z, expectedZ);
 }
 
-TEST_F(ConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
+TEST_F(CpuConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
   nlohmann::json json;
   json["depth"] = 2;
   json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });

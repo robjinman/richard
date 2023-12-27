@@ -5,13 +5,13 @@
 using namespace richard;
 using namespace richard::cpu;
 
-class MaxPoolingLayerTest : public testing::Test {
+class CpuMaxPoolingLayerTest : public testing::Test {
   public:
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
 
-TEST_F(MaxPoolingLayerTest, evalForward_depth1) {
+TEST_F(CpuMaxPoolingLayerTest, evalForward_depth1) {
   size_t inputW = 4;
   size_t inputH = 4;
   size_t inputDepth = 1;
@@ -36,7 +36,7 @@ TEST_F(MaxPoolingLayerTest, evalForward_depth1) {
   }));
 }
 
-TEST_F(MaxPoolingLayerTest, evalForward_depth2) {
+TEST_F(CpuMaxPoolingLayerTest, evalForward_depth2) {
   size_t inputW = 4;
   size_t inputH = 4;
   size_t inputDepth = 2;
@@ -73,7 +73,7 @@ TEST_F(MaxPoolingLayerTest, evalForward_depth2) {
   }));
 }
 
-TEST_F(MaxPoolingLayerTest, trainForward_1x1_depth1) {
+TEST_F(CpuMaxPoolingLayerTest, trainForward_1x1_depth1) {
   size_t inputW = 4;
   size_t inputH = 4;
   size_t inputDepth = 1;
@@ -113,7 +113,7 @@ TEST_F(MaxPoolingLayerTest, trainForward_1x1_depth1) {
   }));
 }
 
-TEST_F(MaxPoolingLayerTest, trainForward_depth1) {
+TEST_F(CpuMaxPoolingLayerTest, trainForward_depth1) {
   size_t inputW = 4;
   size_t inputH = 4;
   size_t inputDepth = 1;
@@ -151,7 +151,7 @@ TEST_F(MaxPoolingLayerTest, trainForward_depth1) {
   }));
 }
 
-TEST_F(MaxPoolingLayerTest, trainForward_depth2) {
+TEST_F(CpuMaxPoolingLayerTest, trainForward_depth2) {
   size_t inputW = 4;
   size_t inputH = 4;
   size_t inputDepth = 2;
@@ -206,7 +206,7 @@ TEST_F(MaxPoolingLayerTest, trainForward_depth2) {
   }));
 }
 
-TEST_F(MaxPoolingLayerTest, padDelta_depth1) {
+TEST_F(CpuMaxPoolingLayerTest, padDelta_depth1) {
   size_t inputW = 4;
   size_t inputH = 4;
   size_t inputDepth = 1;
@@ -240,7 +240,7 @@ TEST_F(MaxPoolingLayerTest, padDelta_depth1) {
   }}));
 }
 
-TEST_F(MaxPoolingLayerTest, padDelta_depth2) {
+TEST_F(CpuMaxPoolingLayerTest, padDelta_depth2) {
   size_t inputW = 4;
   size_t inputH = 4;
   size_t inputDepth = 2;
@@ -293,7 +293,7 @@ TEST_F(MaxPoolingLayerTest, padDelta_depth2) {
   }));
 }
 
-TEST_F(MaxPoolingLayerTest, backpropFromConvLayer_depth1_convDepth1) {
+TEST_F(CpuMaxPoolingLayerTest, backpropFromConvLayer_depth1_convDepth1) {
   size_t inputW = 6;
   size_t inputH = 6;
   size_t inputDepth = 1;
@@ -338,7 +338,7 @@ TEST_F(MaxPoolingLayerTest, backpropFromConvLayer_depth1_convDepth1) {
   }}));
 }
 
-TEST_F(MaxPoolingLayerTest, backpropFromConvLayer_depth1_convDepth2) {
+TEST_F(CpuMaxPoolingLayerTest, backpropFromConvLayer_depth1_convDepth2) {
   size_t inputW = 6;
   size_t inputH = 6;
   size_t inputDepth = 1;
@@ -402,7 +402,7 @@ TEST_F(MaxPoolingLayerTest, backpropFromConvLayer_depth1_convDepth2) {
   ASSERT_EQ(delta, expectedDelta);
 }
 
-TEST_F(MaxPoolingLayerTest, backpropFromConvLayer_depth2_convDepth2) {
+TEST_F(CpuMaxPoolingLayerTest, backpropFromConvLayer_depth2_convDepth2) {
   size_t inputW = 6;
   size_t inputH = 6;
   size_t inputDepth = 2;

@@ -6,7 +6,7 @@
 using namespace richard;
 using namespace richard::gpu;
 
-class MockGpuLayer : public Layer {
+class MockGpuLayer : public gpu::Layer {
   public:
     MOCK_METHOD(void, allocateGpuResources, (GpuBufferHandle statusBuffer,
       GpuBufferHandle inputBuffer, const Layer* nextLayer, GpuBufferHandle sampleYBuffer),

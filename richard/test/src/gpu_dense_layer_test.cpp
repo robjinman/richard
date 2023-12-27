@@ -1,5 +1,6 @@
 #include "mock_logger.hpp"
 #include "mock_gpu_layer.hpp"
+#include "mock_cpu_layer.hpp"
 #include <cpu/dense_layer.hpp>
 #include <gpu/dense_layer.hpp>
 #include <gpu/gpu.hpp>
@@ -12,6 +13,11 @@ using richard::gpu::GpuBuffer;
 using richard::gpu::GpuBufferFlags;
 
 const double FLOAT_TOLERANCE = 0.0001;
+
+struct StatusBuffer {
+  uint32_t epoch;
+  uint32_t sampleIndex;
+};
 
 class GpuDenseLayerTest : public testing::Test {
   public:
@@ -35,12 +41,6 @@ Vector cpuDenseLayerTrainForward(const nlohmann::json& config, const Matrix& W, 
 TEST_F(GpuDenseLayerTest, trainForward) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
-
-  struct StatusBuffer {
-    uint32_t epoch;
-    netfloat_t cost;
-    uint32_t sampleIndex;
-  };
 
   GpuBufferFlags statusBufferFlags = GpuBufferFlags::frequentHostAccess
                                    | GpuBufferFlags::hostReadAccess
@@ -73,7 +73,6 @@ TEST_F(GpuDenseLayerTest, trainForward) {
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
   status.epoch = 0;
   status.sampleIndex = 0;
-  status.cost = 0;
 
   nlohmann::json config;
   config["size"] = layerSize;
@@ -109,5 +108,116 @@ TEST_F(GpuDenseLayerTest, trainForward) {
 
   for (size_t i = 0; i < A.size(); ++i) {
     EXPECT_NEAR(A[i], expectedA[i], FLOAT_TOLERANCE);
+  }
+}
+
+Vector cpuDenseLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
+  const Vector& inputs, const Matrix& nextW, const Vector& nextDelta) {
+
+  testing::NiceMock<MockCpuLayer> nextLayer;
+
+  ON_CALL(nextLayer, delta).WillByDefault(testing::ReturnRef(nextDelta.storage()));
+  ON_CALL(nextLayer, W).WillByDefault(testing::ReturnRef(nextW));
+
+  cpu::DenseLayer layer(config, inputs.size());
+
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
+
+  layer.trainForward(inputs.storage());
+  layer.updateDelta(inputs.storage(), nextLayer);
+
+  return layer.delta();
+}
+
+TEST_F(GpuDenseLayerTest, backprop) {
+  testing::NiceMock<MockLogger> logger;
+  GpuPtr gpu = gpu::createGpu(logger);
+
+  GpuBufferFlags statusBufferFlags = GpuBufferFlags::frequentHostAccess
+                                   | GpuBufferFlags::hostReadAccess
+                                   | GpuBufferFlags::hostWriteAccess;
+  GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
+
+  size_t miniBatchSize = 1;
+  const size_t layerInputSize = 4;
+  const size_t outputSize = 2;
+
+  Vector Y({ 0.0, 1.0 });
+
+  GpuBufferFlags bufferYFlags = GpuBufferFlags::frequentHostAccess
+                              | GpuBufferFlags::large
+                              | GpuBufferFlags::hostWriteAccess;
+
+  GpuBuffer bufferY = gpu->allocateBuffer(Y.size() * sizeof(netfloat_t), bufferYFlags);
+  ASSERT_NE(bufferY.data, nullptr);
+
+  memcpy(bufferY.data, Y.data(), Y.size() * sizeof(netfloat_t));
+
+  size_t inputBufferSize = layerInputSize * sizeof(netfloat_t);
+
+  GpuBufferFlags inputBufferFlags = GpuBufferFlags::large
+                                  | GpuBufferFlags::hostWriteAccess;
+
+  GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
+
+  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
+  gpu->submitBufferData(inputBuffer.handle, inputs.data());
+
+  StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
+  status.epoch = 0;
+  status.sampleIndex = 0;
+
+  Vector nextDelta({ 2, 3 });
+  Matrix nextW({
+    { 2, 5 },
+    { 4, 1 }
+  });
+
+  GpuBufferFlags bufferFlags = GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess;
+
+  GpuBuffer nextBufferW = gpu->allocateBuffer(nextW.size() * sizeof(netfloat_t), bufferFlags);
+  GpuBuffer nextBufferD = gpu->allocateBuffer(nextDelta.size() * sizeof(netfloat_t), bufferFlags);
+
+  gpu->submitBufferData(nextBufferW.handle, nextW.data());
+  gpu->submitBufferData(nextBufferD.handle, nextDelta.data());
+
+  nlohmann::json config;
+  config["size"] = outputSize;
+  config["learnRate"] = 0.1;
+  config["learnRateDecay"] = 1.0;
+  config["dropoutRate"] = 0.0;
+
+  gpu::DenseLayer layer(*gpu, config, layerInputSize, miniBatchSize);
+
+  Matrix W({
+    { 0.1, 0.2, 0.3, 0.4 },
+    { 0.5, 0.4, 0.3, 0.2 }
+  });
+
+  Vector B({ 0.7, 0.8 });
+
+  testing::NiceMock<MockGpuLayer> nextLayer;
+  ON_CALL(nextLayer, weightsBuffer).WillByDefault(testing::Return(nextBufferW.handle));
+  ON_CALL(nextLayer, deltaBuffer).WillByDefault(testing::Return(nextBufferD.handle));
+  ON_CALL(nextLayer, size).WillByDefault(testing::Return(nextDelta.size()));
+
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
+
+  layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
+
+  layer.trainForward();
+  layer.backprop();
+
+  gpu->flushQueue();
+
+  Vector delta(outputSize);
+  gpu->retrieveBuffer(layer.deltaBuffer(), delta.data());
+
+  Vector expectedDelta = cpuDenseLayerBackprop(config, W, B, inputs, nextW, nextDelta);
+
+  for (size_t i = 0; i < delta.size(); ++i) {
+    EXPECT_NEAR(delta[i], expectedDelta[i], FLOAT_TOLERANCE);
   }
 }
