@@ -53,7 +53,7 @@ void main() {
   float weightedSum = 0.0;
   for (uint i = 0; i < LAYER_NUM_INPUTS; ++i) {
     float w = readW(index * LAYER_NUM_INPUTS + i);
-    float x = readX(Status.sampleIndex * LAYER_NUM_INPUTS + i);
+    float x = readX(i);
     weightedSum += w * x;
   }
   weightedSum += readB(index);

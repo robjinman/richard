@@ -4,9 +4,11 @@
 namespace richard {
 namespace gpu {
 
-DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputSize)
+DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputSize,
+  bool isFirstLayer)
   : m_gpu(gpu)
-  , m_inputSize(inputSize) {
+  , m_inputSize(inputSize)
+  , m_isFirstLayer(isFirstLayer) {
 
   m_size = getOrThrow(obj, "size").get<size_t>();
   m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
@@ -20,9 +22,10 @@ DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream
   stream.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
-DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize)
+DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize, bool isFirstLayer)
   : m_gpu(gpu)
-  , m_inputSize(inputSize) {
+  , m_inputSize(inputSize)
+  , m_isFirstLayer(isFirstLayer) {
 
   m_size = getOrThrow(obj, "size").get<size_t>();
   m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
@@ -102,12 +105,14 @@ void DenseLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHand
 
   SpecializationConstants trainForwardConstants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
+    { SpecializationConstant::Type::bool_type, m_isFirstLayer },
   //  { SpecializationConstant::Type::float_type, m_dropoutRate }
   };
 
   SpecializationConstants backpropConstants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(nextLayer->size()) }
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(nextLayer->size()) },
+    { SpecializationConstant::Type::bool_type, m_isFirstLayer },
   };
 
   SpecializationConstants updateParamsConstants{

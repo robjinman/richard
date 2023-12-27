@@ -4,6 +4,7 @@
 
 layout(constant_id = 3) const uint LAYER_NUM_INPUTS = 1;
 layout(constant_id = 4) const uint NEXT_LAYER_SIZE = 1;
+layout(constant_id = 5) const bool IS_FIRST_LAYER = false;
 
 layout(std140, binding = 0) readonly buffer StatusSsbo {
   StatusBuffer Status;
@@ -81,10 +82,12 @@ void main() {
   }
   writeD(index, weightedSum * sigmoidPrime(readZ(index)));
 
+  const uint xOffset = IS_FIRST_LAYER ? Status.sampleIndex * LAYER_NUM_INPUTS : 0;
+
   for (uint i = 0; i < LAYER_NUM_INPUTS; ++i) {
     uint wIdx = index * LAYER_NUM_INPUTS + i;
     float dw = readDeltaW(wIdx);
-    writeDeltaW(wIdx, dw + readX(Status.sampleIndex * LAYER_NUM_INPUTS + i) * readD(index));
+    writeDeltaW(wIdx, dw + readX(xOffset + i) * readD(index));
   }
 
   writeDeltaB(index, readDeltaB(index) + readD(index));

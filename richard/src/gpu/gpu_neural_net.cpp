@@ -44,8 +44,9 @@ class GpuNeuralNet : public NeuralNet {
 
   private:
     LayerPtr constructLayer(const nlohmann::json& obj, std::istream& stream,
-      const Triple& prevLayerSize);
-    LayerPtr constructLayer(const nlohmann::json& obj, const Triple& prevLayerSize);
+      const Triple& prevLayerSize, bool isFirstLayer);
+    LayerPtr constructLayer(const nlohmann::json& obj, const Triple& prevLayerSize,
+      bool isFirstLayer);
     void allocateGpuResources();
     void loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,
       size_t numSamples);
@@ -68,13 +69,13 @@ void GpuNeuralNet::abort() {
 }
 
 LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, std::istream& stream,
-  const Triple& prevLayerSize) {
+  const Triple& prevLayerSize, bool isFirstLayer) {
 
   size_t numInputs = prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2];
 
   std::string type = getOrThrow(obj, "type");
   if (type == "dense") {
-    return std::make_unique<DenseLayer>(*m_gpu, obj, stream, numInputs);
+    return std::make_unique<DenseLayer>(*m_gpu, obj, stream, numInputs, isFirstLayer);
   }
   else if (type == "convolutional") {
     return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, stream, prevLayerSize[0],
@@ -89,12 +90,14 @@ LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, std::istream& s
   }
 }
 
-LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, const Triple& prevLayerSize) {
+LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, const Triple& prevLayerSize,
+  bool isFirstLayer) {
+
   size_t numInputs = prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2];
 
   std::string type = getOrThrow(obj, "type");
   if (type == "dense") {
-    return std::make_unique<DenseLayer>(*m_gpu, obj, numInputs);
+    return std::make_unique<DenseLayer>(*m_gpu, obj, numInputs, isFirstLayer);
   }
   else if (type == "convolutional") {
     return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, prevLayerSize[0], prevLayerSize[1],
@@ -123,7 +126,7 @@ GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& confi
     auto layersJson = config["hiddenLayers"];
 
     for (auto layerJson : layersJson) {
-      m_layers.push_back(constructLayer(layerJson, prevLayerSize));
+      m_layers.push_back(constructLayer(layerJson, prevLayerSize, m_layers.empty()));
       prevLayerSize = m_layers.back()->outputSize();
     }
   }
@@ -149,7 +152,7 @@ GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& confi
   Triple prevLayerSize = m_inputShape;
 
   for (auto& layerJson : layersJson) {
-    m_layers.push_back(constructLayer(layerJson, stream, prevLayerSize));
+    m_layers.push_back(constructLayer(layerJson, stream, prevLayerSize, m_layers.empty()));
     prevLayerSize = m_layers.back()->outputSize();
   }
   m_layers.push_back(std::make_unique<OutputLayer>(*m_gpu, outLayerJson, stream,

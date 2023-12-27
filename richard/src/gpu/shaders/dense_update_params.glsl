@@ -49,4 +49,3 @@ void main() {
 
   writeB(index, readB(index) - readDeltaB(index) * learnRate);
 }
-

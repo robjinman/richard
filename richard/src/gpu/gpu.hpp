@@ -20,11 +20,12 @@ using GpuBufferBindings = std::vector<GpuBufferHandle>;
 struct SpecializationConstant {
   enum class Type {
     uint_type,
-    float_type
+    float_type,
+    bool_type
   };
 
   Type type;
-  std::variant<uint32_t, float> value;
+  std::variant<uint32_t, float, bool> value;
 };
 
 using SpecializationConstants = std::vector<SpecializationConstant>;

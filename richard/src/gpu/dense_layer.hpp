@@ -10,8 +10,9 @@ namespace gpu {
 
 class DenseLayer : public Layer {
   public:
-    DenseLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputSize);
-    DenseLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize);
+    DenseLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputSize,
+      bool isFirstLayer);
+    DenseLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize, bool isFirstLayer);
 
     void allocateGpuResources(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer,
       const Layer* nextLayer, GpuBufferHandle sampleYBuffer) override;
@@ -33,6 +34,7 @@ class DenseLayer : public Layer {
     netfloat_t m_learnRateDecay;
     netfloat_t m_dropoutRate;
     size_t m_inputSize;
+    bool m_isFirstLayer;
     size_t m_size;
     Vector m_B;
     Matrix m_W;

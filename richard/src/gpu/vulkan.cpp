@@ -291,18 +291,22 @@ ShaderHandle Vulkan::compileShader(const std::string& source,
   for (const auto& constant : constants) {
     uint32_t constantId = entries.size();
     size_t offset = specializationData.size();
-    size_t typeSize = 0;
+    size_t typeSize = 4;
     switch (constant.type) {
       case SpecializationConstant::Type::float_type: {
-        typeSize = sizeof(float);
         specializationData.resize(offset + typeSize);
         memcpy(specializationData.data() + offset, &std::get<float>(constant.value), typeSize);
         break;
       }
       case SpecializationConstant::Type::uint_type: {
-        typeSize = sizeof(uint32_t);
         specializationData.resize(offset + typeSize);
         memcpy(specializationData.data() + offset, &std::get<uint32_t>(constant.value), typeSize);
+        break;
+      }
+      case SpecializationConstant::Type::bool_type: {
+        uint32_t value = std::get<bool>(constant.value);
+        specializationData.resize(offset + typeSize);
+        memcpy(specializationData.data() + offset, &value, typeSize);
         break;
       }
     }

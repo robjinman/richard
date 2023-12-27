@@ -75,7 +75,7 @@ void main() {
   for (uint i = 0; i < LAYER_NUM_INPUTS; ++i) {
     uint wIdx = index * LAYER_NUM_INPUTS + i;
     float dw = readDeltaW(wIdx);
-    writeDeltaW(wIdx, dw + readX(Status.sampleIndex * LAYER_NUM_INPUTS + i) * readD(index));
+    writeDeltaW(wIdx, dw + readX(i) * readD(index));
   }
 
   writeDeltaB(index, readDeltaB(index) + readD(index));
