@@ -24,12 +24,16 @@ TEST_F(OutputLayerTest, evalForward) {
     return 2.0;
   };
 
-  OutputLayer layer(json, 3);
-  layer.setWeights(Matrix({
+  Matrix W({
     { 2, 1, 3 },
     { 1, 4, 2 }
-  }));
-  layer.setBiases(Vector({ 5, 7 }));
+  });
+
+  Vector B({ 5, 7 });
+
+  OutputLayer layer(json, 3);
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
   layer.setActivationFn(activationFn, activationFnPrime);
 
   Vector X({ 3, 4, 2 });

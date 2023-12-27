@@ -122,14 +122,6 @@ void DenseLayer::updateParams(size_t epoch) {
   m_deltaW.zero();
 }
 
-void DenseLayer::setWeights(const Matrix& W) {
-  m_W = W;
-}
-
-void DenseLayer::setBiases(const Vector& B) {
-  m_B = B;
-}
-
 void DenseLayer::setWeights(const DataArray& W) {
   m_W = Matrix(W, m_W.cols(), m_W.rows());
 }

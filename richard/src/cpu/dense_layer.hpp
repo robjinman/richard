@@ -24,8 +24,6 @@ class DenseLayer : public Layer {
 
     // Exposed for testing
     //
-    void setWeights(const Matrix& weights);
-    void setBiases(const Vector& biases);
     void setWeights(const DataArray& W);
     void setBiases(const DataArray& B);
     void setActivationFn(ActivationFn f, ActivationFn fPrime);

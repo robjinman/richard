@@ -24,8 +24,8 @@ Vector cpuDenseLayerTrainForward(const nlohmann::json& config, const Matrix& W, 
 
   cpu::DenseLayer layer(config, inputs.size());
 
-  layer.setWeights(W);
-  layer.setBiases(B);
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
 
   layer.trainForward(inputs.storage());
 

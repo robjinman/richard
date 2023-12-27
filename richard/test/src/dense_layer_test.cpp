@@ -26,12 +26,16 @@ TEST_F(DenseLayerTest, evalForward) {
     return 2.0;
   };
 
-  DenseLayer layer(json, 3);
-  layer.setWeights(Matrix({
+  Matrix W({
     { 2, 1, 3 },
     { 1, 4, 2 }
-  }));
-  layer.setBiases(Vector({ 5, 7 }));
+  });
+
+  Vector B({ 5, 7 });
+
+  DenseLayer layer(json, 3);
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
   layer.setActivationFn(activationFn, activationFnPrime);
 
   Vector X({ 3, 4, 2 });
@@ -55,12 +59,16 @@ TEST_F(DenseLayerTest, trainForward) {
     return 2.0;
   };
 
-  DenseLayer layer(json, 3);
-  layer.setWeights(Matrix({
+  Matrix W({
     { 2, 1, 3 },
     { 1, 4, 2 }
-  }));
-  layer.setBiases(Vector({ 5, 7 }));
+  });
+
+  Vector B({ 5, 7 });
+
+  DenseLayer layer(json, 3);
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
   layer.setActivationFn(activationFn, activationFnPrime);
 
   Vector X({ 3, 4, 2 });
@@ -91,19 +99,21 @@ TEST_F(DenseLayerTest, updateDelta) {
     return x;
   };
 
-  DenseLayer layer(json, 3);
-  layer.setWeights(Matrix({
+  Matrix W({
     { 2, 1, 3 },
     { 1, 4, 2 }
-  }));
-  layer.setBiases(Vector({ 5, 7 }));
+  });
+
+  Vector B({ 5, 7 });
+
+  DenseLayer layer(json, 3);
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
   layer.setActivationFn(activationFn, activationFnPrime);
 
   Vector X({ 3, 4, 2 });
 
   layer.trainForward(X.storage());
-
-  Vector expectedZ({ 3*2+4*1+2*3+5, 3*1+4*4+2*2+7 });
 
   Vector nextDelta({ 2, 3 });
   Matrix nextW({
@@ -119,8 +129,5 @@ TEST_F(DenseLayerTest, updateDelta) {
 
   ConstVectorPtr delta = Vector::createShallow(layer.delta());
 
-  //m_delta = nextLayer.W().transposeMultiply(*pNextDelta)
-  //                       .hadamard(m_Z.computeTransform(m_activationFnPrime));
-
-  //ASSERT_EQ(*delta, Vector({ 0, 0, 0 }));
+  ASSERT_EQ(*delta, Vector({ 336, 390 }));
 }

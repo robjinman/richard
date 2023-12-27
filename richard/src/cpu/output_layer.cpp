@@ -115,14 +115,6 @@ void OutputLayer::updateParams(size_t epoch) {
   m_deltaW.zero();
 }
 
-void OutputLayer::setWeights(const Matrix& W) {
-  m_W = W;
-}
-
-void OutputLayer::setBiases(const Vector& B) {
-  m_B = B;
-}
-
 void OutputLayer::setWeights(const DataArray& W) {
   m_W = Matrix(W, m_W.cols(), m_W.rows());
 }
