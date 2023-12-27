@@ -46,7 +46,7 @@ TEST_F(GpuOutputLayerTest, trainForward) {
                                    | GpuBufferFlags::hostWriteAccess;
   GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
 
-  size_t miniBatchSize = 4;
+  size_t miniBatchSize = 1;
   const size_t layerInputSize = 4;
   const size_t outputSize = 2;
 
@@ -87,8 +87,8 @@ TEST_F(GpuOutputLayerTest, trainForward) {
 
   Vector B({ 0.7, 0.8 });
 
-  layer.setWeights(W);
-  layer.setBiases(B);
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
 
   layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, nullptr, bufferY.handle);
 
@@ -104,7 +104,21 @@ TEST_F(GpuOutputLayerTest, trainForward) {
     EXPECT_NEAR(A[i], expectedA[i], FLOAT_TOLERANCE);
   }
 }
-/*
+
+Vector cpuOutputLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
+  const Vector& inputs, const Vector& Y) {
+
+  cpu::OutputLayer layer(config, inputs.size());
+
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
+
+  layer.trainForward(inputs.storage());
+  layer.updateDelta(inputs.storage(), Y.storage());
+
+  return layer.delta();
+}
+
 TEST_F(GpuOutputLayerTest, backprop) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
@@ -120,17 +134,20 @@ TEST_F(GpuOutputLayerTest, backprop) {
                                    | GpuBufferFlags::hostWriteAccess;
   GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
 
-  size_t miniBatchSize = 4;
+  size_t miniBatchSize = 1;
   const size_t layerInputSize = 4;
   const size_t outputSize = 2;
 
-  size_t bufferYSize = miniBatchSize * outputSize * sizeof(netfloat_t);
+  Vector Y({ 0.0, 1.0 });
 
   GpuBufferFlags bufferYFlags = GpuBufferFlags::frequentHostAccess
                               | GpuBufferFlags::large
                               | GpuBufferFlags::hostWriteAccess;
 
-  GpuBuffer bufferY = gpu->allocateBuffer(bufferYSize, bufferYFlags);
+  GpuBuffer bufferY = gpu->allocateBuffer(Y.size() * sizeof(netfloat_t), bufferYFlags);
+  ASSERT_NE(bufferY.data, nullptr);
+
+  memcpy(bufferY.data, Y.data(), Y.size() * sizeof(netfloat_t));
 
   size_t inputBufferSize = layerInputSize * sizeof(netfloat_t);
 
@@ -161,21 +178,23 @@ TEST_F(GpuOutputLayerTest, backprop) {
 
   Vector B({ 0.7, 0.8 });
 
-  layer.setWeights(W);
-  layer.setBiases(B);
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
 
   layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, nullptr, bufferY.handle);
 
   layer.trainForward();
+  layer.backprop();
+
   gpu->flushQueue();
 
-  Vector A(outputSize);
-  gpu->retrieveBuffer(layer.activationsBuffer(), A.data());
+  Vector delta(outputSize);
+  gpu->retrieveBuffer(layer.deltaBuffer(), delta.data());
 
-  Vector expectedA = cpuOutputLayerTrainForward(config, W, B, inputs);
+  Vector expectedDelta = cpuOutputLayerBackprop(config, W, B, inputs, Y);
 
-  for (size_t i = 0; i < A.size(); ++i) {
-    EXPECT_NEAR(A[i], expectedA[i], FLOAT_TOLERANCE);
+  for (size_t i = 0; i < delta.size(); ++i) {
+    EXPECT_NEAR(delta[i], expectedDelta[i], FLOAT_TOLERANCE);
   }
 }
-*/
+

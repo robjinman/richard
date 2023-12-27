@@ -90,8 +90,8 @@ TEST_F(GpuDenseLayerTest, trainForward) {
 
   Vector B({ 0.7, 0.8 });
 
-  layer.setWeights(W);
-  layer.setBiases(B);
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
 
   testing::NiceMock<MockGpuLayer> nextLayer;
   ON_CALL(nextLayer, weightsBuffer).WillByDefault(testing::Return(0));

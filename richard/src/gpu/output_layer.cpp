@@ -19,6 +19,8 @@ OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stre
 
   m_W = Matrix(m_inputSize, m_size);
   stream.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
+
+  m_A = Vector(m_size);
 }
 
 OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize,
@@ -35,6 +37,8 @@ OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize,
   m_B.randomize(0.1);
   m_W = Matrix(m_inputSize, m_size);
   m_W.randomize(0.1);
+
+  m_A = Vector(m_size);
 }
 
 void OutputLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
@@ -44,10 +48,14 @@ void OutputLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHan
                                    | GpuBufferFlags::hostReadAccess
                                    | GpuBufferFlags::hostWriteAccess;
 
+  GpuBufferFlags activationsBufferFlags = GpuBufferFlags::large
+                                        | GpuBufferFlags::hostReadAccess
+                                        | GpuBufferFlags::frequentHostAccess;
+
   m_bufferB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), paramBuffersFlags);
   m_bufferW = m_gpu.allocateBuffer(m_inputSize * m_size * sizeof(netfloat_t), paramBuffersFlags);
   m_bufferZ = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
-  m_bufferA = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
+  m_bufferA = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), activationsBufferFlags);
   m_bufferD = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferDeltaB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferDeltaW = m_gpu.allocateBuffer(m_inputSize * m_size * sizeof(netfloat_t),
@@ -64,9 +72,7 @@ void OutputLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHan
   };
 
   GpuBufferBindings trainForwardBuffers{
-    statusBuffer,
     inputBuffer,
-    sampleYBuffer,
     m_bufferB.handle,
     m_bufferW.handle,
     m_bufferZ.handle,
@@ -141,6 +147,11 @@ Triple OutputLayer::outputSize() const {
   return { m_size, 1, 1 };
 }
 
+const Vector& OutputLayer::activations() const {
+  memcpy(m_A.data(), m_bufferA.data, m_bufferA.size);
+  return m_A;
+}
+
 void OutputLayer::evalForward() {
   m_gpu.queueShader(m_evalForwardShader);
 }
@@ -180,11 +191,11 @@ void OutputLayer::writeToStream(std::ostream& stream) const {
     m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
-void OutputLayer::setWeights(const Matrix& W) {
-  m_W = W;
+void OutputLayer::setWeights(const DataArray& W) {
+  m_W = Matrix(W, m_W.cols(), m_W.rows());
 }
 
-void OutputLayer::setBiases(const Vector& B) {
+void OutputLayer::setBiases(const DataArray& B) {
   m_B = B;
 }
 

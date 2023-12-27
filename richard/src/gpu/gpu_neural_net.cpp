@@ -22,7 +22,6 @@ const NeuralNet::CostFn quadradicCost = [](const Vector& actual, const Vector& e
 
 struct StatusBuffer {
   uint32_t epoch = 0;
-  netfloat_t cost = 0;
   uint32_t sampleIndex = 0;
 };
 
@@ -50,6 +49,7 @@ class GpuNeuralNet : public NeuralNet {
     void allocateGpuResources();
     void loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,
       size_t numSamples);
+    OutputLayer& outputLayer();
 
     Logger& m_logger;
     bool m_isTrained;
@@ -62,6 +62,8 @@ class GpuNeuralNet : public NeuralNet {
     GpuBuffer m_bufferX;
     GpuBuffer m_bufferY;
     GpuBuffer m_statusBuffer;
+    GpuBuffer m_costsBuffer;
+    ShaderHandle m_computeCostsShader;
 };
 
 void GpuNeuralNet::abort() {
@@ -163,6 +165,11 @@ GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& confi
   m_isTrained = true;
 }
 
+OutputLayer& GpuNeuralNet::outputLayer() {
+  ASSERT_MSG(!m_layers.empty(), "No output layer");
+  return dynamic_cast<OutputLayer&>(*m_layers.back());
+}
+
 NeuralNet::CostFn GpuNeuralNet::costFn() const {
   return quadradicCost;
 }
@@ -208,6 +215,26 @@ void GpuNeuralNet::allocateGpuResources() {
     layer.allocateGpuResources(X, m_statusBuffer.handle, nextLayer, m_bufferY.handle);
     X = layer.outputBuffer();
   }
+
+  // TODO: Remove hard-coded paths
+  const std::string shaderIncludesDir = "./shaders";
+  const std::string computeCostsSrc = loadFile("./shaders/compute_costs.glsl");
+
+  GpuBufferFlags costsBufferFlags = GpuBufferFlags::frequentHostAccess
+                                  | GpuBufferFlags::large
+                                  | GpuBufferFlags::hostReadAccess;
+
+  m_costsBuffer = m_gpu->allocateBuffer(m_params.miniBatchSize, costsBufferFlags);
+  ASSERT_MSG(m_costsBuffer.data != nullptr, "Expected costs buffer to be memory mapped");
+
+  GpuBufferBindings computeCostsBuffers{
+    outputLayer().activationsBuffer(),
+    m_bufferY.handle,
+    m_costsBuffer.handle
+  };
+
+  m_computeCostsShader = m_gpu->compileShader(computeCostsSrc, computeCostsBuffers, {}, {},
+    shaderIncludesDir);
 }
 
 void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,
@@ -246,8 +273,6 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
     }
 
     status.epoch = epoch;
-    status.cost = 0.f;
-    status.sampleIndex = 0;
 
     m_logger.info(STR("Epoch " << epoch + 1 << "/" << m_params.epochs));
     size_t samplesProcessed = 0;
@@ -257,6 +282,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
       for (size_t sampleCursor = 0; sampleCursor < samples.size(); sampleCursor += miniBatchSize) {
         loadSampleBuffers(trainingData, samples.data() + sampleCursor, miniBatchSize);
 
+        status.sampleIndex = 0;
         for (size_t s = 0; s < miniBatchSize; ++s) {
           for (const LayerPtr& layer : m_layers) {
             layer->trainForward();
@@ -265,7 +291,11 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
           for (auto i = m_layers.crbegin(); i != m_layers.crend(); ++i) {
             (*i)->backprop();
           }
+
+          ++status.sampleIndex;
         }
+
+        m_gpu->queueShader(m_computeCostsShader);
 
         for (const LayerPtr& layer : m_layers) {
           layer->updateParams();
@@ -284,7 +314,8 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
       }
     }
 
-    netfloat_t cost = status.cost / samplesProcessed;
+    netfloat_t cost = 0.0;
+    // TODO: Get costs
 
     m_logger.info(STR("\r  > cost = " << cost));
 

@@ -185,11 +185,11 @@ void DenseLayer::writeToStream(std::ostream& stream) const {
     m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
-void DenseLayer::setWeights(const Matrix& W) {
-  m_W = W;
+void DenseLayer::setWeights(const DataArray& W) {
+  m_W = Matrix(W, m_W.cols(), m_W.rows());
 }
 
-void DenseLayer::setBiases(const Vector& B) {
+void DenseLayer::setBiases(const DataArray& B) {
   m_B = B;
 }
 

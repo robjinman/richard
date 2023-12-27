@@ -10,7 +10,6 @@
 
 struct StatusBuffer {
   uint epoch;
-  float cost;
   uint sampleIndex;
 };
 

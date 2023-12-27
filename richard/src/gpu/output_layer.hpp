@@ -27,11 +27,12 @@ class OutputLayer : public Layer {
     void backprop() override;
     void updateParams() override;
     void writeToStream(std::ostream& stream) const override;
+    const Vector& activations() const;
 
     // Exposed for testing
     //
-    void setWeights(const Matrix& weights);
-    void setBiases(const Vector& biases);
+    void setWeights(const DataArray& W);
+    void setBiases(const DataArray& B);
     GpuBufferHandle activationsBuffer() const;
 
   private:
@@ -43,6 +44,7 @@ class OutputLayer : public Layer {
     size_t m_size;
     Vector m_B;
     Matrix m_W;
+    mutable Vector m_A;
     GpuBuffer m_bufferB;
     GpuBuffer m_bufferW;
     GpuBuffer m_bufferZ;
