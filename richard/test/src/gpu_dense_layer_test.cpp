@@ -1,6 +1,7 @@
 #include "mock_logger.hpp"
-#include <cpu/output_layer.hpp>
-#include <gpu/output_layer.hpp>
+#include "mock_gpu_layer.hpp"
+#include <cpu/dense_layer.hpp>
+#include <gpu/dense_layer.hpp>
 #include <gpu/gpu.hpp>
 #include <gtest/gtest.h>
 
@@ -12,16 +13,16 @@ using richard::gpu::GpuBufferFlags;
 
 const double FLOAT_TOLERANCE = 0.0001;
 
-class GpuOutputLayerTest : public testing::Test {
+class GpuDenseLayerTest : public testing::Test {
   public:
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
 
-Vector cpuOutputLayerTrainForward(const nlohmann::json& config, const Matrix& W, const Vector& B,
+Vector cpuDenseLayerTrainForward(const nlohmann::json& config, const Matrix& W, const Vector& B,
   const Vector& inputs) {
 
-  cpu::OutputLayer layer(config, inputs.size());
+  cpu::DenseLayer layer(config, inputs.size());
 
   layer.setWeights(W);
   layer.setBiases(B);
@@ -31,7 +32,7 @@ Vector cpuOutputLayerTrainForward(const nlohmann::json& config, const Matrix& W,
   return layer.activations();
 }
 
-TEST_F(GpuOutputLayerTest, trainForward) {
+TEST_F(GpuDenseLayerTest, trainForward) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
 
@@ -47,10 +48,11 @@ TEST_F(GpuOutputLayerTest, trainForward) {
   GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
 
   size_t miniBatchSize = 4;
+  const size_t layerSize = 2;
   const size_t layerInputSize = 4;
-  const size_t outputSize = 2;
+  const size_t networkOutputSize = 2;
 
-  size_t bufferYSize = miniBatchSize * outputSize * sizeof(netfloat_t);
+  size_t bufferYSize = miniBatchSize * networkOutputSize * sizeof(netfloat_t);
 
   GpuBufferFlags bufferYFlags = GpuBufferFlags::frequentHostAccess
                               | GpuBufferFlags::large
@@ -74,11 +76,12 @@ TEST_F(GpuOutputLayerTest, trainForward) {
   status.cost = 0;
 
   nlohmann::json config;
-  config["size"] = outputSize;
+  config["size"] = layerSize;
   config["learnRate"] = 0.1;
   config["learnRateDecay"] = 1.0;
+  config["dropoutRate"] = 0.0;
 
-  gpu::OutputLayer layer(*gpu, config, layerInputSize, miniBatchSize);
+  gpu::DenseLayer layer(*gpu, config, layerInputSize, miniBatchSize);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },
@@ -90,15 +93,19 @@ TEST_F(GpuOutputLayerTest, trainForward) {
   layer.setWeights(W);
   layer.setBiases(B);
 
-  layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, nullptr, bufferY.handle);
+  testing::NiceMock<MockGpuLayer> nextLayer;
+  ON_CALL(nextLayer, weightsBuffer).WillByDefault(testing::Return(0));
+  ON_CALL(nextLayer, deltaBuffer).WillByDefault(testing::Return(0));
+
+  layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
 
   layer.trainForward();
   gpu->flushQueue();
 
-  Vector A(outputSize);
+  Vector A(layerSize);
   gpu->retrieveBuffer(layer.activationsBuffer(), A.data());
 
-  Vector expectedA = cpuOutputLayerTrainForward(config, W, B, inputs);
+  Vector expectedA = cpuDenseLayerTrainForward(config, W, B, inputs);
 
   for (size_t i = 0; i < A.size(); ++i) {
     EXPECT_NEAR(A[i], expectedA[i], FLOAT_TOLERANCE);

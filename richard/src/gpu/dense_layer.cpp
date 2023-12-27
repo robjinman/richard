@@ -185,5 +185,17 @@ void DenseLayer::writeToStream(std::ostream& stream) const {
     m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
+void DenseLayer::setWeights(const Matrix& W) {
+  m_W = W;
+}
+
+void DenseLayer::setBiases(const Vector& B) {
+  m_B = B;
+}
+
+GpuBufferHandle DenseLayer::activationsBuffer() const {
+  return m_bufferA.handle;
+}
+
 }
 }

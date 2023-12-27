@@ -1,4 +1,4 @@
-#include "mock_layer.hpp"
+#include "mock_cpu_layer.hpp"
 #include <cpu/dense_layer.hpp>
 #include <gtest/gtest.h>
 
@@ -111,7 +111,7 @@ TEST_F(DenseLayerTest, updateDelta) {
     { 4, 1 }
   });
 
-  testing::NiceMock<MockLayer> nextLayer;
+  testing::NiceMock<MockCpuLayer> nextLayer;
   ON_CALL(nextLayer, delta).WillByDefault(testing::ReturnRef(nextDelta.storage()));
   ON_CALL(nextLayer, W).WillByDefault(testing::ReturnRef(nextW));
 

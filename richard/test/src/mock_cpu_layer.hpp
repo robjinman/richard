@@ -6,7 +6,7 @@
 using namespace richard;
 using namespace richard::cpu;
 
-class MockLayer : public Layer {
+class MockCpuLayer : public Layer {
   public:
     MOCK_METHOD(LayerType, type, (), (const, override));
     MOCK_METHOD(Triple, outputSize, (), (const, override));

@@ -1,4 +1,4 @@
-#include "mock_layer.hpp"
+#include "mock_cpu_layer.hpp"
 #include <cpu/convolutional_layer.hpp>
 #include <gtest/gtest.h>
 
@@ -161,7 +161,7 @@ TEST_F(ConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
   json["dropoutRate"] = 0.0;
 
   ConvolutionalLayer layer(json, 3, 3, 1);
-  testing::NiceMock<MockLayer> poolingLayer;
+  testing::NiceMock<MockCpuLayer> poolingLayer;
 
   ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({{
