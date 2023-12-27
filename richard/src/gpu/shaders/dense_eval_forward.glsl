@@ -1,6 +1,6 @@
 #version 430
 
-#include "utils.glsl"
+#include "common.glsl"
 
 void main() {
   // TODO
