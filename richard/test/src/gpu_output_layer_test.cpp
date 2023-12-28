@@ -76,7 +76,7 @@ TEST_F(GpuOutputLayerTest, trainForward) {
   config["learnRate"] = 0.1;
   config["learnRateDecay"] = 1.0;
 
-  gpu::OutputLayer layer(*gpu, config, layerInputSize, miniBatchSize);
+  gpu::OutputLayer layer(*gpu, config, layerInputSize);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },
@@ -126,7 +126,6 @@ TEST_F(GpuOutputLayerTest, backprop) {
                                    | GpuBufferFlags::hostWriteAccess;
   GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
 
-  size_t miniBatchSize = 1;
   const size_t layerInputSize = 4;
   const size_t outputSize = 2;
 
@@ -160,7 +159,7 @@ TEST_F(GpuOutputLayerTest, backprop) {
   config["learnRate"] = 0.1;
   config["learnRateDecay"] = 1.0;
 
-  gpu::OutputLayer layer(*gpu, config, layerInputSize, miniBatchSize);
+  gpu::OutputLayer layer(*gpu, config, layerInputSize);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },

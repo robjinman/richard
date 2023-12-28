@@ -3,7 +3,6 @@
 #include "common.glsl"
 
 layout(constant_id = 3) const uint LAYER_NUM_INPUTS = 1;
-layout(constant_id = 4) const uint MINI_BATCH_SIZE = 1;
 
 layout(std140, binding = 0) readonly buffer XSsbo {
   vec4 X[];

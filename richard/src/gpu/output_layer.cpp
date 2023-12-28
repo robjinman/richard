@@ -5,9 +5,8 @@ namespace richard {
 namespace gpu {
 
 OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream,
-  size_t inputSize, size_t miniBatchSize)
+  size_t inputSize)
   : m_gpu(gpu)
-  , m_miniBatchSize(miniBatchSize)
   , m_inputSize(inputSize) {
 
   m_size = getOrThrow(obj, "size").get<size_t>();
@@ -23,10 +22,8 @@ OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stre
   m_A = Vector(m_size);
 }
 
-OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize,
-  size_t miniBatchSize)
+OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize)
   : m_gpu(gpu)
-  , m_miniBatchSize(miniBatchSize)
   , m_inputSize(inputSize) {
 
   m_size = getOrThrow(obj, "size").get<size_t>();
@@ -80,7 +77,6 @@ void OutputLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHan
   };
 
   GpuBufferBindings backpropBuffers{
-    statusBuffer,
     inputBuffer,
     sampleYBuffer,
     m_bufferB.handle,
@@ -108,12 +104,10 @@ void OutputLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHan
 
   SpecializationConstants trainForwardConstants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_miniBatchSize) }
   };
 
   SpecializationConstants backpropConstants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_miniBatchSize) }
   };
 
   SpecializationConstants updateParamsConstants{

@@ -10,9 +10,8 @@ namespace gpu {
 
 class OutputLayer : public Layer {
   public:
-    OutputLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputSize,
-      size_t miniBatchSize);
-    OutputLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize, size_t miniBatchSize);
+    OutputLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputSize);
+    OutputLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize);
 
     void allocateGpuResources(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer,
       const Layer* nextLayer, GpuBufferHandle sampleYBuffer) override;
@@ -39,7 +38,6 @@ class OutputLayer : public Layer {
     Gpu& m_gpu;
     netfloat_t m_learnRate;
     netfloat_t m_learnRateDecay;
-    size_t m_miniBatchSize;
     size_t m_inputSize;
     size_t m_size;
     Vector m_B;

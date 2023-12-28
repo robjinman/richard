@@ -135,7 +135,7 @@ GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& confi
 
   auto outLayerJson = config["outputLayer"];
   m_layers.push_back(std::make_unique<OutputLayer>(*m_gpu, outLayerJson,
-    prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2], m_params.miniBatchSize));
+    prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2]));
 
   m_outputSize = m_layers.back()->outputSize()[0];
 }
@@ -158,7 +158,7 @@ GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& confi
     prevLayerSize = m_layers.back()->outputSize();
   }
   m_layers.push_back(std::make_unique<OutputLayer>(*m_gpu, outLayerJson, stream,
-    prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2], m_params.miniBatchSize));
+    prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2]));
 
   m_outputSize = m_layers.back()->outputSize()[0];
 
@@ -229,13 +229,19 @@ void GpuNeuralNet::allocateGpuResources() {
   ASSERT_MSG(m_costsBuffer.data != nullptr, "Expected costs buffer to be memory mapped");
 
   GpuBufferBindings computeCostsBuffers{
+    m_statusBuffer.handle,
     outputLayer().activationsBuffer(),
     m_bufferY.handle,
     m_costsBuffer.handle
   };
 
-  m_computeCostsShader = m_gpu->compileShader(computeCostsSrc, computeCostsBuffers, {},
-    { static_cast<uint32_t>(m_params.miniBatchSize), 1, 1 }, shaderIncludesDir);
+  SpecializationConstants computeCostsConstants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_params.miniBatchSize) }
+  };
+
+  m_computeCostsShader = m_gpu->compileShader(computeCostsSrc, computeCostsBuffers,
+    computeCostsConstants, { static_cast<uint32_t>(m_params.miniBatchSize), 1, 1 },
+    shaderIncludesDir);
 }
 
 void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,
@@ -274,6 +280,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
     }
 
     status.epoch = epoch;
+    status.sampleIndex = 0;
 
     m_logger.info(STR("Epoch " << epoch + 1 << "/" << m_params.epochs));
     size_t samplesProcessed = 0;
@@ -293,10 +300,8 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
             (*i)->backprop();
           }
 
-          ++status.sampleIndex;
+          m_gpu->queueShader(m_computeCostsShader); // TODO
         }
-
-        m_gpu->queueShader(m_computeCostsShader);
 
         for (const LayerPtr& layer : m_layers) {
           layer->updateParams();
