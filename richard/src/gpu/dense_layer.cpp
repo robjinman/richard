@@ -38,11 +38,7 @@ DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize, bo
   m_W.randomize(0.1);
 }
 
-void DenseLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
-  const Layer* nextLayer, GpuBufferHandle) {
-
-  DBG_ASSERT(nextLayer != nullptr);
-
+void DenseLayer::allocateGpuBuffers() {
   GpuBufferFlags paramBuffersFlags = GpuBufferFlags::large
                                    | GpuBufferFlags::hostReadAccess
                                    | GpuBufferFlags::hostWriteAccess;
@@ -52,12 +48,25 @@ void DenseLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHand
   m_bufferZ = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferA = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferD = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
-  m_bufferDeltaB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
+  m_bufferDeltaB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t),
+    GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
   m_bufferDeltaW = m_gpu.allocateBuffer(m_inputSize * m_size * sizeof(netfloat_t),
-    GpuBufferFlags::large);
+    GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
 
   m_gpu.submitBufferData(m_bufferB.handle, m_B.data());
   m_gpu.submitBufferData(m_bufferW.handle, m_W.data());
+
+  Matrix deltaW(m_W.cols(), m_W.rows());
+  m_gpu.submitBufferData(m_bufferDeltaW.handle, deltaW.data());
+
+  Vector deltaB(m_B.size());
+  m_gpu.submitBufferData(m_bufferDeltaB.handle, deltaB.data());
+}
+
+void DenseLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
+  const Layer* nextLayer, GpuBufferHandle) {
+
+  DBG_ASSERT(nextLayer != nullptr);
 
   GpuBufferBindings evalForwardBuffers{
     inputBuffer,
@@ -111,7 +120,6 @@ void DenseLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHand
 
   SpecializationConstants backpropConstants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(nextLayer->size()) },
     { SpecializationConstant::Type::bool_type, m_isFirstLayer },
   };
 

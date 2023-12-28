@@ -80,7 +80,7 @@ TEST_F(GpuDenseLayerTest, trainForward) {
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::DenseLayer layer(*gpu, config, layerInputSize, miniBatchSize);
+  gpu::DenseLayer layer(*gpu, config, layerInputSize, true);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },
@@ -96,7 +96,8 @@ TEST_F(GpuDenseLayerTest, trainForward) {
   ON_CALL(nextLayer, weightsBuffer).WillByDefault(testing::Return(0));
   ON_CALL(nextLayer, deltaBuffer).WillByDefault(testing::Return(0));
 
-  layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
+  layer.allocateGpuBuffers();
+  layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
 
   layer.trainForward();
   gpu->flushQueue();
@@ -142,7 +143,6 @@ TEST_F(GpuDenseLayerTest, backprop) {
                                    | GpuBufferFlags::hostWriteAccess;
   GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
 
-  size_t miniBatchSize = 1;
   const size_t layerInputSize = 4;
   const size_t layerSize = 2;
 
@@ -171,10 +171,10 @@ TEST_F(GpuDenseLayerTest, backprop) {
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  Vector nextDelta({ 2, 3 });
+  Vector nextDelta({ 2, 7 });
   Matrix nextW({
     { 2, 5 },
-    { 4, 1 }
+    { 4, 3 }
   });
 
   GpuBufferFlags bufferFlags = GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess;
@@ -191,7 +191,7 @@ TEST_F(GpuDenseLayerTest, backprop) {
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::DenseLayer layer(*gpu, config, layerInputSize, miniBatchSize);
+  gpu::DenseLayer layer(*gpu, config, layerInputSize, true);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },
@@ -208,7 +208,8 @@ TEST_F(GpuDenseLayerTest, backprop) {
   layer.test_setWeights(W.storage());
   layer.test_setBiases(B.storage());
 
-  layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
+  layer.allocateGpuBuffers();
+  layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
 
   layer.trainForward();
   layer.backprop();
@@ -254,7 +255,6 @@ TEST_F(GpuDenseLayerTest, updateParams) {
                                    | GpuBufferFlags::hostWriteAccess;
   GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
 
-  size_t miniBatchSize = 1;
   const size_t layerInputSize = 4;
   const size_t layerSize = 2;
 
@@ -289,7 +289,7 @@ TEST_F(GpuDenseLayerTest, updateParams) {
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::DenseLayer layer(*gpu, config, layerInputSize, miniBatchSize);
+  gpu::DenseLayer layer(*gpu, config, layerInputSize, true);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },
@@ -303,7 +303,8 @@ TEST_F(GpuDenseLayerTest, updateParams) {
   layer.test_setWeights(W.storage());
   layer.test_setBiases(B.storage());
 
-  layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
+  layer.allocateGpuBuffers();
+  layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
 
   Matrix deltaW({
     { 0.5, 0.3, 0.7, 0.1 },

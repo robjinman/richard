@@ -15,7 +15,8 @@ class ConvolutionalLayer : public Layer {
     ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputW,
       size_t inputH, size_t inputDepth);
 
-    void allocateGpuResources(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer,
+    void allocateGpuBuffers() override;
+    void createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
       const Layer* nextLayer, GpuBufferHandle sampleYBuffer) override;
     size_t size() const override;
     GpuBufferHandle outputBuffer() const override;

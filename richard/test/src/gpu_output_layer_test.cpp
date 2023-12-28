@@ -85,16 +85,17 @@ TEST_F(GpuOutputLayerTest, trainForward) {
 
   Vector B({ 0.7, 0.8 });
 
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
 
-  layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, nullptr, bufferY.handle);
+  layer.allocateGpuBuffers();
+  layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, nullptr, bufferY.handle);
 
   layer.trainForward();
   gpu->flushQueue();
 
   Vector A(outputSize);
-  gpu->retrieveBuffer(layer.activationsBuffer(), A.data());
+  gpu->retrieveBuffer(layer.outputBuffer(), A.data());
 
   Vector expectedA = cpuOutputLayerTrainForward(config, W, B, inputs);
 
@@ -170,10 +171,11 @@ TEST_F(GpuOutputLayerTest, backprop) {
 
   Vector B({ 0.7, 0.8 });
 
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
 
-  layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, nullptr, bufferY.handle);
+  layer.allocateGpuBuffers();
+  layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, nullptr, bufferY.handle);
 
   layer.trainForward();
   layer.backprop();
@@ -185,8 +187,8 @@ TEST_F(GpuOutputLayerTest, backprop) {
   Vector deltaB(B.size());
 
   gpu->retrieveBuffer(layer.deltaBuffer(), delta.data());
-  gpu->retrieveBuffer(layer.deltaWBuffer(), deltaW.data());
-  gpu->retrieveBuffer(layer.deltaBBuffer(), deltaB.data());
+  gpu->retrieveBuffer(layer.test_deltaWBuffer(), deltaW.data());
+  gpu->retrieveBuffer(layer.test_deltaBBuffer(), deltaB.data());
 
   Vector expectedDelta;
   Matrix expectedDeltaW;

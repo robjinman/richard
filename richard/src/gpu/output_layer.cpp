@@ -38,9 +38,7 @@ OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize)
   m_A = Vector(m_size);
 }
 
-void OutputLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
-  const Layer*, GpuBufferHandle sampleYBuffer) {
-
+void OutputLayer::allocateGpuBuffers() {
   GpuBufferFlags paramBuffersFlags = GpuBufferFlags::large
                                    | GpuBufferFlags::hostReadAccess
                                    | GpuBufferFlags::hostWriteAccess;
@@ -54,12 +52,23 @@ void OutputLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHan
   m_bufferZ = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferA = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), activationsBufferFlags);
   m_bufferD = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
-  m_bufferDeltaB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
+  m_bufferDeltaB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t),
+    GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
   m_bufferDeltaW = m_gpu.allocateBuffer(m_inputSize * m_size * sizeof(netfloat_t),
-    GpuBufferFlags::large);
+    GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
 
   m_gpu.submitBufferData(m_bufferB.handle, m_B.data());
   m_gpu.submitBufferData(m_bufferW.handle, m_W.data());
+
+  Matrix deltaW(m_W.cols(), m_W.rows());
+  m_gpu.submitBufferData(m_bufferDeltaW.handle, deltaW.data());
+
+  Vector deltaB(m_B.size());
+  m_gpu.submitBufferData(m_bufferDeltaB.handle, deltaB.data());
+}
+
+void OutputLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
+  const Layer*, GpuBufferHandle sampleYBuffer) {
 
   GpuBufferBindings evalForwardBuffers{
     inputBuffer,
@@ -186,31 +195,27 @@ void OutputLayer::writeToStream(std::ostream& stream) const {
     m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
-void OutputLayer::setWeights(const DataArray& W) {
+void OutputLayer::test_setWeights(const DataArray& W) {
   m_W = Matrix(W, m_W.cols(), m_W.rows());
 }
 
-void OutputLayer::setBiases(const DataArray& B) {
+void OutputLayer::test_setBiases(const DataArray& B) {
   m_B = B;
 }
 
-GpuBufferHandle OutputLayer::activationsBuffer() const {
-  return m_bufferA.handle;
-}
-
-GpuBufferHandle OutputLayer::deltaWBuffer() const {
+GpuBufferHandle OutputLayer::test_deltaWBuffer() const {
   return m_bufferDeltaW.handle;
 }
 
-GpuBufferHandle OutputLayer::deltaBBuffer() const {
+GpuBufferHandle OutputLayer::test_deltaBBuffer() const {
   return m_bufferDeltaB.handle;
 }
 
-const Matrix& OutputLayer::W() const {
+const Matrix& OutputLayer::test_W() const {
   return m_W;
 }
 
-const Vector& OutputLayer::B() const {
+const Vector& OutputLayer::test_B() const {
   return m_B;
 }
 

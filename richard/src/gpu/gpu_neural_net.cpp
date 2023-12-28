@@ -208,11 +208,15 @@ void GpuNeuralNet::allocateGpuResources() {
   m_statusBuffer = m_gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
   ASSERT_MSG(m_statusBuffer.data != nullptr, "Expected status buffer to be memory mapped");
 
+  for (LayerPtr& layer : m_layers) {
+    layer->allocateGpuBuffers();
+  }
+
   GpuBufferHandle X = m_bufferX.handle;
   for (size_t i = 0; i < m_layers.size(); ++i) {
     Layer& layer = *m_layers[i];
     const Layer* nextLayer = i + 1 == m_layers.size() ? nullptr : m_layers[i + 1].get();
-    layer.allocateGpuResources(X, m_statusBuffer.handle, nextLayer, m_bufferY.handle);
+    layer.createGpuShaders(X, m_statusBuffer.handle, nextLayer, m_bufferY.handle);
     X = layer.outputBuffer();
   }
 
@@ -229,7 +233,7 @@ void GpuNeuralNet::allocateGpuResources() {
 
   GpuBufferBindings computeCostsBuffers{
     m_statusBuffer.handle,
-    outputLayer().activationsBuffer(),
+    outputLayer().outputBuffer(),
     m_bufferY.handle,
     m_costsBuffer.handle
   };

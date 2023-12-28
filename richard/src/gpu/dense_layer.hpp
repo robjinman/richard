@@ -14,7 +14,8 @@ class DenseLayer : public Layer {
       bool isFirstLayer);
     DenseLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize, bool isFirstLayer);
 
-    void allocateGpuResources(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer,
+    void allocateGpuBuffers() override;
+    void createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
       const Layer* nextLayer, GpuBufferHandle sampleYBuffer) override;
     size_t size() const override;
     GpuBufferHandle outputBuffer() const override;

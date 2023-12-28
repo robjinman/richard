@@ -131,6 +131,10 @@ const Vector& OutputLayer::test_deltaB() const {
   return m_deltaB;
 }
 
+const Vector& OutputLayer::test_B() const {
+  return m_B;
+}
+
 void OutputLayer::test_setActivationFn(ActivationFn f, ActivationFn fPrime) {
   m_activationFn = f;
   m_activationFnPrime = fPrime;

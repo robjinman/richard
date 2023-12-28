@@ -10,7 +10,8 @@ namespace gpu {
 
 class Layer {
   public:
-    virtual void allocateGpuResources(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer,
+    virtual void allocateGpuBuffers() = 0;
+    virtual void createGpuShaders(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer,
       const Layer* nextLayer, GpuBufferHandle sampleYBuffer) = 0;
     virtual size_t size() const = 0;
     virtual GpuBufferHandle outputBuffer() const = 0;

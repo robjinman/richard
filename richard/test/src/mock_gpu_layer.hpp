@@ -8,7 +8,8 @@ using namespace richard::gpu;
 
 class MockGpuLayer : public gpu::Layer {
   public:
-    MOCK_METHOD(void, allocateGpuResources, (GpuBufferHandle statusBuffer,
+    MOCK_METHOD(void, allocateGpuBuffers, (), (override));
+    MOCK_METHOD(void, createGpuShaders, (GpuBufferHandle statusBuffer,
       GpuBufferHandle inputBuffer, const Layer* nextLayer, GpuBufferHandle sampleYBuffer),
       (override));
     MOCK_METHOD(size_t, size, (), (const, override));

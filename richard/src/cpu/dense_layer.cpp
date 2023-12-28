@@ -138,6 +138,10 @@ const Vector& DenseLayer::test_deltaB() const {
   return m_deltaB;
 }
 
+const Vector& DenseLayer::test_B() const {
+  return m_B;
+}
+
 void DenseLayer::test_setActivationFn(ActivationFn f, ActivationFn fPrime) {
   m_activationFn = f;
   m_activationFnPrime = fPrime;

@@ -10,7 +10,11 @@ MaxPoolingLayer::MaxPoolingLayer(Gpu& gpu, const nlohmann::json& obj, size_t inp
   // TODO
 }
 
-void MaxPoolingLayer::allocateGpuResources(GpuBufferHandle inputBuffer,
+void MaxPoolingLayer::allocateGpuBuffers() {
+  // TODO
+}
+
+void MaxPoolingLayer::createGpuShaders(GpuBufferHandle inputBuffer,
   GpuBufferHandle statusBuffer, const Layer* nextLayer, GpuBufferHandle) {
 
   // TODO

@@ -13,7 +13,8 @@ class OutputLayer : public Layer {
     OutputLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputSize);
     OutputLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize);
 
-    void allocateGpuResources(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer,
+    void allocateGpuBuffers() override;
+    void createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
       const Layer* nextLayer, GpuBufferHandle sampleYBuffer) override;
     size_t size() const override;
     GpuBufferHandle outputBuffer() const override;
@@ -30,13 +31,12 @@ class OutputLayer : public Layer {
 
     // Exposed for testing
     //
-    void setWeights(const DataArray& W);
-    void setBiases(const DataArray& B);
-    GpuBufferHandle activationsBuffer() const;
-    GpuBufferHandle deltaWBuffer() const;
-    GpuBufferHandle deltaBBuffer() const;
-    const Matrix& W() const;
-    const Vector& B() const;
+    void test_setWeights(const DataArray& W);
+    void test_setBiases(const DataArray& B);
+    GpuBufferHandle test_deltaWBuffer() const;
+    GpuBufferHandle test_deltaBBuffer() const;
+    const Matrix& test_W() const;
+    const Vector& test_B() const;
 
   private:
     Gpu& m_gpu;

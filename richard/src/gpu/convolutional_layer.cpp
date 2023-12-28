@@ -16,7 +16,11 @@ ConvolutionalLayer::ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj, std:
   // TODO
 }
 
-void ConvolutionalLayer::allocateGpuResources(GpuBufferHandle inputBuffer,
+void ConvolutionalLayer::allocateGpuBuffers() {
+  // TODO
+}
+
+void ConvolutionalLayer::createGpuShaders(GpuBufferHandle inputBuffer,
   GpuBufferHandle statusBuffer, const Layer* nextLayer, GpuBufferHandle) {
 
   // TODO

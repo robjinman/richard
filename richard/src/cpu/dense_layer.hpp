@@ -29,6 +29,7 @@ class DenseLayer : public Layer {
     void test_setActivationFn(ActivationFn f, ActivationFn fPrime);
     const Matrix& test_deltaW() const;
     const Vector& test_deltaB() const;
+    const Vector& test_B() const;
 
   private:
     Matrix m_W;
