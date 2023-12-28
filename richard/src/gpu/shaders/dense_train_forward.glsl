@@ -43,7 +43,7 @@ FN_WRITE(A)
 void main() {
   const uint index = gl_GlobalInvocationID.x;
 
-  const uint xOffset = Status.sampleIndex * LAYER_NUM_INPUTS;
+  const uint xOffset = IS_FIRST_LAYER ? Status.sampleIndex * LAYER_NUM_INPUTS : 0;
 
   float weightedSum = 0.0;
   for (uint i = 0; i < LAYER_NUM_INPUTS; ++i) {

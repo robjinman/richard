@@ -151,11 +151,11 @@ NeuralNet::CostFn CpuNeuralNetImpl::costFn() const {
   return quadradicCost;
 }
 
-void CpuNeuralNetImpl::writeToStream(std::ostream& fout) const {
+void CpuNeuralNetImpl::writeToStream(std::ostream& stream) const {
   ASSERT_MSG(m_isTrained, "Neural net is not trained");
 
   for (const auto& pLayer : m_layers) {
-    pLayer->writeToStream(fout);
+    pLayer->writeToStream(stream);
   }
 }
 

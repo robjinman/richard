@@ -77,6 +77,7 @@ void OutputLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHan
   };
 
   GpuBufferBindings backpropBuffers{
+    statusBuffer,
     inputBuffer,
     sampleYBuffer,
     m_bufferB.handle,

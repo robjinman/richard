@@ -25,7 +25,7 @@ class NeuralNet {
 
     virtual CostFn costFn() const = 0;
     virtual Triple inputSize() const = 0;
-    virtual void writeToStream(std::ostream& s) const = 0;
+    virtual void writeToStream(std::ostream& stream) const = 0;
     virtual void train(LabelledDataSet& data) = 0;
     virtual VectorPtr evaluate(const Array3& inputs) const = 0;
 

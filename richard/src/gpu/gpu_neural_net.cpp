@@ -224,8 +224,7 @@ void GpuNeuralNet::allocateGpuResources() {
                                   | GpuBufferFlags::large
                                   | GpuBufferFlags::hostReadAccess;
 
-  m_costsBuffer = m_gpu->allocateBuffer(m_params.miniBatchSize * sizeof(netfloat_t),
-    costsBufferFlags);
+  m_costsBuffer = m_gpu->allocateBuffer(m_outputSize * sizeof(netfloat_t), costsBufferFlags);
   ASSERT_MSG(m_costsBuffer.data != nullptr, "Expected costs buffer to be memory mapped");
 
   GpuBufferBindings computeCostsBuffers{
@@ -240,7 +239,7 @@ void GpuNeuralNet::allocateGpuResources() {
   };
 
   m_computeCostsShader = m_gpu->compileShader(computeCostsSrc, computeCostsBuffers,
-    computeCostsConstants, { static_cast<uint32_t>(m_params.miniBatchSize), 1, 1 },
+    computeCostsConstants, { static_cast<uint32_t>(m_outputSize), 1, 1 },
     shaderIncludesDir);
 }
 
@@ -279,6 +278,8 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
       break;
     }
 
+    memset(m_costsBuffer.data, 0, m_costsBuffer.size);
+ 
     status.epoch = epoch;
     status.sampleIndex = 0;
 
@@ -300,7 +301,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
             (*i)->backprop();
           }
 
-          m_gpu->queueShader(m_computeCostsShader); // TODO
+          m_gpu->queueShader(m_computeCostsShader);
         }
 
         for (const LayerPtr& layer : m_layers) {
@@ -321,7 +322,11 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
     }
 
     netfloat_t cost = 0.0;
-    // TODO: Get costs
+    for (size_t i = 0; i < m_outputSize; ++i) {
+      cost += reinterpret_cast<const netfloat_t*>(m_costsBuffer.data)[i];
+    }
+
+    cost /= samplesProcessed;
 
     m_logger.info(STR("\r  > cost = " << cost));
 
