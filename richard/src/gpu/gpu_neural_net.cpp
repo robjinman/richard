@@ -325,7 +325,6 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
     for (size_t i = 0; i < m_outputSize; ++i) {
       cost += reinterpret_cast<const netfloat_t*>(m_costsBuffer.data)[i];
     }
-
     cost /= samplesProcessed;
 
     m_logger.info(STR("\r  > cost = " << cost));

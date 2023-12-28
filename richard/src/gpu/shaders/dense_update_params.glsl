@@ -24,17 +24,19 @@ layout(std140, binding = 2) buffer WSsbo {
 FN_READ(W)
 FN_WRITE(W)
 
-layout(std140, binding = 3) readonly buffer DeltaBSsbo {
+layout(std140, binding = 3) buffer DeltaBSsbo {
   vec4 DeltaB[];
 };
 
 FN_READ(DeltaB)
+FN_WRITE(DeltaB)
 
-layout(std140, binding = 4) readonly buffer DeltaWSsbo {
+layout(std140, binding = 4) buffer DeltaWSsbo {
   vec4 DeltaW[];
 };
 
 FN_READ(DeltaW)
+FN_WRITE(DeltaW)
 
 void main() {
   const uint index = gl_GlobalInvocationID.x;
@@ -45,7 +47,12 @@ void main() {
     float w = readW(wIdx);
     float dw = readDeltaW(wIdx);
     writeW(wIdx, w - dw * learnRate);
+
+    writeDeltaW(wIdx, 0);
   }
 
   writeB(index, readB(index) - readDeltaB(index) * learnRate);
+
+  writeDeltaB(index, 0);
 }
+

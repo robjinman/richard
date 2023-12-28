@@ -561,6 +561,46 @@ Matrix Matrix::operator-(const Matrix& rhs) const {
   return m;
 }
 
+Matrix Matrix::operator+(netfloat_t x) const {
+  Matrix m(m_cols, m_rows);
+
+  for (size_t i = 0; i < size(); ++i) {
+    m.m_data[i] = m_data[i] + x;
+  }
+
+  return m;
+}
+
+Matrix Matrix::operator-(netfloat_t x) const {
+  Matrix m(m_cols, m_rows);
+
+  for (size_t i = 0; i < size(); ++i) {
+    m.m_data[i] = m_data[i] - x;
+  }
+
+  return m;
+}
+
+Matrix Matrix::operator*(netfloat_t x) const {
+  Matrix m(m_cols, m_rows);
+
+  for (size_t i = 0; i < size(); ++i) {
+    m.m_data[i] = m_data[i] * x;
+  }
+
+  return m;
+}
+
+Matrix Matrix::operator/(netfloat_t x) const {
+  Matrix m(m_cols, m_rows);
+
+  for (size_t i = 0; i < size(); ++i) {
+    m.m_data[i] = m_data[i] / x;
+  }
+
+  return m;
+}
+
 Matrix& Matrix::operator+=(netfloat_t x) {
   for (size_t i = 0; i < size(); ++i) {
     m_data[i] += x;

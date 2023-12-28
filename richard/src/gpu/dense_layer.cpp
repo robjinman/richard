@@ -33,7 +33,7 @@ DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize, bo
   m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
 
   m_B = Vector(m_size);
-  m_B.randomize(0.1);
+
   m_W = Matrix(m_inputSize, m_size);
   m_W.randomize(0.1);
 }
@@ -195,6 +195,22 @@ void DenseLayer::setBiases(const DataArray& B) {
 
 GpuBufferHandle DenseLayer::activationsBuffer() const {
   return m_bufferA.handle;
+}
+
+GpuBufferHandle DenseLayer::deltaWBuffer() const {
+  return m_bufferDeltaW.handle;
+}
+
+GpuBufferHandle DenseLayer::deltaBBuffer() const {
+  return m_bufferDeltaB.handle;
+}
+
+const Matrix& DenseLayer::W() const {
+  return m_W;
+}
+
+const Vector& DenseLayer::B() const {
+  return m_B;
 }
 
 }

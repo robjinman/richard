@@ -111,8 +111,9 @@ TEST_F(GpuDenseLayerTest, trainForward) {
   }
 }
 
-Vector cpuDenseLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
-  const Vector& inputs, const Matrix& nextW, const Vector& nextDelta) {
+void cpuDenseLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
+  const Vector& inputs, const Matrix& nextW, const Vector& nextDelta, Vector& delta, Matrix& deltaW,
+  Vector& deltaB) {
 
   testing::NiceMock<MockCpuLayer> nextLayer;
 
@@ -127,7 +128,9 @@ Vector cpuDenseLayerBackprop(const nlohmann::json& config, const Matrix& W, cons
   layer.trainForward(inputs.storage());
   layer.updateDelta(inputs.storage(), nextLayer);
 
-  return layer.delta();
+  delta = layer.delta();
+  deltaW = layer.deltaW();
+  deltaB = layer.deltaB();
 }
 
 TEST_F(GpuDenseLayerTest, backprop) {
@@ -141,7 +144,7 @@ TEST_F(GpuDenseLayerTest, backprop) {
 
   size_t miniBatchSize = 1;
   const size_t layerInputSize = 4;
-  const size_t outputSize = 2;
+  const size_t layerSize = 2;
 
   Vector Y({ 0.0, 1.0 });
 
@@ -183,7 +186,7 @@ TEST_F(GpuDenseLayerTest, backprop) {
   gpu->submitBufferData(nextBufferD.handle, nextDelta.data());
 
   nlohmann::json config;
-  config["size"] = outputSize;
+  config["size"] = layerSize;
   config["learnRate"] = 0.1;
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
@@ -212,12 +215,125 @@ TEST_F(GpuDenseLayerTest, backprop) {
 
   gpu->flushQueue();
 
-  Vector delta(outputSize);
-  gpu->retrieveBuffer(layer.deltaBuffer(), delta.data());
+  Vector delta(layerSize);
+  Matrix deltaW(W.cols(), W.rows());
+  Vector deltaB(B.size());
 
-  Vector expectedDelta = cpuDenseLayerBackprop(config, W, B, inputs, nextW, nextDelta);
+  gpu->retrieveBuffer(layer.deltaBuffer(), delta.data());
+  gpu->retrieveBuffer(layer.deltaWBuffer(), deltaW.data());
+  gpu->retrieveBuffer(layer.deltaBBuffer(), deltaB.data());
+
+  Vector expectedDelta;
+  Matrix expectedDeltaW;
+  Vector expectedDeltaB;
+
+  cpuDenseLayerBackprop(config, W, B, inputs, nextW, nextDelta, expectedDelta,
+    expectedDeltaW, expectedDeltaB);
 
   for (size_t i = 0; i < delta.size(); ++i) {
     EXPECT_NEAR(delta[i], expectedDelta[i], FLOAT_TOLERANCE);
+  }
+
+  for (size_t j = 0; j < deltaW.rows(); ++j) {
+    for (size_t i = 0; i < deltaW.cols(); ++i) {
+      EXPECT_NEAR(deltaW.at(i, j), expectedDeltaW.at(i, j), FLOAT_TOLERANCE);
+    }
+  }
+
+  for (size_t i = 0; i < deltaB.size(); ++i) {
+    EXPECT_NEAR(deltaB[i], expectedDeltaB[i], FLOAT_TOLERANCE);
+  }
+}
+
+TEST_F(GpuDenseLayerTest, updateParams) {
+  testing::NiceMock<MockLogger> logger;
+  GpuPtr gpu = gpu::createGpu(logger);
+
+  GpuBufferFlags statusBufferFlags = GpuBufferFlags::frequentHostAccess
+                                   | GpuBufferFlags::hostReadAccess
+                                   | GpuBufferFlags::hostWriteAccess;
+  GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
+
+  size_t miniBatchSize = 1;
+  const size_t layerInputSize = 4;
+  const size_t layerSize = 2;
+
+  Vector Y({ 0.0, 1.0 });
+
+  GpuBufferFlags bufferYFlags = GpuBufferFlags::frequentHostAccess
+                              | GpuBufferFlags::large
+                              | GpuBufferFlags::hostWriteAccess;
+
+  GpuBuffer bufferY = gpu->allocateBuffer(Y.size() * sizeof(netfloat_t), bufferYFlags);
+  ASSERT_NE(bufferY.data, nullptr);
+
+  memcpy(bufferY.data, Y.data(), Y.size() * sizeof(netfloat_t));
+
+  size_t inputBufferSize = layerInputSize * sizeof(netfloat_t);
+
+  GpuBufferFlags inputBufferFlags = GpuBufferFlags::large
+                                  | GpuBufferFlags::hostWriteAccess;
+
+  GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
+
+  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
+  gpu->submitBufferData(inputBuffer.handle, inputs.data());
+
+  StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
+  status.epoch = 0;
+  status.sampleIndex = 0;
+
+  nlohmann::json config;
+  config["size"] = layerSize;
+  config["learnRate"] = 0.1;
+  config["learnRateDecay"] = 1.0;
+  config["dropoutRate"] = 0.0;
+
+  gpu::DenseLayer layer(*gpu, config, layerInputSize, miniBatchSize);
+
+  Matrix W({
+    { 0.1, 0.2, 0.3, 0.4 },
+    { 0.5, 0.4, 0.3, 0.2 }
+  });
+
+  Vector B({ 0.7, 0.8 });
+
+  testing::NiceMock<MockGpuLayer> nextLayer;
+
+  layer.setWeights(W.storage());
+  layer.setBiases(B.storage());
+
+  layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
+
+  Matrix deltaW({
+    { 0.5, 0.3, 0.7, 0.1 },
+    { 0.8, 0.6, 0.2, 0.9 }
+  });
+
+  Vector deltaB({ 0.5, 0.1 });
+
+  gpu->submitBufferData(layer.deltaWBuffer(), deltaW.data());
+  gpu->submitBufferData(layer.deltaBBuffer(), deltaB.data());
+
+  layer.updateParams();
+
+  gpu->flushQueue();
+
+  layer.retrieveBuffers();
+
+  Matrix expectedW = W - deltaW * 0.1;
+  Vector expectedB = B - deltaB * 0.1;
+
+  const Matrix& actualW = layer.W();
+  const Vector& actualB = layer.B();
+
+  for (size_t j = 0; j < expectedW.rows(); ++j) {
+    for (size_t i = 0; i < expectedW.cols(); ++i) {
+      EXPECT_NEAR(actualW.at(i, j), expectedW.at(i, j), FLOAT_TOLERANCE);
+    }
+  }
+
+  for (size_t i = 0; i < expectedB.size(); ++i) {
+    EXPECT_NEAR(actualB[i], expectedB[i], FLOAT_TOLERANCE);
   }
 }

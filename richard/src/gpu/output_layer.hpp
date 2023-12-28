@@ -33,6 +33,10 @@ class OutputLayer : public Layer {
     void setWeights(const DataArray& W);
     void setBiases(const DataArray& B);
     GpuBufferHandle activationsBuffer() const;
+    GpuBufferHandle deltaWBuffer() const;
+    GpuBufferHandle deltaBBuffer() const;
+    const Matrix& W() const;
+    const Vector& B() const;
 
   private:
     Gpu& m_gpu;

@@ -31,7 +31,7 @@ OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize)
   m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
 
   m_B = Vector(m_size);
-  m_B.randomize(0.1);
+
   m_W = Matrix(m_inputSize, m_size);
   m_W.randomize(0.1);
 
@@ -122,7 +122,7 @@ void OutputLayer::allocateGpuResources(GpuBufferHandle inputBuffer, GpuBufferHan
   const std::string evalForwardSrc = loadFile("./shaders/output_eval_forward.glsl");
   const std::string trainForwardSrc = loadFile("./shaders/output_train_forward.glsl");
   const std::string backpropSrc = loadFile("./shaders/output_backprop.glsl");
-  const std::string updateParamsSrc = loadFile("./shaders/output_update_params.glsl");
+  const std::string updateParamsSrc = loadFile("./shaders/dense_update_params.glsl");
 
   m_evalForwardShader = m_gpu.compileShader(evalForwardSrc, evalForwardBuffers,
     evalForwardConstants, workgroupSize, includesDir);
@@ -196,6 +196,22 @@ void OutputLayer::setBiases(const DataArray& B) {
 
 GpuBufferHandle OutputLayer::activationsBuffer() const {
   return m_bufferA.handle;
+}
+
+GpuBufferHandle OutputLayer::deltaWBuffer() const {
+  return m_bufferDeltaW.handle;
+}
+
+GpuBufferHandle OutputLayer::deltaBBuffer() const {
+  return m_bufferDeltaB.handle;
+}
+
+const Matrix& OutputLayer::W() const {
+  return m_W;
+}
+
+const Vector& OutputLayer::B() const {
+  return m_B;
 }
 
 }

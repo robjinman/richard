@@ -123,6 +123,14 @@ void OutputLayer::setBiases(const DataArray& B) {
   m_B = B;
 }
 
+const Matrix& OutputLayer::deltaW() const {
+  return m_deltaW;
+}
+
+const Vector& OutputLayer::deltaB() const {
+  return m_deltaB;
+}
+
 void OutputLayer::setActivationFn(ActivationFn f, ActivationFn fPrime) {
   m_activationFn = f;
   m_activationFnPrime = fPrime;

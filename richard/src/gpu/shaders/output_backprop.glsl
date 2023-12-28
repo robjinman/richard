@@ -76,10 +76,10 @@ void main() {
 
   for (uint i = 0; i < LAYER_NUM_INPUTS; ++i) {
     const uint wIdx = index * LAYER_NUM_INPUTS + i;
-    const float dw = Status.sampleIndex > 0 ? readDeltaW(wIdx) : 0;
+    const float dw = readDeltaW(wIdx);
     writeDeltaW(wIdx, dw + readX(i) * readD(index));
   }
 
-  float db = Status.sampleIndex > 0 ? readDeltaB(index) : 0;
+  float db = readDeltaB(index);
   writeDeltaB(index, db + readD(index));
 }

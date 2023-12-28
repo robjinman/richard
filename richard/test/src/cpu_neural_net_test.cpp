@@ -103,10 +103,6 @@ TEST_F(CpuNeuralNetTest, evaluate) {
   // TODO: Add some assertions
 }
 
-// In theory, a convolutional layer with a kernel of size of 1x1 (and value 1.0) and a bias of 0.0
-// should have no effect. Likewise, a max pooling layer with region size of 1x1 will have no effect.
-// Here we compare the behaviour of a convnet containing these "dummy" layers with a fully connected
-// network and assert that they are essentially identical.
 TEST_F(CpuNeuralNetTest, evaluateTrivialConvVsFullyConnected) {
   const std::string convNetConfigString =  ""
   "{                                        "

@@ -28,6 +28,8 @@ class OutputLayer : public Layer {
     void setWeights(const DataArray& W);
     void setBiases(const DataArray& B);
     void setActivationFn(ActivationFn f, ActivationFn fPrime);
+    const Matrix& deltaW() const;
+    const Vector& deltaB() const;
 
   private:
     Matrix m_W;

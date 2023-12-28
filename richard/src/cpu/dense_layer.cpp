@@ -130,6 +130,14 @@ void DenseLayer::setBiases(const DataArray& B) {
   m_B = B;
 }
 
+const Matrix& DenseLayer::deltaW() const {
+  return m_deltaW;
+}
+
+const Vector& DenseLayer::deltaB() const {
+  return m_deltaB;
+}
+
 void DenseLayer::setActivationFn(ActivationFn f, ActivationFn fPrime) {
   m_activationFn = f;
   m_activationFnPrime = fPrime;
