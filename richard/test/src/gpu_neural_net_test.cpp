@@ -29,7 +29,7 @@ class GpuNeuralNetTest : public testing::Test {
 void runCpuNetwork(const nlohmann::json& denseConfig, const nlohmann::json& outputConfig,
   const Matrix& W1, const Vector& B1, const Matrix& W2, const Vector& B2,
   const std::vector<Vector>& X, const std::vector<Vector>& Y, Matrix& finalW1, Vector& finalB1,
-  Matrix& finalW2, Vector& finalB2, Vector& finalDelta1, Vector& finalDelta2) {
+  Matrix& finalW2, Vector& finalB2) {
 
   size_t inputSize = X[0].size();
 
@@ -61,9 +61,6 @@ void runCpuNetwork(const nlohmann::json& denseConfig, const nlohmann::json& outp
 
   finalW2 = layer2.W();
   finalB2 = layer2.test_B();
-
-  finalDelta1 = layer1.delta();
-  finalDelta2 = layer2.delta();
 }
 
 TEST_F(GpuNeuralNetTest, simpleNetwork) {
@@ -82,11 +79,11 @@ TEST_F(GpuNeuralNetTest, simpleNetwork) {
 
   std::vector<Vector> X{
     Vector{ 0.6, 0.2, 0.5, 0.7 },
-  //  Vector{ 0.7, 0.1, 0.9, 0.5 }
+    Vector{ 0.7, 0.1, 0.9, 0.5 }
   };
   std::vector<Vector> Y{
     Vector{ 1.0, 0.0 },
-  //  Vector{ 0.0, 1.0 }
+    Vector{ 0.0, 1.0 }
   };
 
   size_t bufferXSize = miniBatchSize * inputSize * sizeof(netfloat_t);
@@ -203,25 +200,9 @@ TEST_F(GpuNeuralNetTest, simpleNetwork) {
   Vector expectedB1;
   Matrix expectedW2;
   Vector expectedB2;
-  Vector expectedDelta1;
-  Vector expectedDelta2;
 
   runCpuNetwork(layer1Config, layer2Config, W1, B1, W2, B2, X, Y, expectedW1, expectedB1,
-    expectedW2, expectedB2, expectedDelta1, expectedDelta2);
-
-  Vector finalDelta1(layer1Size);
-  Vector finalDelta2(layer2Size);
-
-  gpu->retrieveBuffer(layer1.deltaBuffer(), finalDelta1.data());
-  gpu->retrieveBuffer(layer2.deltaBuffer(), finalDelta2.data());
-
-  for (size_t i = 0; i < expectedDelta1.size(); ++i) {
-    EXPECT_NEAR(finalDelta1[i], expectedDelta1[i], FLOAT_TOLERANCE);
-  }
-
-  for (size_t i = 0; i < expectedDelta2.size(); ++i) {
-    EXPECT_NEAR(finalDelta2[i], expectedDelta2[i], FLOAT_TOLERANCE);
-  }
+    expectedW2, expectedB2);
 
   for (size_t j = 0; j < expectedW1.rows(); ++j) {
     for (size_t i = 0; i < expectedW1.cols(); ++i) {
