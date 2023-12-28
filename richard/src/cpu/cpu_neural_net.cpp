@@ -40,7 +40,7 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
 
     // Exposed for testing
     //
-    Layer& getLayer(size_t index) override;
+    Layer& test_getLayer(size_t index) override;
 
   private:
     netfloat_t feedForward(const Array3& x, const Vector& y);
@@ -270,7 +270,7 @@ VectorPtr CpuNeuralNetImpl::evaluate(const Array3& x) const {
 
 }
 
-Layer& CpuNeuralNetImpl::getLayer(size_t index) {
+Layer& CpuNeuralNetImpl::test_getLayer(size_t index) {
   ASSERT(index < m_layers.size());
   return *m_layers[index];
 }

@@ -40,11 +40,13 @@ class ConvolutionalLayer : public Layer {
 
     // Exposed for testing
     //
-
-    void forwardPass(const Array3& inputs, Array3& Z) const;
-    void setFilters(const std::vector<ConvolutionalLayer::Filter>& filters);
+    void test_forwardPass(const Array3& inputs, Array3& Z) const;
+    void test_setFilters(const std::vector<ConvolutionalLayer::Filter>& filters);
 
   private:
+    size_t numOutputs() const;
+    void forwardPass(const Array3& inputs, Array3& Z) const;
+
     std::vector<Filter> m_filters;
     Array3 m_Z;
     Array3 m_A;
@@ -56,8 +58,6 @@ class ConvolutionalLayer : public Layer {
     netfloat_t m_learnRate;
     netfloat_t m_learnRateDecay;
     netfloat_t m_dropoutRate;
-
-    size_t numOutputs() const;
 };
 
 }

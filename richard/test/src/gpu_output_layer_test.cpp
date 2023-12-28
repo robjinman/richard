@@ -28,8 +28,8 @@ Vector cpuOutputLayerTrainForward(const nlohmann::json& config, const Matrix& W,
 
   cpu::OutputLayer layer(config, inputs.size());
 
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
 
   layer.trainForward(inputs.storage());
 
@@ -108,15 +108,15 @@ void cpuOutputLayerBackprop(const nlohmann::json& config, const Matrix& W, const
 
   cpu::OutputLayer layer(config, inputs.size());
 
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
 
   layer.trainForward(inputs.storage());
   layer.updateDelta(inputs.storage(), Y.storage());
 
   delta = layer.delta();
-  deltaW = layer.deltaW();
-  deltaB = layer.deltaB();
+  deltaW = layer.test_deltaW();
+  deltaB = layer.test_deltaB();
 }
 
 TEST_F(GpuOutputLayerTest, backprop) {

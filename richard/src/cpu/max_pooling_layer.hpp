@@ -23,12 +23,18 @@ class MaxPoolingLayer : public Layer {
     const Matrix& W() const override;
 
     // Exposed for testing
-    void padDelta(const Array3& delta, const Array3& mask, Array3& paddedDelta) const;
-    const Array3& mask() const;
-    void backpropFromConvLayer(const std::vector<ConvolutionalLayer::Filter>& filters,
+    //
+    void test_padDelta(const Array3& delta, const Array3& mask, Array3& paddedDelta) const;
+    const Array3& test_mask() const;
+    void test_backpropFromConvLayer(const std::vector<ConvolutionalLayer::Filter>& filters,
       const DataArray& convDelta, Array3& delta);
 
   private:
+    void padDelta(const Array3& delta, const Array3& mask, Array3& paddedDelta) const;
+    void backpropFromDenseLayer(const Layer& nextLayer, Array3& delta);
+    void backpropFromConvLayer(const std::vector<ConvolutionalLayer::Filter>& filters,
+      const DataArray& convDelta, Array3& delta);
+
     Array3 m_Z;
     Array3 m_delta;
     Array3 m_paddedDelta;
@@ -38,8 +44,6 @@ class MaxPoolingLayer : public Layer {
     size_t m_inputH;
     size_t m_inputDepth;
     Array3 m_mask;
-
-    void backpropFromDenseLayer(const Layer& nextLayer, Array3& delta);
 };
 
 }

@@ -27,7 +27,7 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth1) {
     { 1, 2 }
   }});
   filter.b = 7;
-  layer.setFilters({ filter });
+  layer.test_setFilters({ filter });
 
   Array3 inputs({{
     { 0, 1, 2 },
@@ -37,7 +37,7 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth1) {
 
   Array3 Z(2, 2, 1);
 
-  layer.forwardPass(inputs, Z);
+  layer.test_forwardPass(inputs, Z);
 
   Array3 expectedZ(2, 2, 1);
   filter.K.convolve(inputs, *expectedZ.slice(0));
@@ -70,7 +70,7 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
   }});
   filter1.b = 3;
 
-  layer.setFilters({ filter0, filter1 });
+  layer.test_setFilters({ filter0, filter1 });
 
   Array3 Z(2, 2, 2);
 
@@ -86,7 +86,7 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
   filter1.K.convolve(inputs, *expectedZ.slice(1));
   *expectedZ.slice(1) += filter1.b;
 
-  layer.forwardPass(inputs, Z);
+  layer.test_forwardPass(inputs, Z);
 
   ASSERT_EQ(Z, expectedZ);
 }
@@ -125,7 +125,7 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
   });
   filter1.b = 3;
 
-  layer.setFilters({ filter0, filter1 });
+  layer.test_setFilters({ filter0, filter1 });
 
   Array3 Z(2, 2, 2);
 
@@ -147,7 +147,7 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
   filter1.K.convolve(inputs, *expectedZ.slice(1));
   *expectedZ.slice(1) += filter1.b;
 
-  layer.forwardPass(inputs, Z);
+  layer.test_forwardPass(inputs, Z);
 
   ASSERT_EQ(Z, expectedZ);
 }
@@ -177,7 +177,7 @@ TEST_F(CpuConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
   }});
   filter1.b = 3;
 
-  layer.setFilters({ filter0, filter1 });
+  layer.test_setFilters({ filter0, filter1 });
 
   Array3 Z(2, 2, 2);
 
@@ -199,7 +199,7 @@ TEST_F(CpuConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
   filter1.K.convolve(inputs, *expectedZ.slice(1));
   *expectedZ.slice(1) += filter1.b;
 
-  layer.forwardPass(inputs, Z);
+  layer.test_forwardPass(inputs, Z);
 
   ASSERT_EQ(Z, expectedZ);
 

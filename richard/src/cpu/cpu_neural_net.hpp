@@ -13,7 +13,7 @@ class Layer;
 class CpuNeuralNet : public NeuralNet {
   public:
     // For unit tests
-    virtual Layer& getLayer(size_t idx) = 0;
+    virtual Layer& test_getLayer(size_t idx) = 0;
 
     virtual ~CpuNeuralNet() = default;
 };

@@ -211,7 +211,20 @@ void MaxPoolingLayer::updateDelta(const DataArray&, const Layer& nextLayer) {
   padDelta(m_delta, m_mask, m_paddedDelta);
 }
 
-const Array3& MaxPoolingLayer::mask() const {
+void MaxPoolingLayer::test_padDelta(const Array3& delta, const Array3& mask,
+  Array3& paddedDelta) const {
+
+  padDelta(delta, mask, paddedDelta);
+}
+
+void MaxPoolingLayer::test_backpropFromConvLayer(
+  const std::vector<ConvolutionalLayer::Filter>& filters, const DataArray& convDelta,
+  Array3& delta) {
+
+  backpropFromConvLayer(filters, convDelta, delta);
+}
+
+const Array3& MaxPoolingLayer::test_mask() const {
   return m_mask;
 }
 

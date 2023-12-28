@@ -25,11 +25,11 @@ class OutputLayer : public Layer {
 
     // Exposed for testing
     //
-    void setWeights(const DataArray& W);
-    void setBiases(const DataArray& B);
-    void setActivationFn(ActivationFn f, ActivationFn fPrime);
-    const Matrix& deltaW() const;
-    const Vector& deltaB() const;
+    void test_setWeights(const DataArray& W);
+    void test_setBiases(const DataArray& B);
+    void test_setActivationFn(ActivationFn f, ActivationFn fPrime);
+    const Matrix& test_deltaW() const;
+    const Vector& test_deltaB() const;
 
   private:
     Matrix m_W;

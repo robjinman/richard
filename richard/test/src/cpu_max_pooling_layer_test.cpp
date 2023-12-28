@@ -101,7 +101,7 @@ TEST_F(CpuMaxPoolingLayerTest, trainForward_1x1_depth1) {
     { 2, 3, 4, 5 }
   }));
 
-  Array3 mask = layer.mask();
+  Array3 mask = layer.test_mask();
 
   ASSERT_EQ(mask, Array3({
     {
@@ -139,7 +139,7 @@ TEST_F(CpuMaxPoolingLayerTest, trainForward_depth1) {
     { 9, 5 }
   }));
 
-  Array3 mask = layer.mask();
+  Array3 mask = layer.test_mask();
 
   ASSERT_EQ(mask, Array3({
     {
@@ -189,7 +189,7 @@ TEST_F(CpuMaxPoolingLayerTest, trainForward_depth2) {
     }
   }));
 
-  Array3 mask = layer.mask();
+  Array3 mask = layer.test_mask();
 
   ASSERT_EQ(mask, Array3({
     {
@@ -230,7 +230,7 @@ TEST_F(CpuMaxPoolingLayerTest, padDelta_depth1) {
 
   Array3 padded(4, 4, 1);
 
-  layer.padDelta(delta, mask, padded);
+  layer.test_padDelta(delta, mask, padded);
 
   ASSERT_EQ(padded, Array3({{
     { 0, 0, 0, 8 },
@@ -276,7 +276,7 @@ TEST_F(CpuMaxPoolingLayerTest, padDelta_depth2) {
 
   Array3 padded(4, 4, 2);
 
-  layer.padDelta(delta, mask, padded);
+  layer.test_padDelta(delta, mask, padded);
 
   ASSERT_EQ(padded, Array3({
     {
@@ -329,7 +329,7 @@ TEST_F(CpuMaxPoolingLayerTest, backpropFromConvLayer_depth1_convDepth1) {
 
   Array3 delta(deltaW, deltaH, inputDepth);
 
-  layer.backpropFromConvLayer(filters, convDelta.storage(), delta);
+  layer.test_backpropFromConvLayer(filters, convDelta.storage(), delta);
 
   ASSERT_EQ(delta, Array3({{
     { 2, 9, 10 },
@@ -383,7 +383,7 @@ TEST_F(CpuMaxPoolingLayerTest, backpropFromConvLayer_depth1_convDepth2) {
 
   Array3 delta(deltaW, deltaH, 1);
 
-  layer.backpropFromConvLayer(filters, convDelta.storage(), delta);
+  layer.test_backpropFromConvLayer(filters, convDelta.storage(), delta);
 
   Array2 fm0Delta({ // Delta from kernel/featureMap 0
     { 2, 9, 10 },
@@ -457,7 +457,7 @@ TEST_F(CpuMaxPoolingLayerTest, backpropFromConvLayer_depth2_convDepth2) {
 
   Array3 delta(deltaW, deltaH, 2);
 
-  layer.backpropFromConvLayer(filters, convDelta.storage(), delta);
+  layer.test_backpropFromConvLayer(filters, convDelta.storage(), delta);
 
   Array2 slice0Delta = Array2({
     { 2, 9, 10 },   // Delta from first plane of kernel 0, feature map 0

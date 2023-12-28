@@ -185,31 +185,31 @@ void DenseLayer::writeToStream(std::ostream& stream) const {
     m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
-void DenseLayer::setWeights(const DataArray& W) {
+void DenseLayer::test_setWeights(const DataArray& W) {
   m_W = Matrix(W, m_W.cols(), m_W.rows());
 }
 
-void DenseLayer::setBiases(const DataArray& B) {
+void DenseLayer::test_setBiases(const DataArray& B) {
   m_B = B;
 }
 
-GpuBufferHandle DenseLayer::activationsBuffer() const {
+GpuBufferHandle DenseLayer::test_activationsBuffer() const {
   return m_bufferA.handle;
 }
 
-GpuBufferHandle DenseLayer::deltaWBuffer() const {
+GpuBufferHandle DenseLayer::test_deltaWBuffer() const {
   return m_bufferDeltaW.handle;
 }
 
-GpuBufferHandle DenseLayer::deltaBBuffer() const {
+GpuBufferHandle DenseLayer::test_deltaBBuffer() const {
   return m_bufferDeltaB.handle;
 }
 
-const Matrix& DenseLayer::W() const {
+const Matrix& DenseLayer::test_W() const {
   return m_W;
 }
 
-const Vector& DenseLayer::B() const {
+const Vector& DenseLayer::test_B() const {
   return m_B;
 }
 

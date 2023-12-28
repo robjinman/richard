@@ -27,6 +27,8 @@ class ClassifierTrainingApp : public Application {
     static const nlohmann::json& exampleConfig();
 
   private:
+    void saveStateToFile() const;
+
     Logger& m_logger;
     FileSystem& m_fileSystem;
     Options m_opts;
@@ -34,8 +36,6 @@ class ClassifierTrainingApp : public Application {
     std::unique_ptr<Classifier> m_classifier;
     std::unique_ptr<DataDetails> m_dataDetails;
     std::unique_ptr<LabelledDataSet> m_dataSet;
-
-    void saveStateToFile() const;
 };
 
 }

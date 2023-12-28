@@ -122,23 +122,23 @@ void DenseLayer::updateParams(size_t epoch) {
   m_deltaW.zero();
 }
 
-void DenseLayer::setWeights(const DataArray& W) {
+void DenseLayer::test_setWeights(const DataArray& W) {
   m_W = Matrix(W, m_W.cols(), m_W.rows());
 }
 
-void DenseLayer::setBiases(const DataArray& B) {
+void DenseLayer::test_setBiases(const DataArray& B) {
   m_B = B;
 }
 
-const Matrix& DenseLayer::deltaW() const {
+const Matrix& DenseLayer::test_deltaW() const {
   return m_deltaW;
 }
 
-const Vector& DenseLayer::deltaB() const {
+const Vector& DenseLayer::test_deltaB() const {
   return m_deltaB;
 }
 
-void DenseLayer::setActivationFn(ActivationFn f, ActivationFn fPrime) {
+void DenseLayer::test_setActivationFn(ActivationFn f, ActivationFn fPrime) {
   m_activationFn = f;
   m_activationFnPrime = fPrime;
 }

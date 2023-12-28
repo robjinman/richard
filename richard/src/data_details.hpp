@@ -27,12 +27,12 @@ class DataDetails {
     DataDetails();
     explicit DataDetails(const nlohmann::json& json);
 
+    static const nlohmann::json& exampleConfig();
+
     NormalizationParams normalization;
     std::vector<std::string> classLabels;
     Triple shape;
     size_t batchSize;
-
-    static const nlohmann::json& exampleConfig();
 };
 
 }

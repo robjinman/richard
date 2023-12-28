@@ -226,9 +226,13 @@ std::array<size_t, 2> ConvolutionalLayer::kernelSize() const {
   return { m_filters[0].K.W(), m_filters[0].K.H() };
 }
 
-void ConvolutionalLayer::setFilters(const std::vector<ConvolutionalLayer::Filter>& filters) {
+void ConvolutionalLayer::test_setFilters(const std::vector<ConvolutionalLayer::Filter>& filters) {
   ASSERT(filters.size() == m_filters.size());
   m_filters = filters;
+}
+
+void ConvolutionalLayer::test_forwardPass(const Array3& inputs, Array3& Z) const {
+  forwardPass(inputs, Z);
 }
 
 }

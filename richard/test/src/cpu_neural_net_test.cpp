@@ -91,12 +91,12 @@ TEST_F(CpuNeuralNetTest, evaluate) {
   });
   Vector B2({ 0.6, 0.8 });
 
-  dynamic_cast<DenseLayer&>(net->getLayer(0)).setWeights(W0.storage());
-  dynamic_cast<DenseLayer&>(net->getLayer(0)).setBiases(B0.storage());
-  dynamic_cast<DenseLayer&>(net->getLayer(1)).setWeights(W1.storage());
-  dynamic_cast<DenseLayer&>(net->getLayer(1)).setBiases(B1.storage());
-  dynamic_cast<OutputLayer&>(net->getLayer(2)).setWeights(W2.storage());
-  dynamic_cast<OutputLayer&>(net->getLayer(2)).setBiases(B2.storage());
+  dynamic_cast<DenseLayer&>(net->test_getLayer(0)).test_setWeights(W0.storage());
+  dynamic_cast<DenseLayer&>(net->test_getLayer(0)).test_setBiases(B0.storage());
+  dynamic_cast<DenseLayer&>(net->test_getLayer(1)).test_setWeights(W1.storage());
+  dynamic_cast<DenseLayer&>(net->test_getLayer(1)).test_setBiases(B1.storage());
+  dynamic_cast<OutputLayer&>(net->test_getLayer(2)).test_setWeights(W2.storage());
+  dynamic_cast<OutputLayer&>(net->test_getLayer(2)).test_setBiases(B2.storage());
 
   net->train(dataSet);
   
@@ -206,16 +206,16 @@ TEST_F(CpuNeuralNetTest, evaluateTrivialConvVsFullyConnected) {
   });
   Vector outB({ 0.1, 0.2 });
 
-  dynamic_cast<ConvolutionalLayer&>(convNet->getLayer(0)).setFilters({ filter });
-  dynamic_cast<DenseLayer&>(convNet->getLayer(2)).setWeights(denseW.storage());
-  dynamic_cast<DenseLayer&>(convNet->getLayer(2)).setBiases(denseB.storage());
-  dynamic_cast<OutputLayer&>(convNet->getLayer(3)).setWeights(outW.storage());
-  dynamic_cast<OutputLayer&>(convNet->getLayer(3)).setBiases(outB.storage());
+  dynamic_cast<ConvolutionalLayer&>(convNet->test_getLayer(0)).test_setFilters({ filter });
+  dynamic_cast<DenseLayer&>(convNet->test_getLayer(2)).test_setWeights(denseW.storage());
+  dynamic_cast<DenseLayer&>(convNet->test_getLayer(2)).test_setBiases(denseB.storage());
+  dynamic_cast<OutputLayer&>(convNet->test_getLayer(3)).test_setWeights(outW.storage());
+  dynamic_cast<OutputLayer&>(convNet->test_getLayer(3)).test_setBiases(outB.storage());
 
-  dynamic_cast<DenseLayer&>(denseNet->getLayer(0)).setWeights(denseW.storage());
-  dynamic_cast<DenseLayer&>(denseNet->getLayer(0)).setBiases(denseB.storage());
-  dynamic_cast<OutputLayer&>(denseNet->getLayer(1)).setWeights(outW.storage());
-  dynamic_cast<OutputLayer&>(denseNet->getLayer(1)).setBiases(outB.storage());
+  dynamic_cast<DenseLayer&>(denseNet->test_getLayer(0)).test_setWeights(denseW.storage());
+  dynamic_cast<DenseLayer&>(denseNet->test_getLayer(0)).test_setBiases(denseB.storage());
+  dynamic_cast<OutputLayer&>(denseNet->test_getLayer(1)).test_setWeights(outW.storage());
+  dynamic_cast<OutputLayer&>(denseNet->test_getLayer(1)).test_setBiases(outB.storage());
 
   convNet->train(dataSet);
   denseNet->train(dataSet);
@@ -301,9 +301,9 @@ TEST_F(CpuNeuralNetTest, evaluateConv) {
   });
   Vector outB({ 0.0, 0.0 });
 
-  dynamic_cast<ConvolutionalLayer&>(net->getLayer(0)).setFilters({ filter0, filter1 });
-  dynamic_cast<OutputLayer&>(net->getLayer(2)).setWeights(outW.storage());
-  dynamic_cast<OutputLayer&>(net->getLayer(2)).setBiases(outB.storage());
+  dynamic_cast<ConvolutionalLayer&>(net->test_getLayer(0)).test_setFilters({ filter0, filter1 });
+  dynamic_cast<OutputLayer&>(net->test_getLayer(2)).test_setWeights(outW.storage());
+  dynamic_cast<OutputLayer&>(net->test_getLayer(2)).test_setBiases(outB.storage());
 
   net->train(dataSet);
   

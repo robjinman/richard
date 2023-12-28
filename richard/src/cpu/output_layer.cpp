@@ -115,23 +115,23 @@ void OutputLayer::updateParams(size_t epoch) {
   m_deltaW.zero();
 }
 
-void OutputLayer::setWeights(const DataArray& W) {
+void OutputLayer::test_setWeights(const DataArray& W) {
   m_W = Matrix(W, m_W.cols(), m_W.rows());
 }
 
-void OutputLayer::setBiases(const DataArray& B) {
+void OutputLayer::test_setBiases(const DataArray& B) {
   m_B = B;
 }
 
-const Matrix& OutputLayer::deltaW() const {
+const Matrix& OutputLayer::test_deltaW() const {
   return m_deltaW;
 }
 
-const Vector& OutputLayer::deltaB() const {
+const Vector& OutputLayer::test_deltaB() const {
   return m_deltaB;
 }
 
-void OutputLayer::setActivationFn(ActivationFn f, ActivationFn fPrime) {
+void OutputLayer::test_setActivationFn(ActivationFn f, ActivationFn fPrime) {
   m_activationFn = f;
   m_activationFnPrime = fPrime;
 }

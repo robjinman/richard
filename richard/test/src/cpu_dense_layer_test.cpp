@@ -34,9 +34,9 @@ TEST_F(CpuDenseLayerTest, evalForward) {
   Vector B({ 5, 7 });
 
   DenseLayer layer(json, 3);
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
-  layer.setActivationFn(activationFn, activationFnPrime);
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
+  layer.test_setActivationFn(activationFn, activationFnPrime);
 
   Vector X({ 3, 4, 2 });
   Vector Y(layer.evalForward(X.storage()));
@@ -67,9 +67,9 @@ TEST_F(CpuDenseLayerTest, trainForward) {
   Vector B({ 5, 7 });
 
   DenseLayer layer(json, 3);
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
-  layer.setActivationFn(activationFn, activationFnPrime);
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
+  layer.test_setActivationFn(activationFn, activationFnPrime);
 
   Vector X({ 3, 4, 2 });
   
@@ -107,9 +107,9 @@ TEST_F(CpuDenseLayerTest, updateDelta) {
   Vector B({ 5, 7 });
 
   DenseLayer layer(json, 3);
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
-  layer.setActivationFn(activationFn, activationFnPrime);
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
+  layer.test_setActivationFn(activationFn, activationFnPrime);
 
   Vector X({ 3, 4, 2 });
 

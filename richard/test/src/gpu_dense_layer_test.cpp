@@ -30,8 +30,8 @@ Vector cpuDenseLayerTrainForward(const nlohmann::json& config, const Matrix& W, 
 
   cpu::DenseLayer layer(config, inputs.size());
 
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
 
   layer.trainForward(inputs.storage());
 
@@ -89,8 +89,8 @@ TEST_F(GpuDenseLayerTest, trainForward) {
 
   Vector B({ 0.7, 0.8 });
 
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
 
   testing::NiceMock<MockGpuLayer> nextLayer;
   ON_CALL(nextLayer, weightsBuffer).WillByDefault(testing::Return(0));
@@ -102,7 +102,7 @@ TEST_F(GpuDenseLayerTest, trainForward) {
   gpu->flushQueue();
 
   Vector A(layerSize);
-  gpu->retrieveBuffer(layer.activationsBuffer(), A.data());
+  gpu->retrieveBuffer(layer.test_activationsBuffer(), A.data());
 
   Vector expectedA = cpuDenseLayerTrainForward(config, W, B, inputs);
 
@@ -122,15 +122,15 @@ void cpuDenseLayerBackprop(const nlohmann::json& config, const Matrix& W, const 
 
   cpu::DenseLayer layer(config, inputs.size());
 
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
 
   layer.trainForward(inputs.storage());
   layer.updateDelta(inputs.storage(), nextLayer);
 
   delta = layer.delta();
-  deltaW = layer.deltaW();
-  deltaB = layer.deltaB();
+  deltaW = layer.test_deltaW();
+  deltaB = layer.test_deltaB();
 }
 
 TEST_F(GpuDenseLayerTest, backprop) {
@@ -205,8 +205,8 @@ TEST_F(GpuDenseLayerTest, backprop) {
   ON_CALL(nextLayer, deltaBuffer).WillByDefault(testing::Return(nextBufferD.handle));
   ON_CALL(nextLayer, size).WillByDefault(testing::Return(nextDelta.size()));
 
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
 
   layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
 
@@ -220,8 +220,8 @@ TEST_F(GpuDenseLayerTest, backprop) {
   Vector deltaB(B.size());
 
   gpu->retrieveBuffer(layer.deltaBuffer(), delta.data());
-  gpu->retrieveBuffer(layer.deltaWBuffer(), deltaW.data());
-  gpu->retrieveBuffer(layer.deltaBBuffer(), deltaB.data());
+  gpu->retrieveBuffer(layer.test_deltaWBuffer(), deltaW.data());
+  gpu->retrieveBuffer(layer.test_deltaBBuffer(), deltaB.data());
 
   Vector expectedDelta;
   Matrix expectedDeltaW;
@@ -300,8 +300,8 @@ TEST_F(GpuDenseLayerTest, updateParams) {
 
   testing::NiceMock<MockGpuLayer> nextLayer;
 
-  layer.setWeights(W.storage());
-  layer.setBiases(B.storage());
+  layer.test_setWeights(W.storage());
+  layer.test_setBiases(B.storage());
 
   layer.allocateGpuResources(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
 
@@ -312,8 +312,8 @@ TEST_F(GpuDenseLayerTest, updateParams) {
 
   Vector deltaB({ 0.5, 0.1 });
 
-  gpu->submitBufferData(layer.deltaWBuffer(), deltaW.data());
-  gpu->submitBufferData(layer.deltaBBuffer(), deltaB.data());
+  gpu->submitBufferData(layer.test_deltaWBuffer(), deltaW.data());
+  gpu->submitBufferData(layer.test_deltaBBuffer(), deltaB.data());
 
   layer.updateParams();
 
@@ -324,8 +324,8 @@ TEST_F(GpuDenseLayerTest, updateParams) {
   Matrix expectedW = W - deltaW * 0.1;
   Vector expectedB = B - deltaB * 0.1;
 
-  const Matrix& actualW = layer.W();
-  const Vector& actualB = layer.B();
+  const Matrix& actualW = layer.test_W();
+  const Vector& actualB = layer.test_B();
 
   for (size_t j = 0; j < expectedW.rows(); ++j) {
     for (size_t i = 0; i < expectedW.cols(); ++i) {
