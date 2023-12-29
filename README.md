@@ -7,6 +7,22 @@ Richard is gaining power.
 Building
 --------
 
+### Linux
+
+#### Prerequisites
+
+Requires CMake.
+
+Install development dependencies
+
+```
+    sudo apt install \
+        build-essential \
+        libboost-program-options-dev \
+        libvulkan-dev \
+        vulkan-validationLayers-dev
+```
+
 From the richard subdirectory, to make a release build, run
 
 ```
@@ -25,7 +41,7 @@ And for a debug build:
 Examples
 --------
 
-All examples are run from the richard subdirectory.
+All examples are run from the build directory, e.g. richard/build/release.
 
 ### Classifying hand-written digits with a fully connected network
 
@@ -42,26 +58,26 @@ All examples are run from the richard subdirectory.
             }
         },
         "dataLoader": {
-          "fetchSize": 500
+          "fetchSize": 640
         },
         "classifier": {
             "network": {
                 "hyperparams": {
                     "epochs": 30,
                     "batchSize": 1000,
-                    "miniBatchSize": 10,
+                    "miniBatchSize": 32,
                 },
                 "hiddenLayers": [
                     {
                         "type": "dense",
-                        "size": 300,
+                        "size": 320,
                         "learnRate": 0.1,
                         "learnRateDecay": 1.0,
                         "dropoutRate": 0.0
                     },
                     {
                         "type": "dense",
-                        "size": 80,
+                        "size": 64,
                         "learnRate": 0.1,
                         "learnRateDecay": 1.0,
                         "dropoutRate": 0.0
@@ -79,8 +95,14 @@ All examples are run from the richard subdirectory.
 ```
 
 ```
-    ./build/release/richard --train --samples ../data/ocr/train.csv --config ../data/ocr/config.json --network ../data/ocr/network
-    ./build/release/richard --eval --samples ../data/ocr/test.csv --network ../data/ocr/network
+    ./richard --train \
+        --samples ../../../data/ocr/train.csv \
+        --config ../../../data/ocr/config.json \
+        --network ../../../data/ocr/network
+
+    ./richard --eval \
+        --samples ../../../data/ocr/test.csv \
+        --network ../../../data/ocr/network
 ```
 
 ### Classifying cats and dogs with a CNN
@@ -151,7 +173,13 @@ All examples are run from the richard subdirectory.
 ```
 
 ```
-    ./build/release/richard --train --samples ../data/catdog/train --config ../data/catdog/config.json --network ../data/catdog/network
-    ./build/release/richard --eval --samples ../data/catdog/test --network ../data/catdog/network
+    ./richard --train \
+        --samples ../../../data/catdog/train \
+        --config ../../../data/catdog/config.json \
+        --network ../../../data/catdog/network
+
+    ./richard --eval \
+        --samples ../../../data/catdog/test \
+        --network ../../../data/catdog/network
 ```
 
