@@ -68,7 +68,7 @@ DataArray OutputLayer::evalForward(const DataArray& inputs) const {
   return y.storage();
 }
 
-Triple OutputLayer::outputSize() const {
+Size3 OutputLayer::outputSize() const {
   return { m_B.size(), 1, 1 };
 }
 

@@ -10,8 +10,7 @@ namespace gpu {
 
 class MaxPoolingLayer : public Layer {
   public:
-    MaxPoolingLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputW, size_t inputH,
-      size_t inputDepth);
+    MaxPoolingLayer(Gpu& gpu, const nlohmann::json& obj, const Size3& inputShape);
 
     void allocateGpuBuffers() override;
     void createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
@@ -21,7 +20,7 @@ class MaxPoolingLayer : public Layer {
     GpuBufferHandle weightsBuffer() const override;
     GpuBufferHandle deltaBuffer() const override;
     void retrieveBuffers() override;
-    Triple outputSize() const override;
+    Size3 outputSize() const override;
     void evalForward() override;
     void trainForward() override;
     void backprop() override;

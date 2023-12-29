@@ -29,12 +29,12 @@ class GpuNeuralNet : public NeuralNet {
   public:
     using CostFn = std::function<netfloat_t(const Vector&, const Vector&)>;
 
-    GpuNeuralNet(const Triple& inputShape, const nlohmann::json& config, Logger& logger);
-    GpuNeuralNet(const Triple& inputShape, const nlohmann::json& config, std::istream& stream,
+    GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config, Logger& logger);
+    GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config, std::istream& stream,
       Logger& logger);
 
     CostFn costFn() const override;
-    Triple inputSize() const override;
+    Size3 inputSize() const override;
     void writeToStream(std::ostream& stream) const override;
     void train(LabelledDataSet& data) override;
     VectorPtr evaluate(const Array3& inputs) const override;
@@ -43,8 +43,8 @@ class GpuNeuralNet : public NeuralNet {
 
   private:
     LayerPtr constructLayer(const nlohmann::json& obj, std::istream& stream,
-      const Triple& prevLayerSize, bool isFirstLayer);
-    LayerPtr constructLayer(const nlohmann::json& obj, const Triple& prevLayerSize,
+      const Size3& prevLayerSize, bool isFirstLayer);
+    LayerPtr constructLayer(const nlohmann::json& obj, const Size3& prevLayerSize,
       bool isFirstLayer);
     void allocateGpuResources();
     void loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,
@@ -53,7 +53,7 @@ class GpuNeuralNet : public NeuralNet {
 
     Logger& m_logger;
     bool m_isTrained;
-    Triple m_inputShape;
+    Size3 m_inputShape;
     size_t m_outputSize;
     Hyperparams m_params;
     GpuPtr m_gpu;
@@ -66,55 +66,7 @@ class GpuNeuralNet : public NeuralNet {
     ShaderHandle m_computeCostsShader;
 };
 
-void GpuNeuralNet::abort() {
-  m_abort = true;
-}
-
-LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, std::istream& stream,
-  const Triple& prevLayerSize, bool isFirstLayer) {
-
-  size_t numInputs = prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2];
-
-  std::string type = getOrThrow(obj, "type");
-  if (type == "dense") {
-    return std::make_unique<DenseLayer>(*m_gpu, obj, stream, numInputs, isFirstLayer);
-  }
-  else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, stream, prevLayerSize[0],
-      prevLayerSize[1], prevLayerSize[2]);
-  }
-  else if (type == "maxPooling") {
-    return std::make_unique<MaxPoolingLayer>(*m_gpu, obj, prevLayerSize[0], prevLayerSize[1],
-      prevLayerSize[2]);
-  }
-  else {
-    EXCEPTION("Don't know how to construct layer of type '" << type << "'");
-  }
-}
-
-LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, const Triple& prevLayerSize,
-  bool isFirstLayer) {
-
-  size_t numInputs = prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2];
-
-  std::string type = getOrThrow(obj, "type");
-  if (type == "dense") {
-    return std::make_unique<DenseLayer>(*m_gpu, obj, numInputs, isFirstLayer);
-  }
-  else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, prevLayerSize[0], prevLayerSize[1],
-      prevLayerSize[2]);
-  }
-  else if (type == "maxPooling") {
-    return std::make_unique<MaxPoolingLayer>(*m_gpu, obj, prevLayerSize[0], prevLayerSize[1],
-      prevLayerSize[2]);
-  }
-  else {
-    EXCEPTION("Don't know how to construct layer of type '" << type << "'");
-  }
-}
-
-GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config,
   Logger& logger)
   : m_logger(logger)
   , m_isTrained(false)
@@ -122,8 +74,7 @@ GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& confi
   , m_params(getOrThrow(config, "hyperparams"))
   , m_gpu(createGpu(logger)) {
 
-  Triple prevLayerSize = m_inputShape;
-
+  Size3 prevLayerSize = m_inputShape;
   if (config.contains("hiddenLayers")) {
     auto layersJson = config["hiddenLayers"];
 
@@ -135,12 +86,12 @@ GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& confi
 
   auto outLayerJson = config["outputLayer"];
   m_layers.push_back(std::make_unique<OutputLayer>(*m_gpu, outLayerJson,
-    prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2]));
+    calcProduct(prevLayerSize)));
 
   m_outputSize = m_layers.back()->outputSize()[0];
 }
 
-GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config,
   std::istream& stream, Logger& logger)
   : m_logger(logger)
   , m_isTrained(false)
@@ -151,18 +102,58 @@ GpuNeuralNet::GpuNeuralNet(const Triple& inputShape, const nlohmann::json& confi
   nlohmann::json layersJson = getOrThrow(config, "hiddenLayers");
   nlohmann::json outLayerJson = getOrThrow(config, "outputLayer");
 
-  Triple prevLayerSize = m_inputShape;
-
+  Size3 prevLayerSize = m_inputShape;
   for (auto& layerJson : layersJson) {
     m_layers.push_back(constructLayer(layerJson, stream, prevLayerSize, m_layers.empty()));
     prevLayerSize = m_layers.back()->outputSize();
   }
   m_layers.push_back(std::make_unique<OutputLayer>(*m_gpu, outLayerJson, stream,
-    prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2]));
+    calcProduct(prevLayerSize)));
 
   m_outputSize = m_layers.back()->outputSize()[0];
 
   m_isTrained = true;
+}
+
+void GpuNeuralNet::abort() {
+  m_abort = true;
+}
+
+LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, std::istream& stream,
+  const Size3& prevLayerSize, bool isFirstLayer) {
+
+  std::string type = getOrThrow(obj, "type");
+  if (type == "dense") {
+    return std::make_unique<DenseLayer>(*m_gpu, obj, stream, calcProduct(prevLayerSize),
+      isFirstLayer);
+  }
+  else if (type == "convolutional") {
+    return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, stream, prevLayerSize);
+  }
+  else if (type == "maxPooling") {
+    return std::make_unique<MaxPoolingLayer>(*m_gpu, obj, prevLayerSize);
+  }
+  else {
+    EXCEPTION("Don't know how to construct layer of type '" << type << "'");
+  }
+}
+
+LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, const Size3& prevLayerSize,
+  bool isFirstLayer) {
+
+  std::string type = getOrThrow(obj, "type");
+  if (type == "dense") {
+    return std::make_unique<DenseLayer>(*m_gpu, obj, calcProduct(prevLayerSize), isFirstLayer);
+  }
+  else if (type == "convolutional") {
+    return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, prevLayerSize);
+  }
+  else if (type == "maxPooling") {
+    return std::make_unique<MaxPoolingLayer>(*m_gpu, obj, prevLayerSize);
+  }
+  else {
+    EXCEPTION("Don't know how to construct layer of type '" << type << "'");
+  }
 }
 
 OutputLayer& GpuNeuralNet::outputLayer() {
@@ -182,7 +173,7 @@ void GpuNeuralNet::writeToStream(std::ostream& stream) const {
   }
 }
 
-Triple GpuNeuralNet::inputSize() const {
+Size3 GpuNeuralNet::inputSize() const {
   return m_inputShape;
 }
 
@@ -250,7 +241,7 @@ void GpuNeuralNet::allocateGpuResources() {
 void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,
   size_t numSamples) {
 
-  size_t xSize = m_inputShape[0] * m_inputShape[1] * m_inputShape[2] * sizeof(netfloat_t);
+  size_t xSize = calcProduct(m_inputShape) * sizeof(netfloat_t);
   size_t ySize = m_outputSize * sizeof(netfloat_t);
 
   for (size_t i = 0; i < numSamples; ++i) {
@@ -350,13 +341,13 @@ VectorPtr GpuNeuralNet::evaluate(const Array3&) const {
 
 }
 
-NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+NeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
   Logger& logger) {
 
   return std::make_unique<GpuNeuralNet>(inputShape, config, logger);
 }
 
-NeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+NeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
   std::istream& stream, Logger& logger) {
 
   return std::make_unique<GpuNeuralNet>(inputShape, config, stream, logger);

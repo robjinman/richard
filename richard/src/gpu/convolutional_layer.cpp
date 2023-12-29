@@ -4,14 +4,14 @@
 namespace richard {
 namespace gpu {
 
-ConvolutionalLayer::ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputW,
-  size_t inputH, size_t inputDepth) {
+ConvolutionalLayer::ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj,
+  const Size3& inputShape) {
 
   // TODO
 }
 
 ConvolutionalLayer::ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream,
-  size_t inputW, size_t inputH, size_t inputDepth) {
+  const Size3& inputShape) {
 
   // TODO
 }
@@ -30,7 +30,7 @@ size_t ConvolutionalLayer::size() const {
   // TODO
 }
 
-Triple ConvolutionalLayer::outputSize() const {
+Size3 ConvolutionalLayer::outputSize() const {
   // TODO
 }
 

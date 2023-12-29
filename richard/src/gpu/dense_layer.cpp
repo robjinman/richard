@@ -150,7 +150,7 @@ size_t DenseLayer::size() const {
   return m_size;
 }
 
-Triple DenseLayer::outputSize() const {
+Size3 DenseLayer::outputSize() const {
   return { m_size, 1, 1 };
 }
 

@@ -21,12 +21,4 @@ std::string loadFile(const std::string& path) {
   return ss.str();
 }
 
-size_t tripleProduct(const Triple& t) {
-  return t[0] * t[1] * t[2];
-}
-
-size_t tripleSum(const Triple& t) {
-  return t[0] + t[1] + t[2];
-}
-
 }

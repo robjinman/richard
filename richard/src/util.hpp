@@ -11,7 +11,13 @@ namespace richard {
 
 nlohmann::json getOrThrow(const nlohmann::json& obj, const std::string& key);
 std::string loadFile(const std::string& path);
-size_t tripleProduct(const Triple& t);
-size_t tripleSum(const Triple& t);
+
+constexpr size_t calcProduct(const Size3& s) {
+  return s[0] * s[1] * s[2];
+}
+
+constexpr size_t calcSum(const Size3& s) {
+  return s[0] + s[1] + s[2];
+}
 
 }

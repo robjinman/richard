@@ -9,10 +9,10 @@ namespace cpu {
 
 class MaxPoolingLayer : public Layer {
   public:
-    MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_t inputH, size_t inputDepth);
+    MaxPoolingLayer(const nlohmann::json& obj, const Size3& inputShape);
 
     LayerType type() const override { return LayerType::MAX_POOLING; }
-    Triple outputSize() const override;
+    Size3 outputSize() const override;
     const DataArray& activations() const override;
     const DataArray& delta() const override;
     void trainForward(const DataArray& inputs) override;

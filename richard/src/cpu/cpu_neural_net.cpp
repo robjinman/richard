@@ -26,12 +26,12 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
   public:
     using CostFn = std::function<netfloat_t(const Vector&, const Vector&)>;
 
-    CpuNeuralNetImpl(const Triple& inputShape, const nlohmann::json& config, Logger& logger);
-    CpuNeuralNetImpl(const Triple& inputShape, const nlohmann::json& config, std::istream& s,
+    CpuNeuralNetImpl(const Size3& inputShape, const nlohmann::json& config, Logger& logger);
+    CpuNeuralNetImpl(const Size3& inputShape, const nlohmann::json& config, std::istream& s,
       Logger& logger);
 
     CostFn costFn() const override;
-    Triple inputSize() const override;
+    Size3 inputSize() const override;
     void writeToStream(std::ostream& s) const override;
     void train(LabelledDataSet& data) override;
     VectorPtr evaluate(const Array3& inputs) const override;
@@ -43,6 +43,9 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
     Layer& test_getLayer(size_t index) override;
 
   private:
+    LayerPtr constructLayer(const nlohmann::json& obj, std::istream& stream,
+      const Size3& prevLayerSize);
+    LayerPtr constructLayer(const nlohmann::json& obj, const Size3& prevLayerSize);
     netfloat_t feedForward(const Array3& x, const Vector& y);
     void backPropagate(const Array3& x, const Vector& y);
     void updateParams(size_t epoch);
@@ -50,66 +53,20 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
 
     Logger& m_logger;
     bool m_isTrained;
-    Triple m_inputShape;
+    Size3 m_inputShape;
     Hyperparams m_params;
     std::vector<LayerPtr> m_layers;
     std::atomic<bool> m_abort;
 };
 
-void CpuNeuralNetImpl::abort() {
-  m_abort = true;
-}
-
-LayerPtr constructLayer(const nlohmann::json& obj, std::istream& stream,
-  const Triple& prevLayerSize) {
-  
-  size_t numInputs = prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2];
-
-  std::string type = getOrThrow(obj, "type");
-  if (type == "dense") {
-    return std::make_unique<DenseLayer>(obj, stream, numInputs);
-  }
-  else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(obj, stream, prevLayerSize[0], prevLayerSize[1],
-      prevLayerSize[2]);
-  }
-  else if (type == "maxPooling") {
-    return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize[0], prevLayerSize[1],
-      prevLayerSize[2]);
-  }
-  else {
-    EXCEPTION("Don't know how to construct layer of type '" << type << "'");
-  }
-}
-
-LayerPtr constructLayer(const nlohmann::json& obj, const Triple& prevLayerSize) {
-  size_t numInputs = prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2];
-
-  std::string type = getOrThrow(obj, "type");
-  if (type == "dense") {
-    return std::make_unique<DenseLayer>(obj, numInputs);
-  }
-  else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(obj, prevLayerSize[0], prevLayerSize[1],
-      prevLayerSize[2]);
-  }
-  else if (type == "maxPooling") {
-    return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize[0], prevLayerSize[1],
-      prevLayerSize[2]);
-  }
-  else {
-    EXCEPTION("Don't know how to construct layer of type '" << type << "'");
-  }
-}
-
-CpuNeuralNetImpl::CpuNeuralNetImpl(const Triple& inputShape, const nlohmann::json& config,
+CpuNeuralNetImpl::CpuNeuralNetImpl(const Size3& inputShape, const nlohmann::json& config,
   Logger& logger)
   : m_logger(logger)
   , m_isTrained(false)
   , m_inputShape(inputShape)
   , m_params(getOrThrow(config, "hyperparams")) {
 
-  Triple prevLayerSize = m_inputShape;
+  Size3 prevLayerSize = m_inputShape;
 
   if (config.contains("hiddenLayers")) {
     auto layersJson = config["hiddenLayers"];
@@ -121,11 +78,10 @@ CpuNeuralNetImpl::CpuNeuralNetImpl(const Triple& inputShape, const nlohmann::jso
   }
 
   auto outLayerJson = config["outputLayer"];
-  m_layers.push_back(std::make_unique<OutputLayer>(outLayerJson,
-    prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2]));
+  m_layers.push_back(std::make_unique<OutputLayer>(outLayerJson, calcProduct(prevLayerSize)));
 }
 
-CpuNeuralNetImpl::CpuNeuralNetImpl(const Triple& inputShape, const nlohmann::json& config,
+CpuNeuralNetImpl::CpuNeuralNetImpl(const Size3& inputShape, const nlohmann::json& config,
   std::istream& stream, Logger& logger)
   : m_logger(logger)
   , m_isTrained(false)
@@ -135,16 +91,53 @@ CpuNeuralNetImpl::CpuNeuralNetImpl(const Triple& inputShape, const nlohmann::jso
   nlohmann::json layersJson = getOrThrow(config, "hiddenLayers");
   nlohmann::json outLayerJson = getOrThrow(config, "outputLayer");
 
-  Triple prevLayerSize = m_inputShape;
-
+  Size3 prevLayerSize = m_inputShape;
   for (auto& layerJson : layersJson) {
     m_layers.push_back(constructLayer(layerJson, stream, prevLayerSize));
     prevLayerSize = m_layers.back()->outputSize();
   }
   m_layers.push_back(std::make_unique<OutputLayer>(outLayerJson, stream,
-    prevLayerSize[0] * prevLayerSize[1] * prevLayerSize[2]));
+    calcProduct(prevLayerSize)));
 
   m_isTrained = true;
+}
+
+void CpuNeuralNetImpl::abort() {
+  m_abort = true;
+}
+
+LayerPtr CpuNeuralNetImpl::constructLayer(const nlohmann::json& obj, std::istream& stream,
+  const Size3& prevLayerSize) {
+
+  std::string type = getOrThrow(obj, "type");
+  if (type == "dense") {
+    return std::make_unique<DenseLayer>(obj, stream, calcProduct(prevLayerSize));
+  }
+  else if (type == "convolutional") {
+    return std::make_unique<ConvolutionalLayer>(obj, stream, prevLayerSize);
+  }
+  else if (type == "maxPooling") {
+    return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize);
+  }
+  else {
+    EXCEPTION("Don't know how to construct layer of type '" << type << "'");
+  }
+}
+
+LayerPtr CpuNeuralNetImpl::constructLayer(const nlohmann::json& obj, const Size3& prevLayerSize) {
+  std::string type = getOrThrow(obj, "type");
+  if (type == "dense") {
+    return std::make_unique<DenseLayer>(obj, calcProduct(prevLayerSize));
+  }
+  else if (type == "convolutional") {
+    return std::make_unique<ConvolutionalLayer>(obj, prevLayerSize);
+  }
+  else if (type == "maxPooling") {
+    return std::make_unique<MaxPoolingLayer>(obj, prevLayerSize);
+  }
+  else {
+    EXCEPTION("Don't know how to construct layer of type '" << type << "'");
+  }
 }
 
 NeuralNet::CostFn CpuNeuralNetImpl::costFn() const {
@@ -159,7 +152,7 @@ void CpuNeuralNetImpl::writeToStream(std::ostream& stream) const {
   }
 }
 
-Triple CpuNeuralNetImpl::inputSize() const {
+Size3 CpuNeuralNetImpl::inputSize() const {
   return m_inputShape;
 }
 
@@ -217,9 +210,8 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
 
     std::vector<Sample> samples;
     while (trainingData.loadSamples(samples) > 0) {
-      [[maybe_unused]] size_t netInputSize = m_inputShape[0] * m_inputShape[1] * m_inputShape[2];
-      DBG_ASSERT_MSG(samples[0].data.size() == netInputSize,
-        "Sample size is " << samples[0].data.size() << ", expected " << netInputSize);
+      DBG_ASSERT_MSG(samples[0].data.size() == calcProduct(m_inputShape),
+        "Sample size is " << samples[0].data.size() << ", expected " << calcProduct(m_inputShape));
 
       for (size_t i = 0; i < samples.size(); ++i) {
         const auto& sample = samples[i];
@@ -275,13 +267,13 @@ Layer& CpuNeuralNetImpl::test_getLayer(size_t index) {
   return *m_layers[index];
 }
 
-CpuNeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
   Logger& logger) {
 
   return std::make_unique<CpuNeuralNetImpl>(inputShape, config, logger);
 }
 
-CpuNeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
   std::istream& stream, Logger& logger) {
 
   return std::make_unique<CpuNeuralNetImpl>(inputShape, config, stream, logger);

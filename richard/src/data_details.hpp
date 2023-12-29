@@ -31,7 +31,7 @@ class DataDetails {
 
     NormalizationParams normalization;
     std::vector<std::string> classLabels;
-    Triple shape;
+    Size3 shape;
     size_t batchSize;
 };
 

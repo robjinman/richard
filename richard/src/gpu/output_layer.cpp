@@ -147,7 +147,7 @@ size_t OutputLayer::size() const {
   return m_size;
 }
 
-Triple OutputLayer::outputSize() const {
+Size3 OutputLayer::outputSize() const {
   return { m_size, 1, 1 };
 }
 

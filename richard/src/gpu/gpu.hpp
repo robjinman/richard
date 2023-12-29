@@ -1,5 +1,6 @@
 #pragma once
 
+#include "types.hpp"
 #include <string>
 #include <memory>
 #include <vector>
@@ -14,7 +15,6 @@ namespace gpu {
 
 using ShaderHandle = uint32_t;
 using GpuBufferHandle = uint32_t;
-using Size3 = const std::array<uint32_t, 3>;
 using GpuBufferBindings = std::vector<GpuBufferHandle>;
 
 struct SpecializationConstant {

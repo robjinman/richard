@@ -32,7 +32,7 @@ DataLoaderPtr createDataLoader(FileSystem& fileSystem, const nlohmann::json& con
       dataDetails.normalization, fetchSize);
   }
   else {
-    const Triple& shape = dataDetails.shape;
+    const Size3& shape = dataDetails.shape;
     size_t inputSize = shape[0] * shape[1] * shape[2];
 
     auto fin = fileSystem.openFileForReading(samplesPath);

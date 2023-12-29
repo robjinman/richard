@@ -10,10 +10,9 @@ namespace gpu {
 
 class ConvolutionalLayer : public Layer {
   public:
-    ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputW, size_t inputH,
-      size_t inputDepth);
-    ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputW,
-      size_t inputH, size_t inputDepth);
+    ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj, const Size3& inputShape);
+    ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream,
+      const Size3& inputShape);
 
     void allocateGpuBuffers() override;
     void createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
@@ -23,7 +22,7 @@ class ConvolutionalLayer : public Layer {
     GpuBufferHandle weightsBuffer() const override;
     GpuBufferHandle deltaBuffer() const override;
     void retrieveBuffers() override;
-    Triple outputSize() const override;
+    Size3 outputSize() const override;
     void evalForward() override;
     void trainForward() override;
     void backprop() override;

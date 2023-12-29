@@ -19,7 +19,7 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth1) {
   json["learnRateDecay"] = 1.0;
   json["dropoutRate"] = 0.0;
 
-  ConvolutionalLayer layer(json, 3, 3, 1);
+  ConvolutionalLayer layer(json, { 3, 3, 1 });
 
   ConvolutionalLayer::Filter filter;
   filter.K = Kernel({{
@@ -54,7 +54,7 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
   json["learnRateDecay"] = 1.0;
   json["dropoutRate"] = 0.0;
 
-  ConvolutionalLayer layer(json, 3, 3, 1);
+  ConvolutionalLayer layer(json, { 3, 3, 1 });
 
   ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({{
@@ -99,7 +99,7 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
   json["learnRateDecay"] = 1.0;
   json["dropoutRate"] = 0.0;
 
-  ConvolutionalLayer layer(json, 3, 3, 2);
+  ConvolutionalLayer layer(json, { 3, 3, 2 });
 
   ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({
@@ -160,7 +160,7 @@ TEST_F(CpuConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
   json["learnRateDecay"] = 1.0;
   json["dropoutRate"] = 0.0;
 
-  ConvolutionalLayer layer(json, 3, 3, 1);
+  ConvolutionalLayer layer(json, { 3, 3, 1 });
   testing::NiceMock<MockCpuLayer> poolingLayer;
 
   ConvolutionalLayer::Filter filter0;

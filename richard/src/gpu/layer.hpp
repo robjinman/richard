@@ -18,7 +18,7 @@ class Layer {
     virtual GpuBufferHandle weightsBuffer() const = 0;
     virtual GpuBufferHandle deltaBuffer() const = 0;
     virtual void retrieveBuffers() = 0;
-    virtual Triple outputSize() const = 0;
+    virtual Size3 outputSize() const = 0;
     virtual void evalForward() = 0;
     virtual void trainForward() = 0;
     virtual void backprop() = 0;

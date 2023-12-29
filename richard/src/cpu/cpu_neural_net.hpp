@@ -20,9 +20,9 @@ class CpuNeuralNet : public NeuralNet {
 
 using CpuNeuralNetPtr = std::unique_ptr<CpuNeuralNet>;
 
-CpuNeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
   Logger& logger);
-CpuNeuralNetPtr createNeuralNet(const Triple& inputShape, const nlohmann::json& config,
+CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
   std::istream& stream, Logger& logger);
 
 }

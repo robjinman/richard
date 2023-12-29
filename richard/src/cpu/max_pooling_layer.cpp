@@ -5,22 +5,21 @@
 namespace richard {
 namespace cpu {
 
-MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, size_t inputW, size_t inputH,
-  size_t inputDepth)
-  : m_paddedDelta(inputW, inputH, inputDepth)
-  , m_inputW(inputW)
-  , m_inputH(inputH)
-  , m_inputDepth(inputDepth)
-  , m_mask(inputW, inputH, inputDepth) {
+MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, const Size3& inputShape)
+  : m_paddedDelta(inputShape[0], inputShape[1], inputShape[2])
+  , m_inputW(inputShape[0])
+  , m_inputH(inputShape[1])
+  , m_inputDepth(inputShape[2])
+  , m_mask(m_inputW, m_inputH, m_inputDepth) {
 
   std::array<size_t, 2> regionSize = getOrThrow(obj, "regionSize").get<std::array<size_t, 2>>();
   m_regionW = regionSize[0];
   m_regionH = regionSize[1];
 
-  ASSERT_MSG(inputW % m_regionW == 0,
-    "Region width " << m_regionW << " does not divide input width " << inputW);
-  ASSERT_MSG(inputH % m_regionH == 0,
-    "Region height " << m_regionH << " does not divide input height " << inputH);
+  ASSERT_MSG(m_inputW % m_regionW == 0,
+    "Region width " << m_regionW << " does not divide input width " << m_inputW);
+  ASSERT_MSG(m_inputH % m_regionH == 0,
+    "Region height " << m_regionH << " does not divide input height " << m_inputH);
 
   m_Z = Array3(m_inputW / m_regionW, m_inputH / m_regionH, m_inputDepth);
   m_delta = Array3(m_inputW / m_regionW, m_inputH / m_regionH, m_inputDepth);
@@ -32,7 +31,7 @@ const Matrix& MaxPoolingLayer::W() const {
   return m;
 }
 
-Triple MaxPoolingLayer::outputSize() const {
+Size3 MaxPoolingLayer::outputSize() const {
   return {
     static_cast<size_t>(m_inputW / m_regionW),
     static_cast<size_t>(m_inputH / m_regionH),

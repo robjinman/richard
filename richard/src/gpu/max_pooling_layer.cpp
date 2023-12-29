@@ -4,9 +4,7 @@
 namespace richard {
 namespace gpu {
 
-MaxPoolingLayer::MaxPoolingLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputW, size_t inputH,
-  size_t inputDepth) {
-
+MaxPoolingLayer::MaxPoolingLayer(Gpu& gpu, const nlohmann::json& obj, const Size3& inputShape) {
   // TODO
 }
 
@@ -24,7 +22,7 @@ size_t MaxPoolingLayer::size() const {
   // TODO
 }
 
-Triple MaxPoolingLayer::outputSize() const {
+Size3 MaxPoolingLayer::outputSize() const {
   // TODO
 }
 

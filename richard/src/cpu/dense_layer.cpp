@@ -49,7 +49,7 @@ void DenseLayer::writeToStream(std::ostream& stream) const {
     m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
-Triple DenseLayer::outputSize() const {
+Size3 DenseLayer::outputSize() const {
   return { m_B.size(), 1, 1 };
 }
 

@@ -12,7 +12,7 @@ class OutputLayer : public Layer {
     OutputLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize);
 
     LayerType type() const override { return LayerType::OUTPUT; }
-    Triple outputSize() const override;
+    Size3 outputSize() const override;
     const DataArray& activations() const override;
     const DataArray& delta() const override;
     void trainForward(const DataArray& inputs) override;

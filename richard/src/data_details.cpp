@@ -28,7 +28,7 @@ const nlohmann::json& NormalizationParams::exampleConfig() {
 DataDetails::DataDetails(const nlohmann::json& json)
   : normalization(getOrThrow(json, "normalization"))
   , classLabels(getOrThrow(json, "classes").get<std::vector<std::string>>())
-  , shape(getOrThrow(json, "shape").get<Triple>()) {}
+  , shape(getOrThrow(json, "shape").get<Size3>()) {}
 
 const nlohmann::json& DataDetails::exampleConfig() {
   static nlohmann::json obj;
@@ -39,7 +39,7 @@ const nlohmann::json& DataDetails::exampleConfig() {
     obj["classes"] = std::vector<std::string>({
       "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
     });
-    obj["shape"] = Triple({ 28, 28, 1 });
+    obj["shape"] = Size3({ 28, 28, 1 });
 
     done = true;
   }

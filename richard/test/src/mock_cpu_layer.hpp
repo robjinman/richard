@@ -9,7 +9,7 @@ using namespace richard::cpu;
 class MockCpuLayer : public cpu::Layer {
   public:
     MOCK_METHOD(LayerType, type, (), (const, override));
-    MOCK_METHOD(Triple, outputSize, (), (const, override));
+    MOCK_METHOD(Size3, outputSize, (), (const, override));
     MOCK_METHOD(const DataArray&, activations, (), (const, override));
     MOCK_METHOD(const DataArray&, delta, (), (const, override));
     MOCK_METHOD(void, trainForward, (const DataArray& inputs), (override));

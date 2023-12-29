@@ -51,7 +51,7 @@ TEST_F(CpuNeuralNetTest, evaluate) {
 
   NiceMock<MockLogger> logger;
 
-  Triple inputShape({ 3, 1, 1 });
+  Size3 inputShape({ 3, 1, 1 });
 
   nlohmann::json config = nlohmann::json::parse(configString);
   CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);
@@ -164,7 +164,7 @@ TEST_F(CpuNeuralNetTest, evaluateTrivialConvVsFullyConnected) {
 
   NiceMock<MockLogger> logger;
 
-  Triple inputShape({ 2, 2, 1 });
+  Size3 inputShape({ 2, 2, 1 });
 
   CpuNeuralNetPtr convNet = createNeuralNet(inputShape,
     nlohmann::json::parse(convNetConfigString), logger);
@@ -254,7 +254,7 @@ TEST_F(CpuNeuralNetTest, evaluateConv) {
 
   NiceMock<MockLogger> logger;
 
-  Triple inputShape({ 5, 5, 1 });
+  Size3 inputShape({ 5, 5, 1 });
 
   nlohmann::json config = nlohmann::json::parse(configString);
   CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);

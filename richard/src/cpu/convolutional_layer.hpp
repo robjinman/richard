@@ -18,12 +18,11 @@ class ConvolutionalLayer : public Layer {
       netfloat_t b;
     };
 
-    ConvolutionalLayer(const nlohmann::json& obj, size_t inputW, size_t inputH, size_t inputDepth);
-    ConvolutionalLayer(const nlohmann::json& obj, std::istream& stream, size_t inputW,
-      size_t inputH, size_t inputDepth);
+    ConvolutionalLayer(const nlohmann::json& obj, const Size3& inputShape);
+    ConvolutionalLayer(const nlohmann::json& obj, std::istream& stream, const Size3& inputShape);
 
     LayerType type() const override { return LayerType::CONVOLUTIONAL; }
-    Triple outputSize() const override;
+    Size3 outputSize() const override;
     const DataArray& activations() const override;
     const DataArray& delta() const override;
     void trainForward(const DataArray& inputs) override;

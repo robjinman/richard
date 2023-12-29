@@ -34,7 +34,7 @@ void runCpuNetwork(const nlohmann::json& denseConfig, const nlohmann::json& outp
   size_t inputSize = X[0].size();
 
   cpu::DenseLayer layer1(denseConfig, inputSize);
-  cpu::OutputLayer layer2(outputConfig, tripleProduct(layer1.outputSize()));
+  cpu::OutputLayer layer2(outputConfig, calcProduct(layer1.outputSize()));
 
   layer1.test_setWeights(W1.storage());
   layer1.test_setBiases(B1.storage());

@@ -21,7 +21,7 @@ class OutputLayer : public Layer {
     GpuBufferHandle weightsBuffer() const override;
     GpuBufferHandle deltaBuffer() const override;
     void retrieveBuffers() override;
-    Triple outputSize() const override;
+    Size3 outputSize() const override;
     void evalForward() override;
     void trainForward() override;
     void backprop() override;

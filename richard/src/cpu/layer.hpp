@@ -47,7 +47,7 @@ enum class LayerType {
 class Layer {
   public:
     virtual LayerType type() const = 0;
-    virtual Triple outputSize() const = 0;
+    virtual Size3 outputSize() const = 0;
     virtual const DataArray& activations() const = 0;
     virtual const DataArray& delta() const = 0;
     virtual void trainForward(const DataArray& inputs) = 0;
