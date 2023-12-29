@@ -178,9 +178,7 @@ Size3 GpuNeuralNet::inputSize() const {
 }
 
 void GpuNeuralNet::allocateGpuResources() {
-  size_t inputSize = m_inputShape[0] * m_inputShape[1] * m_inputShape[2];
-  size_t bufferXSize = m_params.miniBatchSize * inputSize * sizeof(netfloat_t);
-
+  size_t bufferXSize = m_params.miniBatchSize * calcProduct(m_inputShape) * sizeof(netfloat_t);
   size_t bufferYSize = m_params.miniBatchSize * m_outputSize * sizeof(netfloat_t);
 
   GpuBufferFlags bufferFlags = GpuBufferFlags::frequentHostAccess

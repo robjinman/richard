@@ -1,13 +1,15 @@
 Richard
 =======
 
-**Richard is gaining power.**
+*Richard is gaining power.*
 
-Named after one of the first programs I ever wrote as a child, Richard started out as a personal effort to learn more about machine learning. In its current form, Richard is a CLI application that performs classification using a neural network. Supported layer types currently include dense, convolutional, and max pooling. Ultimately, I'd like this project to encompass a library, a CLI wrapper, a GUI application, and possibly bindings to other languages. GPU acceleration is supported with Vulkan compute shaders, but this is a work in progress.
+Named after one of the first programs I ever wrote as a child, Richard started out as a personal effort to learn more about machine learning. The original Richard was meant to be a "virus", but the most malicious thing I could do on my Psion Series 3 personal organiser was print the phrase "Richard is gaining power" in an infinite loop.
 
-The original Richard was meant to be a "virus", but the most malicious thing I could do on my Psion Series 3 personal organiser was print the phrase "Richard is gaining power" in an infinite loop.
+The new version of Richard is strictly benevolent.
 
-This incarnation of Richard is purely benevolent.
+In its current form, Richard is a CLI application that performs classification using a neural network. Supported layer types include dense, convolutional, and max pooling, but there will likely be others in the future.
+
+GPU acceleration is supported with Vulkan compute shaders, but this is a work in progress.
 
 
 Building
@@ -43,6 +45,16 @@ And for a debug build:
 ```
     cmake -B build/debug -D CMAKE_BUILD_TYPE=Debug
     cmake --build build/debug
+```
+
+
+Usage
+-----
+
+To see usage, run
+
+```
+    ./richard -h
 ```
 
 
