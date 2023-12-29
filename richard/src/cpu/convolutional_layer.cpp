@@ -52,6 +52,7 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& 
   m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
   m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
   size_t depth = getOrThrow(obj, "depth").get<size_t>();
+  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
 
   for (size_t i = 0; i < depth; ++i) {
     Filter filter;

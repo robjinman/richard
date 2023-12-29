@@ -27,3 +27,7 @@ float sigmoidPrime(float x) {
   float sigX = sigmoid(x);
   return sigX * (1.0 - sigX);
 }
+
+float relu(float x) {
+  return x < 0.0 ? 0.0 : x;
+}

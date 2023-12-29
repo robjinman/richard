@@ -128,7 +128,7 @@ LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, std::istream& s
       isFirstLayer);
   }
   else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, stream, prevLayerSize);
+    return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, stream, prevLayerSize, isFirstLayer);
   }
   else if (type == "maxPooling") {
     return std::make_unique<MaxPoolingLayer>(*m_gpu, obj, prevLayerSize);
@@ -146,7 +146,7 @@ LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, const Size3& pr
     return std::make_unique<DenseLayer>(*m_gpu, obj, calcProduct(prevLayerSize), isFirstLayer);
   }
   else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, prevLayerSize);
+    return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, prevLayerSize, isFirstLayer);
   }
   else if (type == "maxPooling") {
     return std::make_unique<MaxPoolingLayer>(*m_gpu, obj, prevLayerSize);
