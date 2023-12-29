@@ -243,3 +243,135 @@ TEST_F(GpuTest, matrixMultiply) {
   Vector expectedR = M * V;
   EXPECT_EQ(R, expectedR);
 }
+
+TEST_F(GpuTest, convolution) {
+  testing::NiceMock<MockLogger> logger;
+  GpuPtr gpu = createGpu(logger);
+
+  Array3 X({{
+    { 4, 2, 5, 7, 4 },
+    { 7, 3, 8, 2, 8 },
+    { 9, 1, 6, 1, 2 },
+    { 6, 3, 4, 8, 9 }
+  }, {
+    { 5, 4, 8, 1, 3 },
+    { 3, 1, 7, 8, 9 },
+    { 8, 2, 5, 2, 4 },
+    { 3, 9, 8, 2, 5 }
+  }});
+
+  Kernel K({{
+    { 5, 4 },
+    { 1, 3 }
+  }, {
+    { 3, 7 },
+    { 2, 4 }
+  }});
+
+  Array2 R(4, 3);
+
+  GpuBuffer bufferX = gpu->allocateBuffer(X.size() * sizeof(netfloat_t), GpuBufferFlags::large);
+  GpuBuffer bufferK = gpu->allocateBuffer(K.size() * sizeof(netfloat_t), GpuBufferFlags::large);
+  GpuBuffer bufferR = gpu->allocateBuffer(R.size() * sizeof(netfloat_t), GpuBufferFlags::large);
+
+  gpu->submitBufferData(bufferX.handle, X.data());
+  gpu->submitBufferData(bufferK.handle, K.data());
+
+  std::string shaderSource = R"(
+    #version 430
+
+    #define FN_READ(BUF) \
+      float read##BUF(uint pos) { \
+        return BUF[pos / 4][pos % 4]; \
+      }
+
+    #define FN_WRITE(BUF) \
+      void write##BUF(uint pos, float val) { \
+        BUF[pos / 4][pos % 4] = val; \
+      }
+
+    layout(constant_id = 0) const uint local_size_x = 1;
+    layout(constant_id = 1) const uint local_size_y = 1;
+    layout(constant_id = 2) const uint local_size_z = 1;
+
+    layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+    layout(constant_id = 3) const uint KERNEL_W = 1;
+    layout(constant_id = 4) const uint KERNEL_H = 1;
+    layout(constant_id = 5) const uint KERNEL_D = 1;
+
+    layout(std140, binding = 0) readonly buffer ImageSsbo {
+      vec4 Image[];
+    };
+
+    FN_READ(Image)
+
+    layout(std140, binding = 1) readonly buffer KernelSsbo {
+      vec4 Kernel[];
+    };
+
+    FN_READ(Kernel)
+
+    layout(std140, binding = 2) writeonly buffer ResultSsbo {
+      vec4 Result[];
+    };
+
+    FN_WRITE(Result)
+
+    void main() {
+      const uint xIdx = gl_GlobalInvocationID.x;
+      const uint yIdx = gl_GlobalInvocationID.y;
+
+      const uint fmW = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
+      const uint fmH = gl_WorkGroupSize.y * gl_NumWorkGroups.y;
+
+      const uint imW = fmW + KERNEL_W - 1;
+      const uint imH = fmH + KERNEL_H - 1;
+
+      float sum = 0.0;
+      for (uint k = 0; k < KERNEL_D; ++k) {
+        for (uint j = 0; j < KERNEL_H; ++j) {
+          for (uint i = 0; i < KERNEL_W; ++i) {
+            const uint x = xIdx + i;
+            const uint y = yIdx + j;
+            const uint z = k;
+
+            float pixel = readImage(z * imW * imH + y * imW + x);
+            sum += pixel * readKernel(k * KERNEL_W * KERNEL_H + j * KERNEL_W + i);
+          }
+        }
+      }
+
+      writeResult(yIdx * fmW + xIdx, sum);
+    }
+  )";
+
+  Size3 workgroupSize{
+    static_cast<uint32_t>(R.W()),
+    static_cast<uint32_t>(R.H()),
+    1
+  };
+
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(K.W()) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(K.H()) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(K.D()) }
+  };
+
+  ShaderHandle shader = gpu->compileShader(shaderSource,
+    { bufferX.handle, bufferK.handle, bufferR.handle }, constants, workgroupSize, { 1, 1, 1 });
+
+  gpu->queueShader(shader);
+  gpu->flushQueue();
+
+  gpu->retrieveBuffer(bufferR.handle, R.data());
+
+  Array2 expectedR(4, 3);
+  K.convolve(X, expectedR);
+
+  for (size_t j = 0; j < expectedR.rows(); ++j) {
+    for (size_t i = 0; i < expectedR.cols(); ++i) {
+      EXPECT_NEAR(R.at(i, j), expectedR.at(i, j), FLOAT_TOLERANCE);
+    }
+  }
+}
