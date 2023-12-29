@@ -1,7 +1,13 @@
 Richard
 =======
 
-Richard is gaining power.
+**Richard is gaining power.**
+
+Named after one of the first programs I ever wrote as a child, Richard started out as a personal effort to learn more about machine learning. In its current form, Richard is a CLI application that performs classification using a neural network. Supported layer types currently include dense, convolutional, and max pooling. Ultimately, I'd like this project to encompass a library, a CLI wrapper, a GUI application, and possibly bindings to other languages. GPU acceleration is supported with Vulkan compute shaders, but this is a work in progress.
+
+The original Richard was meant to be a "virus", but the most malicious thing I could do on my Psion Series 3 personal organiser was print the phrase "Richard is gaining power" in an infinite loop.
+
+This incarnation of Richard is purely benevolent.
 
 
 Building
@@ -22,6 +28,8 @@ Install development dependencies
         libvulkan-dev \
         vulkan-validationLayers-dev
 ```
+
+#### Compile
 
 From the richard subdirectory, to make a release build, run
 
@@ -58,13 +66,13 @@ All examples are run from the build directory, e.g. richard/build/release.
             }
         },
         "dataLoader": {
-          "fetchSize": 640
+          "fetchSize": 512
         },
         "classifier": {
             "network": {
                 "hyperparams": {
                     "epochs": 30,
-                    "batchSize": 1000,
+                    "batchSize": 1024,
                     "miniBatchSize": 32,
                 },
                 "hiddenLayers": [
@@ -98,7 +106,8 @@ All examples are run from the build directory, e.g. richard/build/release.
     ./richard --train \
         --samples ../../../data/ocr/train.csv \
         --config ../../../data/ocr/config.json \
-        --network ../../../data/ocr/network
+        --network ../../../data/ocr/network \
+        --gpu
 
     ./richard --eval \
         --samples ../../../data/ocr/test.csv \
@@ -120,13 +129,13 @@ All examples are run from the build directory, e.g. richard/build/release.
             }
         },
         "dataLoader": {
-          "fetchSize": 500
+          "fetchSize": 512
         },
         "classifier": {
             "network": {
                 "hyperparams": {
                     "epochs": 10,
-                    "batchSize": 1000,
+                    "batchSize": 1024,
                     "miniBatchSize": 32,
                 },
                 "hiddenLayers": [
@@ -156,7 +165,7 @@ All examples are run from the build directory, e.g. richard/build/release.
                     },
                     {
                         "type": "dense",
-                        "size": 100,
+                        "size": 64,
                         "learnRate": 0.01,
                         "learnRateDecay": 1.0,
                         "dropoutRate": 0.0
@@ -176,7 +185,8 @@ All examples are run from the build directory, e.g. richard/build/release.
     ./richard --train \
         --samples ../../../data/catdog/train \
         --config ../../../data/catdog/config.json \
-        --network ../../../data/catdog/network
+        --network ../../../data/catdog/network \
+        --gpu
 
     ./richard --eval \
         --samples ../../../data/catdog/test \
