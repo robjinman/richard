@@ -105,6 +105,7 @@ struct Pipeline {
   VkPipelineLayout layout = VK_NULL_HANDLE;
   VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
   VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+  Size3 numWorkgroups = { 1, 1, 1 };
 };
 
 class Vulkan : public Gpu {
@@ -113,7 +114,8 @@ class Vulkan : public Gpu {
 
     ShaderHandle compileShader(const std::string& source,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-      const Size3& workgroupSize, const std::string& includesPath) override;
+      const Size3& workgroupSize, const Size3& numWorkgroups,
+      const std::string& includesPath) override;
     GpuBuffer allocateBuffer(size_t size, GpuBufferFlags flags) override;
     void submitBufferData(GpuBufferHandle buffer, const void* data) override;
     void queueShader(ShaderHandle shaderHandle) override;
@@ -266,7 +268,7 @@ void Vulkan::submitBufferData(GpuBufferHandle bufferHandle, const void* data) {
 
 ShaderHandle Vulkan::compileShader(const std::string& source,
   const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-  const Size3& workgroupSize, const std::string& includesPath) {
+  const Size3& workgroupSize, const Size3& numWorkgroups, const std::string& includesPath) {
 
   DBG_TRACE
 
@@ -325,6 +327,7 @@ ShaderHandle Vulkan::compileShader(const std::string& source,
   };
 
   Pipeline pipeline;
+  pipeline.numWorkgroups = numWorkgroups;
   pipeline.descriptorSetLayout = createDescriptorSetLayout(bufferBindings);
   pipeline.layout = createPipelineLayout(pipeline.descriptorSetLayout);
 
@@ -353,10 +356,12 @@ ShaderHandle Vulkan::compileShader(const std::string& source,
 }
 
 void Vulkan::queueShader(ShaderHandle shaderHandle) {
+  const Pipeline& pipeline = m_pipelines[shaderHandle];
+
   VkCommandBuffer commandBuffer = createCommandBuffer();
   m_commandBuffers.push_back(commandBuffer);
 
-  dispatchWorkgroups(commandBuffer, shaderHandle, { 1, 1, 1 }); // TODO
+  dispatchWorkgroups(commandBuffer, shaderHandle, pipeline.numWorkgroups);
 }
 
 void Vulkan::flushQueue() {

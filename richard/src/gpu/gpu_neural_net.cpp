@@ -234,7 +234,7 @@ void GpuNeuralNet::allocateGpuResources() {
   };
 
   m_computeCostsShader = m_gpu->compileShader(computeCostsSrc, computeCostsBuffers,
-    computeCostsConstants, { static_cast<uint32_t>(m_outputSize), 1, 1 },
+    computeCostsConstants, { static_cast<uint32_t>(m_outputSize), 1, 1 }, { 1, 1, 1 },
     shaderIncludesDir);
 }
 

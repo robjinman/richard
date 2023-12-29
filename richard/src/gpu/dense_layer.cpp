@@ -106,7 +106,13 @@ void DenseLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle s
     m_bufferDeltaW.handle
   };
 
-  Size3 workgroupSize{ static_cast<uint32_t>(m_size), 1, 1 };
+  const size_t maxWorkgroupSize = 64;
+
+  Size3 workgroupSize{ static_cast<uint32_t>(std::min(m_size, maxWorkgroupSize)), 1, 1 };
+  Size3 numWorkgroups{ m_size / workgroupSize[0], 1, 1 };
+
+  ASSERT_MSG(workgroupSize[0] * numWorkgroups[0] == m_size,
+    "Layer size " << m_size << " is not divisible by workgroup size " << workgroupSize[0]);
 
   SpecializationConstants evalForwardConstants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
@@ -137,13 +143,13 @@ void DenseLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle s
   const std::string updateParamsSrc = loadFile("./shaders/dense_update_params.glsl");
 
   m_evalForwardShader = m_gpu.compileShader(evalForwardSrc, evalForwardBuffers,
-    evalForwardConstants, workgroupSize, includesDir);
+    evalForwardConstants, workgroupSize, numWorkgroups, includesDir);
   m_trainForwardShader = m_gpu.compileShader(trainForwardSrc, trainForwardBuffers,
-    trainForwardConstants, workgroupSize, includesDir);
+    trainForwardConstants, workgroupSize, numWorkgroups, includesDir);
   m_backpropShader = m_gpu.compileShader(backpropSrc, backpropBuffers, backpropConstants,
-    workgroupSize, includesDir);
+    workgroupSize, numWorkgroups, includesDir);
   m_updateParamsShader = m_gpu.compileShader(updateParamsSrc, updateParamsBuffers,
-    updateParamsConstants, workgroupSize, includesDir);
+    updateParamsConstants, workgroupSize, numWorkgroups, includesDir);
 }
 
 size_t DenseLayer::size() const {

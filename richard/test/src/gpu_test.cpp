@@ -89,7 +89,7 @@ TEST_F(GpuTest, runShader) {
   )";
 
   ShaderHandle shader = gpu->compileShader(shaderSource, { buffer.handle }, {},
-    { bufferSize, 1, 1 });
+    { bufferSize / 2, 1, 1 }, { 2, 1, 1 });
 
   gpu->queueShader(shader);
   gpu->flushQueue();
@@ -148,7 +148,8 @@ TEST_F(GpuTest, structuredBuffer) {
     }
   )";
 
-  ShaderHandle shader = gpu->compileShader(shaderSource, { statusBuffer.handle }, {}, { 16, 1, 1 });
+  ShaderHandle shader = gpu->compileShader(shaderSource, { statusBuffer.handle }, {}, { 16, 1, 1 },
+    { 1, 1, 1 });
 
   gpu->queueShader(shader);
   gpu->flushQueue();
@@ -232,7 +233,7 @@ TEST_F(GpuTest, matrixMultiply) {
   ShaderHandle shader = gpu->compileShader(shaderSource,
     { bufferM.handle, bufferV.handle, bufferR.handle },
     {{ SpecializationConstant::Type::uint_type, static_cast<uint32_t>(V.size()) }},
-    { static_cast<uint32_t>(M.rows()), 1, 1 });
+    { static_cast<uint32_t>(M.rows()), 1, 1 }, { 1, 1, 1 });
 
   gpu->queueShader(shader);
   gpu->flushQueue();
