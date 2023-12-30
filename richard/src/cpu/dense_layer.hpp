@@ -8,8 +8,8 @@ namespace cpu {
 
 class DenseLayer : public Layer {
   public:
-    DenseLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize);
     DenseLayer(const nlohmann::json& obj, size_t inputSize);
+    DenseLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize);
 
     LayerType type() const override { return LayerType::DENSE; }
     Size3 outputSize() const override;

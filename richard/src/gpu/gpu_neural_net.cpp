@@ -43,10 +43,8 @@ class GpuNeuralNet : public NeuralNet {
 
   private:
     void initialize(const Size3& inputShape, const nlohmann::json& config, std::istream* stream);
-    LayerPtr constructLayer(const nlohmann::json& obj, std::istream& stream,
-      const Size3& prevLayerSize, bool isFirstLayer);
     LayerPtr constructLayer(const nlohmann::json& obj, const Size3& prevLayerSize,
-      bool isFirstLayer);
+      bool isFirstLayer, std::istream* stream) const;
     void allocateGpuResources();
     void loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,
       size_t numSamples);
@@ -94,25 +92,14 @@ void GpuNeuralNet::initialize(const Size3& inputShape, const nlohmann::json& con
     auto layersJson = config["hiddenLayers"];
 
     for (auto layerJson : layersJson) {
-      if (stream) {
-        m_layers.push_back(constructLayer(layerJson, *stream, prevLayerSize, m_layers.empty()));
-      }
-      else {
-        m_layers.push_back(constructLayer(layerJson, prevLayerSize, m_layers.empty()));
-      }
+      m_layers.push_back(constructLayer(layerJson, prevLayerSize, m_layers.empty(), stream));
       prevLayerSize = m_layers.back()->outputSize();
     }
   }
 
   auto outLayerJson = config["outputLayer"];
-  if (stream) {
-    m_layers.push_back(std::make_unique<OutputLayer>(*m_gpu, outLayerJson, *stream,
-      calcProduct(prevLayerSize)));
-  }
-  else {
-    m_layers.push_back(std::make_unique<OutputLayer>(*m_gpu, outLayerJson,
-      calcProduct(prevLayerSize)));
-  }
+  outLayerJson["type"] = "output";
+  m_layers.push_back(constructLayer(outLayerJson, prevLayerSize, false, stream));
 
   m_outputSize = m_layers.back()->outputSize()[0];
 }
@@ -121,37 +108,28 @@ void GpuNeuralNet::abort() {
   m_abort = true;
 }
 
-LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, std::istream& stream,
-  const Size3& prevLayerSize, bool isFirstLayer) {
-
-  std::string type = getOrThrow(obj, "type");
-  if (type == "dense") {
-    return std::make_unique<DenseLayer>(*m_gpu, obj, stream, calcProduct(prevLayerSize),
-      isFirstLayer);
-  }
-  else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, stream, prevLayerSize, isFirstLayer);
-  }
-  else if (type == "maxPooling") {
-    return std::make_unique<MaxPoolingLayer>(*m_gpu, obj, prevLayerSize);
-  }
-  else {
-    EXCEPTION("Don't know how to construct layer of type '" << type << "'");
-  }
-}
-
 LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, const Size3& prevLayerSize,
-  bool isFirstLayer) {
+  bool isFirstLayer, std::istream* stream) const {
 
   std::string type = getOrThrow(obj, "type");
+
   if (type == "dense") {
-    return std::make_unique<DenseLayer>(*m_gpu, obj, calcProduct(prevLayerSize), isFirstLayer);
+    return stream ?
+      std::make_unique<DenseLayer>(*m_gpu, obj, *stream, calcProduct(prevLayerSize), isFirstLayer) :
+      std::make_unique<DenseLayer>(*m_gpu, obj, calcProduct(prevLayerSize), isFirstLayer);
   }
   else if (type == "convolutional") {
-    return std::make_unique<ConvolutionalLayer>(*m_gpu, obj, prevLayerSize, isFirstLayer);
+    return stream ?
+      std::make_unique<ConvolutionalLayer>(*m_gpu, obj, *stream, prevLayerSize, isFirstLayer) :
+      std::make_unique<ConvolutionalLayer>(*m_gpu, obj, prevLayerSize, isFirstLayer);
   }
   else if (type == "maxPooling") {
     return std::make_unique<MaxPoolingLayer>(*m_gpu, obj, prevLayerSize);
+  }
+  else if (type == "output") {
+    return stream ?
+      std::make_unique<OutputLayer>(*m_gpu, obj, *stream, calcProduct(prevLayerSize)) :
+      std::make_unique<OutputLayer>(*m_gpu, obj, calcProduct(prevLayerSize));
   }
   else {
     EXCEPTION("Don't know how to construct layer of type '" << type << "'");
