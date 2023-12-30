@@ -10,10 +10,6 @@ namespace cpu {
 class ConvolutionalLayer : public Layer {
   public:
     struct Filter {
-      Filter()
-        : K(1, 1, 1)
-        , b(0.0) {}
-
       Kernel K;
       netfloat_t b;
     };
@@ -43,6 +39,7 @@ class ConvolutionalLayer : public Layer {
     void test_setFilters(const std::vector<ConvolutionalLayer::Filter>& filters);
 
   private:
+    void initialize(const nlohmann::json& obj, const Size3& inputShape);
     size_t numOutputs() const;
     void forwardPass(const Array3& inputs, Array3& Z) const;
 

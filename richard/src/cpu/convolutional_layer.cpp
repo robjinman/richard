@@ -7,46 +7,26 @@
 namespace richard {
 namespace cpu {
 
-ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, const Size3& inputShape)
-  : m_inputW(inputShape[0])
-  , m_inputH(inputShape[1])
-  , m_inputDepth(inputShape[2]) {
-
-  std::array<size_t, 2> kernelSize = getOrThrow(obj, "kernelSize").get<std::array<size_t, 2>>();
-  m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
-  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
-  size_t depth = getOrThrow(obj, "depth").get<size_t>();
-  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
-
-  for (size_t i = 0; i < depth; ++i) {
-    Filter filter;
-
-    filter.K = Kernel(kernelSize[0], kernelSize[1], m_inputDepth);
-    filter.K.randomize(0.1);
-
-    filter.b = 0.0;
-
-    m_filters.push_back(filter);
-
-    Filter delta;
-    delta.K = Kernel(kernelSize[0], kernelSize[1], m_inputDepth);
-    delta.b = 0.0;
-
-    m_paramDeltas.push_back(delta);
-  }
-
-  auto sz = outputSize();
-
-  m_Z = Array3(sz[0], sz[1], sz[2]);
-  m_A = Array3(sz[0], sz[1], sz[2]);
-  m_delta = Array3(sz[0], sz[1], sz[2]);
+ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, const Size3& inputShape) {
+  initialize(obj, inputShape);
 }
 
 ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& stream,
-  const Size3& inputShape)
-  : m_inputW(inputShape[0])
-  , m_inputH(inputShape[1])
-  , m_inputDepth(inputShape[2]) {
+  const Size3& inputShape) {
+
+  initialize(obj, inputShape);
+
+  for (Filter& filter : m_filters) {
+    stream.read(reinterpret_cast<char*>(&filter.b), sizeof(netfloat_t));
+    stream.read(reinterpret_cast<char*>(filter.K.data()),
+      filter.K.W() * filter.K.H() * filter.K.D() * sizeof(netfloat_t));
+  }
+}
+
+void ConvolutionalLayer::initialize(const nlohmann::json& obj, const Size3& inputShape) {
+  m_inputW = inputShape[0];
+  m_inputH = inputShape[1];
+  m_inputDepth = inputShape[2];
 
   std::array<size_t, 2> kernelSize = getOrThrow(obj, "kernelSize").get<std::array<size_t, 2>>();
   m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
@@ -55,25 +35,13 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& 
   m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
 
   for (size_t i = 0; i < depth; ++i) {
-    Filter filter;
+    m_filters.push_back(Filter{ Kernel(kernelSize[0], kernelSize[1], m_inputDepth), 0.f });
+    m_filters.back().K.randomize(0.1);
 
-    filter.K = Kernel(kernelSize[0], kernelSize[1], m_inputDepth);
-
-    stream.read(reinterpret_cast<char*>(&filter.b), sizeof(netfloat_t));
-    stream.read(reinterpret_cast<char*>(filter.K.data()),
-      filter.K.W() * filter.K.H() * filter.K.D() * sizeof(netfloat_t));
-
-    m_filters.push_back(filter);
-
-    Filter delta;
-    delta.K = Kernel(kernelSize[0], kernelSize[1], m_inputDepth);
-    delta.b = 0.0;
-
-    m_paramDeltas.push_back(delta);
+    m_paramDeltas.push_back(Filter{ Kernel(kernelSize[0], kernelSize[1], m_inputDepth), 0.f });
   }
 
   auto sz = outputSize();
-
   m_Z = Array3(sz[0], sz[1], sz[2]);
   m_A = Array3(sz[0], sz[1], sz[2]);
   m_delta = Array3(sz[0], sz[1], sz[2]);

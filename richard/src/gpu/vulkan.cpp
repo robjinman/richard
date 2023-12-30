@@ -379,8 +379,6 @@ void Vulkan::flushQueue() {
   VK_CHECK(vkQueueSubmit(m_computeQueue, 1, &submitInfo, m_taskCompleteFence),
     "Failed to submit compute command buffer");
 
-  // TODO: Remove fences?
-
   VK_CHECK(vkWaitForFences(m_device, 1, &m_taskCompleteFence, VK_TRUE, UINT64_MAX),
     "Error waiting for fence");
 
