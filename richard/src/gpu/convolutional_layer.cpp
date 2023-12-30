@@ -7,33 +7,41 @@ namespace gpu {
 
 ConvolutionalLayer::ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj,
   const Size3& inputShape, bool isFirstLayer)
-  : m_gpu(gpu)
-  , m_inputW(inputShape[0])
-  , m_inputH(inputShape[1])
-  , m_inputDepth(inputShape[2])
-  , m_kernelSize(getOrThrow(obj, "kernelSize").get<std::array<size_t, 2>>())
-  , m_depth(getOrThrow(obj, "depth").get<size_t>())
-  , m_learnRate(getOrThrow(obj, "learnRate").get<netfloat_t>())
-  , m_learnRateDecay(getOrThrow(obj, "learnRateDecay").get<netfloat_t>())
-  , m_dropoutRate(getOrThrow(obj, "dropoutRate").get<netfloat_t>())
-  , m_isFirstLayer(isFirstLayer)
-  , m_kernelData(m_kernelSize[0] * m_kernelSize[1] * m_inputDepth * m_depth)
-  , m_biasData(m_depth) {}
+  : m_gpu(gpu) {
+
+  initialize(obj, inputShape, isFirstLayer);
+}
 
 ConvolutionalLayer::ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream,
   const Size3& inputShape, bool isFirstLayer)
-  : m_gpu(gpu)
-  , m_inputW(inputShape[0])
-  , m_inputH(inputShape[1])
-  , m_inputDepth(inputShape[2])
-  , m_kernelSize(getOrThrow(obj, "kernelSize").get<std::array<size_t, 2>>())
-  , m_depth(getOrThrow(obj, "depth").get<size_t>())
-  , m_learnRate(getOrThrow(obj, "learnRate").get<netfloat_t>())
-  , m_learnRateDecay(getOrThrow(obj, "learnRateDecay").get<netfloat_t>())
-  , m_dropoutRate(getOrThrow(obj, "dropoutRate").get<netfloat_t>())
-  , m_isFirstLayer(isFirstLayer)
-  , m_kernelData(m_kernelSize[0] * m_kernelSize[1] * m_inputDepth * m_depth)
-  , m_biasData(m_depth) {}
+  : m_gpu(gpu) {
+
+  initialize(obj, inputShape, isFirstLayer);
+
+  size_t kernelSize = m_kernelSize[0] * m_kernelSize[1] * m_inputDepth;
+
+  for (size_t i = 0; i < m_depth; ++i) {
+    stream.read(reinterpret_cast<char*>(m_biasData.data() + i), sizeof(netfloat_t));
+    stream.read(reinterpret_cast<char*>(m_kernelData.data() + i * kernelSize),
+      kernelSize * sizeof(netfloat_t));
+  }
+}
+
+void ConvolutionalLayer::initialize(const nlohmann::json& obj, const Size3& inputShape,
+  bool isFirstLayer) {
+
+  m_inputW = inputShape[0];
+  m_inputH = inputShape[1];
+  m_inputDepth = inputShape[2];
+  m_kernelSize = getOrThrow(obj, "kernelSize").get<std::array<size_t, 2>>();
+  m_depth = getOrThrow(obj, "depth").get<size_t>();
+  m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
+  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
+  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
+  m_isFirstLayer = isFirstLayer;
+  m_kernelData = Vector(m_kernelSize[0] * m_kernelSize[1] * m_inputDepth * m_depth);
+  m_biasData = Vector(m_depth);
+}
 
 void ConvolutionalLayer::allocateGpuBuffers() {
   GpuBufferFlags paramBuffersFlags = GpuBufferFlags::large

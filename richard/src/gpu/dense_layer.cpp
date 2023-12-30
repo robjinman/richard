@@ -4,28 +4,26 @@
 namespace richard {
 namespace gpu {
 
+DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize, bool isFirstLayer)
+  : m_gpu(gpu) {
+
+  initialize(obj, inputSize, isFirstLayer);
+  m_W.randomize(0.1);
+}
+
 DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputSize,
   bool isFirstLayer)
-  : m_gpu(gpu)
-  , m_inputSize(inputSize)
-  , m_isFirstLayer(isFirstLayer) {
+  : m_gpu(gpu) {
 
-  m_size = getOrThrow(obj, "size").get<size_t>();
-  m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
-  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
-  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
+  initialize(obj, inputSize, isFirstLayer);
 
-  m_B = Vector(m_size);
   stream.read(reinterpret_cast<char*>(m_B.data()), m_size * sizeof(netfloat_t));
-
-  m_W = Matrix(m_inputSize, m_size);
   stream.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
-DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize, bool isFirstLayer)
-  : m_gpu(gpu)
-  , m_inputSize(inputSize)
-  , m_isFirstLayer(isFirstLayer) {
+void DenseLayer::initialize(const nlohmann::json& obj, size_t inputSize, bool isFirstLayer) {
+  m_inputSize = inputSize;
+  m_isFirstLayer = isFirstLayer;
 
   m_size = getOrThrow(obj, "size").get<size_t>();
   m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
@@ -33,9 +31,7 @@ DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize, bo
   m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
 
   m_B = Vector(m_size);
-
   m_W = Matrix(m_inputSize, m_size);
-  m_W.randomize(0.1);
 }
 
 void DenseLayer::allocateGpuBuffers() {

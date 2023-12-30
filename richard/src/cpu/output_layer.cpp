@@ -4,38 +4,30 @@
 namespace richard {
 namespace cpu {
 
-OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize)
-  : m_activationFn(sigmoid)
-  , m_activationFnPrime(sigmoidPrime) {
+OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize) {
+  initialize(obj, inputSize);
 
-  size_t size = getOrThrow(obj, "size").get<size_t>();
-  m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
-  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
-
-  m_B = Vector(size);
-
-  m_W = Matrix(inputSize, size);
   m_W.randomize(0.1);
-  
-  m_delta = Vector(size);
-  m_deltaB = Vector(size);
-  m_deltaW = Matrix(inputSize, size);
 }
 
-OutputLayer::OutputLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize)
-  : m_activationFn(sigmoid)
-  , m_activationFnPrime(sigmoidPrime) {
+OutputLayer::OutputLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize) {
+  initialize(obj, inputSize);
+
+  stream.read(reinterpret_cast<char*>(m_B.data()), m_B.size() * sizeof(netfloat_t));
+  stream.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
+}
+
+void OutputLayer::initialize(const nlohmann::json& obj, size_t inputSize) {
+  m_activationFn = sigmoid;
+  m_activationFnPrime = sigmoidPrime;
 
   size_t size = getOrThrow(obj, "size").get<size_t>();
   m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
   m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
 
   m_B = Vector(size);
-  stream.read(reinterpret_cast<char*>(m_B.data()), size * sizeof(netfloat_t));
-
   m_W = Matrix(inputSize, size);
-  stream.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
-
+  
   m_delta = Vector(size);
   m_deltaB = Vector(size);
   m_deltaW = Matrix(inputSize, size);

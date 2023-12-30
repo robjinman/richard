@@ -27,7 +27,7 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
     using CostFn = std::function<netfloat_t(const Vector&, const Vector&)>;
 
     CpuNeuralNetImpl(const Size3& inputShape, const nlohmann::json& config, Logger& logger);
-    CpuNeuralNetImpl(const Size3& inputShape, const nlohmann::json& config, std::istream& s,
+    CpuNeuralNetImpl(const Size3& inputShape, const nlohmann::json& config, std::istream& stream,
       Logger& logger);
 
     CostFn costFn() const override;
@@ -43,6 +43,7 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
     Layer& test_getLayer(size_t index) override;
 
   private:
+    void initialize(const Size3& inputShape, const nlohmann::json& config, std::istream* stream);
     LayerPtr constructLayer(const nlohmann::json& obj, std::istream& stream,
       const Size3& prevLayerSize);
     LayerPtr constructLayer(const nlohmann::json& obj, const Size3& prevLayerSize);
@@ -61,10 +62,25 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
 
 CpuNeuralNetImpl::CpuNeuralNetImpl(const Size3& inputShape, const nlohmann::json& config,
   Logger& logger)
-  : m_logger(logger)
-  , m_isTrained(false)
-  , m_inputShape(inputShape)
-  , m_params(getOrThrow(config, "hyperparams")) {
+  : m_logger(logger) {
+
+  initialize(inputShape, config, nullptr);
+}
+
+CpuNeuralNetImpl::CpuNeuralNetImpl(const Size3& inputShape, const nlohmann::json& config,
+  std::istream& stream, Logger& logger)
+  : m_logger(logger) {
+
+  initialize(inputShape, config, &stream);
+  m_isTrained = true;
+}
+
+void CpuNeuralNetImpl::initialize(const Size3& inputShape, const nlohmann::json& config,
+  std::istream* stream) {
+
+  m_isTrained = false;
+  m_inputShape = inputShape;
+  m_params = Hyperparams(getOrThrow(config, "hyperparams"));
 
   Size3 prevLayerSize = m_inputShape;
 
@@ -72,34 +88,24 @@ CpuNeuralNetImpl::CpuNeuralNetImpl(const Size3& inputShape, const nlohmann::json
     auto layersJson = config["hiddenLayers"];
 
     for (auto layerJson : layersJson) {
-      m_layers.push_back(constructLayer(layerJson, prevLayerSize));
+      if (stream) {
+        m_layers.push_back(constructLayer(layerJson, *stream, prevLayerSize));
+      }
+      else {
+        m_layers.push_back(constructLayer(layerJson, prevLayerSize));
+      }
       prevLayerSize = m_layers.back()->outputSize();
     }
   }
 
-  auto outLayerJson = config["outputLayer"];
-  m_layers.push_back(std::make_unique<OutputLayer>(outLayerJson, calcProduct(prevLayerSize)));
-}
-
-CpuNeuralNetImpl::CpuNeuralNetImpl(const Size3& inputShape, const nlohmann::json& config,
-  std::istream& stream, Logger& logger)
-  : m_logger(logger)
-  , m_isTrained(false)
-  , m_inputShape(inputShape)
-  , m_params(getOrThrow(config, "hyperparams")) {
-
-  nlohmann::json layersJson = getOrThrow(config, "hiddenLayers");
-  nlohmann::json outLayerJson = getOrThrow(config, "outputLayer");
-
-  Size3 prevLayerSize = m_inputShape;
-  for (auto& layerJson : layersJson) {
-    m_layers.push_back(constructLayer(layerJson, stream, prevLayerSize));
-    prevLayerSize = m_layers.back()->outputSize();
+  auto outLayerJson = getOrThrow(config, "outputLayer");
+  if (stream) {
+    m_layers.push_back(std::make_unique<OutputLayer>(outLayerJson, *stream,
+      calcProduct(prevLayerSize)));
   }
-  m_layers.push_back(std::make_unique<OutputLayer>(outLayerJson, stream,
-    calcProduct(prevLayerSize)));
-
-  m_isTrained = true;
+  else {
+    m_layers.push_back(std::make_unique<OutputLayer>(outLayerJson, calcProduct(prevLayerSize)));
+  }
 }
 
 void CpuNeuralNetImpl::abort() {

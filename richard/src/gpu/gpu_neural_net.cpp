@@ -42,6 +42,7 @@ class GpuNeuralNet : public NeuralNet {
     void abort() override;
 
   private:
+    void initialize(const Size3& inputShape, const nlohmann::json& config, std::istream* stream);
     LayerPtr constructLayer(const nlohmann::json& obj, std::istream& stream,
       const Size3& prevLayerSize, bool isFirstLayer);
     LayerPtr constructLayer(const nlohmann::json& obj, const Size3& prevLayerSize,
@@ -66,53 +67,54 @@ class GpuNeuralNet : public NeuralNet {
     ShaderHandle m_computeCostsShader;
 };
 
+GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config, Logger& logger)
+  : m_logger(logger) {
+
+  initialize(inputShape, config, nullptr);
+}
+
 GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config,
-  Logger& logger)
-  : m_logger(logger)
-  , m_isTrained(false)
-  , m_inputShape(inputShape)
-  , m_params(getOrThrow(config, "hyperparams"))
-  , m_gpu(createGpu(logger)) {
+  std::istream& stream, Logger& logger)
+  : m_logger(logger) {
+
+  initialize(inputShape, config, &stream);
+  m_isTrained = true;
+}
+
+void GpuNeuralNet::initialize(const Size3& inputShape, const nlohmann::json& config,
+  std::istream* stream) {
+
+  m_isTrained = false;
+  m_inputShape = inputShape;
+  m_params = Hyperparams(getOrThrow(config, "hyperparams"));
+  m_gpu = createGpu(m_logger);
 
   Size3 prevLayerSize = m_inputShape;
   if (config.contains("hiddenLayers")) {
     auto layersJson = config["hiddenLayers"];
 
     for (auto layerJson : layersJson) {
-      m_layers.push_back(constructLayer(layerJson, prevLayerSize, m_layers.empty()));
+      if (stream) {
+        m_layers.push_back(constructLayer(layerJson, *stream, prevLayerSize, m_layers.empty()));
+      }
+      else {
+        m_layers.push_back(constructLayer(layerJson, prevLayerSize, m_layers.empty()));
+      }
       prevLayerSize = m_layers.back()->outputSize();
     }
   }
 
   auto outLayerJson = config["outputLayer"];
-  m_layers.push_back(std::make_unique<OutputLayer>(*m_gpu, outLayerJson,
-    calcProduct(prevLayerSize)));
-
-  m_outputSize = m_layers.back()->outputSize()[0];
-}
-
-GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config,
-  std::istream& stream, Logger& logger)
-  : m_logger(logger)
-  , m_isTrained(false)
-  , m_inputShape(inputShape)
-  , m_params(getOrThrow(config, "hyperparams"))
-  , m_gpu(createGpu(logger)) {
-
-  nlohmann::json layersJson = getOrThrow(config, "hiddenLayers");
-  nlohmann::json outLayerJson = getOrThrow(config, "outputLayer");
-
-  Size3 prevLayerSize = m_inputShape;
-  for (auto& layerJson : layersJson) {
-    m_layers.push_back(constructLayer(layerJson, stream, prevLayerSize, m_layers.empty()));
-    prevLayerSize = m_layers.back()->outputSize();
+  if (stream) {
+    m_layers.push_back(std::make_unique<OutputLayer>(*m_gpu, outLayerJson, *stream,
+      calcProduct(prevLayerSize)));
   }
-  m_layers.push_back(std::make_unique<OutputLayer>(*m_gpu, outLayerJson, stream,
-    calcProduct(prevLayerSize)));
+  else {
+    m_layers.push_back(std::make_unique<OutputLayer>(*m_gpu, outLayerJson,
+      calcProduct(prevLayerSize)));
+  }
 
   m_outputSize = m_layers.back()->outputSize()[0];
-
-  m_isTrained = true;
 }
 
 void GpuNeuralNet::abort() {

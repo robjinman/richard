@@ -31,6 +31,8 @@ class ConvolutionalLayer : public Layer {
     void writeToStream(std::ostream& stream) const override;
 
   private:
+    void initialize(const nlohmann::json& obj, const Size3& inputShape, bool isFirstLayer);
+
     Gpu& m_gpu;
     size_t m_inputW;
     size_t m_inputH;

@@ -33,6 +33,8 @@ class OutputLayer : public Layer {
     const Vector& test_B() const;
 
   private:
+    void initialize(const nlohmann::json& obj, size_t inputSize);
+
     Matrix m_W;
     Vector m_B;
     Vector m_Z;
