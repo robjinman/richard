@@ -3,7 +3,7 @@
 #include "cpu/convolutional_layer.hpp"
 #include "cpu/output_layer.hpp"
 #include "cpu/cpu_neural_net.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 #include "exception.hpp"
 #include "labelled_data_set.hpp"
 #include "logger.hpp"

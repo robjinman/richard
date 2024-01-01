@@ -1,5 +1,5 @@
 #include "exception.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 #include "classifier_training_app.hpp"
 #include "classifier_eval_app.hpp"
 #include "file_system.hpp"

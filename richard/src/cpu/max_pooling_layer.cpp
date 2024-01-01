@@ -1,6 +1,6 @@
 #include "cpu/max_pooling_layer.hpp"
 #include "exception.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 
 namespace richard {
 namespace cpu {

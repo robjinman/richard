@@ -1,5 +1,5 @@
 #include "mock_logger.hpp"
-#include <util.hpp>
+#include <utils.hpp>
 #include <cpu/dense_layer.hpp>
 #include <cpu/output_layer.hpp>
 #include <gpu/dense_layer.hpp>

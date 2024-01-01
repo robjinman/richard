@@ -1,7 +1,7 @@
 #include "cpu/convolutional_layer.hpp"
 #include "cpu/max_pooling_layer.hpp"
 #include "exception.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 #include <random>
 
 namespace richard {
@@ -137,17 +137,28 @@ void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& 
       for (size_t xmin = 0; xmin < fmW; ++xmin) {
         netfloat_t delta = reluPrime(m_Z.at(xmin, ymin, slice)) * nextDelta.at(xmin, ymin, slice);
         m_delta.set(xmin, ymin, slice, delta);
+      }
+    }
 
-        for (size_t z = 0; z < dK.D(); ++z) {
-          for (size_t j = 0; j < dK.H(); ++j) {
-            for (size_t i = 0; i < dK.W(); ++i) {
+    for (size_t z = 0; z < dK.D(); ++z) {
+      for (size_t j = 0; j < dK.H(); ++j) {
+        for (size_t i = 0; i < dK.W(); ++i) {
+
+          netfloat_t sum = 0.0;
+
+          for (size_t ymin = 0; ymin < fmH; ++ymin) {
+            for (size_t xmin = 0; xmin < fmW; ++xmin) {
               size_t inputX = xmin + i;
               size_t inputY = ymin + j;
 
-              dK.set(i, j, z, dK.at(i, j, z) + inputs.at(inputX, inputY, z) * delta);
+              netfloat_t delta = m_delta.at(xmin, ymin, slice);
+
+              sum += inputs.at(inputX, inputY, z) * delta;
               db += delta;
             }
           }
+
+          dK.set(i, j, z, dK.at(i, j, z) + sum);
         }
       }
     }

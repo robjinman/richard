@@ -1,6 +1,6 @@
 #include "math.hpp"
 #include "exception.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 #include <ostream>
 #include <cstring>
 #include <random>

@@ -2,7 +2,7 @@
 #include "labelled_data_set.hpp"
 #include "exception.hpp"
 #include "data_details.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 #include "logger.hpp"
 #include "cpu/cpu_neural_net.hpp"
 #include "gpu/gpu_neural_net.hpp"

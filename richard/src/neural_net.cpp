@@ -1,5 +1,5 @@
 #include "neural_net.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 
 namespace richard {
 

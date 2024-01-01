@@ -2,7 +2,7 @@
 #include "exception.hpp"
 #include "trace.hpp"
 #include "logger.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 #include <vulkan/vulkan.h>
 #include <shaderc/shaderc.hpp>
 #include <vector>

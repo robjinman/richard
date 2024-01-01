@@ -1,6 +1,6 @@
 #include "classifier_training_app.hpp"
 #include "stdin_monitor.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 #include "file_system.hpp"
 #include "logger.hpp"
 #include <iostream>
@@ -38,14 +38,14 @@ void ClassifierTrainingApp::start() {
 }
 
 void ClassifierTrainingApp::saveStateToFile() const {
-  auto fout = m_fileSystem.openFileForWriting(m_opts.networkFile);
+  auto stream = m_fileSystem.openFileForWriting(m_opts.networkFile);
 
   std::string configString = m_config.dump();
   size_t configSize = configString.size();
-  fout->write(reinterpret_cast<char*>(&configSize), sizeof(size_t));
-  fout->write(configString.c_str(), configSize);
+  stream->write(reinterpret_cast<char*>(&configSize), sizeof(size_t));
+  stream->write(configString.c_str(), configSize);
 
-  m_classifier->writeToStream(*fout);
+  m_classifier->writeToStream(*stream);
 }
 
 const nlohmann::json& ClassifierTrainingApp::exampleConfig() {

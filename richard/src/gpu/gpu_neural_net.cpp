@@ -1,5 +1,5 @@
 #include "neural_net.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 #include "exception.hpp"
 #include "labelled_data_set.hpp"
 #include "logger.hpp"

@@ -32,6 +32,11 @@ class ConvolutionalLayer : public Layer {
 
   private:
     void initialize(const nlohmann::json& obj, const Size3& inputShape, bool isFirstLayer);
+    void createEvalForwardShader(GpuBufferHandle inputBuffer);
+    void createTrainForwardShader(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer);
+    void createBackpropDeltaShader(const Layer* nextLayer);
+    void createBackpropParamDeltasShader(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer);
+    void createUpdateParamsShader();
 
     Gpu& m_gpu;
     size_t m_inputW;
@@ -54,7 +59,8 @@ class ConvolutionalLayer : public Layer {
     GpuBuffer m_bufferDeltaB;
     ShaderHandle m_evalForwardShader;
     ShaderHandle m_trainForwardShader;
-    ShaderHandle m_backpropShader;
+    ShaderHandle m_backpropDeltaShader;
+    ShaderHandle m_backpropParamDeltasShader;
     ShaderHandle m_updateParamsShader;
 };
 

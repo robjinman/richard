@@ -31,3 +31,7 @@ float sigmoidPrime(float x) {
 float relu(float x) {
   return x < 0.0 ? 0.0 : x;
 }
+
+float reluPrime(float x) {
+  return x < 0.0 ? 0.0 : 1.0;
+}

@@ -1,5 +1,5 @@
 #include "cpu/dense_layer.hpp"
-#include "util.hpp"
+#include "utils.hpp"
 
 namespace richard {
 namespace cpu {
