@@ -837,7 +837,7 @@ TEST_F(MathTest, sliceArray2Modify) {
   }));
 }
 
-TEST_F(MathTest, convolve) {
+TEST_F(MathTest, computeCrossCorrelation) {
   Array3 image({{
     { 6, 9, 1 },
     { 2, 5, 6 },
@@ -860,7 +860,8 @@ TEST_F(MathTest, convolve) {
 
   Array2 featureMap(2, 3);
 
-  kernel.convolve(image, featureMap);
+  //kernel.convolve(image, featureMap);
+  computeCrossCorrelation(image, kernel, featureMap);
 
   ASSERT_EQ(featureMap, Array2({
     { 6+45+6+10+30+0+2+0, 9+5+15+12+54+0+0+2 },

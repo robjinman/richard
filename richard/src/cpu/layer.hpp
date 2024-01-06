@@ -37,32 +37,21 @@ const CostDerivativesFn quadraticCostDerivatives = [](const Vector& actual,
   return actual - expected;
 };
 
-enum class LayerType {
-  DENSE,
-  CONVOLUTIONAL,
-  MAX_POOLING,
-  OUTPUT
-};
-
 class Layer {
   public:
-    virtual LayerType type() const = 0;
     virtual Size3 outputSize() const = 0;
     virtual const DataArray& activations() const = 0;
-    virtual const DataArray& delta() const = 0;
+    virtual const DataArray& inputDelta() const = 0;
     virtual void trainForward(const DataArray& inputs) = 0;
     virtual DataArray evalForward(const DataArray& inputs) const = 0;
-    virtual void updateDelta(const DataArray& inputs, const Layer& nextLayer) = 0;
+    virtual void updateDeltas(const DataArray& inputs, const DataArray& outputDelta) = 0;
     virtual void updateParams(size_t epoch) = 0;
     virtual void writeToStream(std::ostream& stream) const = 0;
-    virtual const Matrix& W() const = 0;
 
     virtual ~Layer() {}
 };
 
 using LayerPtr = std::unique_ptr<Layer>;
-
-std::ostream& operator<<(std::ostream& os, LayerType layerType);
 
 }
 }

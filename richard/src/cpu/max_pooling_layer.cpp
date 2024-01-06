@@ -6,7 +6,7 @@ namespace richard {
 namespace cpu {
 
 MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, const Size3& inputShape)
-  : m_paddedDelta(inputShape[0], inputShape[1], inputShape[2])
+  : m_inputDelta(inputShape[0], inputShape[1], inputShape[2])
   , m_inputW(inputShape[0])
   , m_inputH(inputShape[1])
   , m_inputDepth(inputShape[2])
@@ -22,13 +22,6 @@ MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, const Size3& inputSh
     "Region height " << m_regionH << " does not divide input height " << m_inputH);
 
   m_Z = Array3(m_inputW / m_regionW, m_inputH / m_regionH, m_inputDepth);
-  m_delta = Array3(m_inputW / m_regionW, m_inputH / m_regionH, m_inputDepth);
-}
-
-const Matrix& MaxPoolingLayer::W() const {
-  EXCEPTION("Do not call MaxPoolingLayer::W()");
-  static Matrix m(1, 1);
-  return m;
 }
 
 Size3 MaxPoolingLayer::outputSize() const {
@@ -43,8 +36,8 @@ const DataArray& MaxPoolingLayer::activations() const {
   return m_Z.storage();
 }
 
-const DataArray& MaxPoolingLayer::delta() const {
-  return m_paddedDelta.storage();
+const DataArray& MaxPoolingLayer::inputDelta() const {
+  return m_inputDelta.storage();
 }
 
 void MaxPoolingLayer::trainForward(const DataArray& inputs) {
@@ -118,8 +111,10 @@ DataArray MaxPoolingLayer::evalForward(const DataArray& inputs) const {
   return Z.storage();
 }
 
-// Pad the delta to the input size using the mask for ease of consumption by the previous layer
-void MaxPoolingLayer::padDelta(const Array3& delta, const Array3& mask, Array3& paddedDelta) const {
+void MaxPoolingLayer::updateDeltas(const DataArray&, const DataArray& outputDelta) {
+  ConstArray3Ptr pDelta = Array3::createShallow(outputDelta, m_Z.W(), m_Z.H(), m_Z.D());
+  const Array3& delta = *pDelta;
+
   size_t outputW = m_inputW / m_regionW;
   size_t outputH = m_inputH / m_regionH;
 
@@ -131,96 +126,17 @@ void MaxPoolingLayer::padDelta(const Array3& delta, const Array3& mask, Array3& 
             size_t imgX = x * m_regionW + i;
             size_t imgY = y * m_regionH + j;
 
-            if (mask.at(imgX, imgY, z) != 0.0) {
-              paddedDelta.set(imgX, imgY, z, delta.at(x, y, z));
+            if (m_mask.at(imgX, imgY, z) != 0.0) {
+              m_inputDelta.set(imgX, imgY, z, delta.at(x, y, z));
             }
             else {
-              paddedDelta.set(imgX, imgY, z, 0.0);
+              m_inputDelta.set(imgX, imgY, z, 0.0);
             }
           }
         }
       }
     }
   }
-}
-
-void MaxPoolingLayer::backpropFromDenseLayer(const Layer& nextLayer, Array3& delta) {
-  ConstVectorPtr pNextDelta = Vector::createShallow(nextLayer.delta());
-  delta.setData(std::move(nextLayer.W().transposeMultiply(*pNextDelta).storage()));
-}
-
-void MaxPoolingLayer::backpropFromConvLayer(const std::vector<ConvolutionalLayer::Filter>& filters,
-  const DataArray& convDelta, Array3& delta) {
-
-  size_t convLayerDepth = filters.size();
-  ASSERT(convLayerDepth > 0);
-  size_t kW = filters[0].K.W();
-  size_t kH = filters[0].K.H();
-  size_t kD = filters[0].K.D();
-  ASSERT(kD == m_inputDepth);
-
-  size_t outputW = m_inputW / m_regionW;
-  size_t outputH = m_inputH / m_regionH;
-
-  size_t fmW = outputW - kW + 1;
-  size_t fmH = outputH - kH + 1;
-
-  ConstArray3Ptr pNextDelta = Array3::createShallow(convDelta, fmW, fmH, convLayerDepth);
-  const Array3& nextDelta = *pNextDelta;
-
-  for (size_t fm = 0; fm < convLayerDepth; ++fm) {
-    const Kernel& kernel = filters[fm].K;
-
-    for (size_t fmY = 0; fmY < fmH; ++fmY) {
-      for (size_t fmX = 0; fmX < fmW; ++fmX) {
-        for (size_t z = 0; z < kD; ++z) {
-          for (size_t j = 0; j < kH; ++j) {
-            for (size_t i = 0; i < kW; ++i) {
-              size_t x = fmX + i;
-              size_t y = fmY + j;
-              netfloat_t d = kernel.at(i, j, z) * nextDelta.at(fmX, fmY, fm);
-              delta.set(x, y, z, delta.at(x, y, z) + d);
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-void MaxPoolingLayer::updateDelta(const DataArray&, const Layer& nextLayer) {
-  m_delta.zero();
-
-  switch (nextLayer.type()) {
-    case LayerType::OUTPUT:
-    case LayerType::DENSE: {
-      backpropFromDenseLayer(nextLayer, m_delta);
-      break;
-    }
-    case LayerType::CONVOLUTIONAL: {
-      const auto& convLayer = dynamic_cast<const ConvolutionalLayer&>(nextLayer);
-      backpropFromConvLayer(convLayer.filters(), convLayer.delta(), m_delta);
-      break;
-    }
-    default: {
-      EXCEPTION("Expected layer of type DENSE or CONVOLUTIONAL, got " << nextLayer.type());
-    }
-  }
-
-  padDelta(m_delta, m_mask, m_paddedDelta);
-}
-
-void MaxPoolingLayer::test_padDelta(const Array3& delta, const Array3& mask,
-  Array3& paddedDelta) const {
-
-  padDelta(delta, mask, paddedDelta);
-}
-
-void MaxPoolingLayer::test_backpropFromConvLayer(
-  const std::vector<ConvolutionalLayer::Filter>& filters, const DataArray& convDelta,
-  Array3& delta) {
-
-  backpropFromConvLayer(filters, convDelta, delta);
 }
 
 const Array3& MaxPoolingLayer::test_mask() const {

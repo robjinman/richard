@@ -367,7 +367,8 @@ TEST_F(GpuTest, convolution) {
   gpu->retrieveBuffer(bufferR.handle, R.data());
 
   Array2 expectedR(4, 3);
-  K.convolve(X, expectedR);
+  //K.convolve(X, expectedR);
+  computeCrossCorrelation(X, K, expectedR);
 
   for (size_t j = 0; j < expectedR.rows(); ++j) {
     for (size_t i = 0; i < expectedR.cols(); ++i) {

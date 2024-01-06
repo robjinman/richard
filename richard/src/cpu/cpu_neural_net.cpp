@@ -49,7 +49,6 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
     netfloat_t feedForward(const Array3& x, const Vector& y);
     void backPropagate(const Array3& x, const Vector& y);
     void updateParams(size_t epoch);
-    OutputLayer& outputLayer();
 
     Logger& m_logger;
     bool m_isTrained;
@@ -157,21 +156,16 @@ netfloat_t CpuNeuralNetImpl::feedForward(const Array3& x, const Vector& y) {
   return quadradicCost(*outputs, y);
 }
 
-OutputLayer& CpuNeuralNetImpl::outputLayer() {
-  ASSERT_MSG(!m_layers.empty(), "No output layer");
-  return dynamic_cast<OutputLayer&>(*m_layers.back());
-}
-
 void CpuNeuralNetImpl::backPropagate(const Array3& x, const Vector& y) {
   for (int l = static_cast<int>(m_layers.size()) - 1; l >= 0; --l) {
     if (l == static_cast<int>(m_layers.size()) - 1) {
-      outputLayer().updateDelta(m_layers[m_layers.size() - 2]->activations(), y.storage());
+      m_layers[l]->updateDeltas(m_layers[l - 1]->activations(), y.storage());
     }
     else if (l == 0) {
-      m_layers[l]->updateDelta(x.storage(), *m_layers[l + 1]);
+      m_layers[l]->updateDeltas(x.storage(), m_layers[l + 1]->inputDelta());
     }
     else {
-      m_layers[l]->updateDelta(m_layers[l - 1]->activations(), *m_layers[l + 1]);
+      m_layers[l]->updateDeltas(m_layers[l - 1]->activations(), m_layers[l + 1]->inputDelta());
     }
   }
 }
@@ -266,16 +260,6 @@ CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& c
   std::istream& stream, Logger& logger) {
 
   return std::make_unique<CpuNeuralNetImpl>(inputShape, config, stream, logger);
-}
-
-std::ostream& operator<<(std::ostream& os, LayerType layerType) {
-  switch (layerType) {
-    case LayerType::DENSE: os << "DENSE"; break;
-    case LayerType::CONVOLUTIONAL: os << "CONVOLUTIONAL"; break;
-    case LayerType::OUTPUT: os << "OUTPUT"; break;
-    case LayerType::MAX_POOLING: os << "MAX_POOLING"; break;
-  }
-  return os;
 }
 
 }

@@ -29,7 +29,7 @@ void DenseLayer::initialize(const nlohmann::json& obj, size_t inputSize) {
   m_B = Vector(size);
   m_W = Matrix(inputSize, size);
 
-  m_delta = Vector(size);
+  m_inputDelta = Vector(inputSize);
   m_deltaB = Vector(size);
   m_deltaW = Matrix(inputSize, size);
 }
@@ -48,12 +48,8 @@ const DataArray& DenseLayer::activations() const {
   return m_A.storage();
 }
 
-const DataArray& DenseLayer::delta() const {
-  return m_delta.storage();
-}
-
-const Matrix& DenseLayer::W() const {
-  return m_W;
+const DataArray& DenseLayer::inputDelta() const {
+  return m_inputDelta.storage();
 }
 
 DataArray DenseLayer::evalForward(const DataArray& inputs) const {
@@ -83,19 +79,20 @@ void DenseLayer::trainForward(const DataArray& inputs) {
   }
 }
 
-void DenseLayer::updateDelta(const DataArray& inputs, const Layer& nextLayer) {
-  ConstVectorPtr pNextDelta = Vector::createShallow(nextLayer.delta());
+void DenseLayer::updateDeltas(const DataArray& inputs, const DataArray& outputDelta) {
+  ConstVectorPtr pDeltaA = Vector::createShallow(outputDelta);
+  const Vector& deltaA = *pDeltaA;
 
-  m_delta = nextLayer.W().transposeMultiply(*pNextDelta)
-                         .hadamard(m_Z.computeTransform(m_activationFnPrime));
+  Vector delta = deltaA.hadamard(m_Z.computeTransform(m_activationFnPrime));
+  m_inputDelta = m_W.transposeMultiply(delta);
 
   for (size_t j = 0; j < m_W.rows(); j++) {
     for (size_t k = 0; k < m_W.cols(); k++) {
-      m_deltaW.set(k, j, m_deltaW.at(k, j) + inputs[k] * m_delta[j]);
+      m_deltaW.set(k, j, m_deltaW.at(k, j) + inputs[k] * delta[j]);
     }
   }
 
-  m_deltaB += m_delta;
+  m_deltaB += delta;
 }
 
 void DenseLayer::updateParams(size_t epoch) {

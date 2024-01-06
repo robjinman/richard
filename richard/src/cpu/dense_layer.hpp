@@ -11,16 +11,14 @@ class DenseLayer : public Layer {
     DenseLayer(const nlohmann::json& obj, size_t inputSize);
     DenseLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize);
 
-    LayerType type() const override { return LayerType::DENSE; }
     Size3 outputSize() const override;
     const DataArray& activations() const override;
-    const DataArray& delta() const override;
+    const DataArray& inputDelta() const override;
     void trainForward(const DataArray& inputs) override;
     DataArray evalForward(const DataArray& inputs) const override;
-    void updateDelta(const DataArray& inputs, const Layer& nextLayer) override;
+    void updateDeltas(const DataArray& inputs, const DataArray& outputDelta) override;
     void updateParams(size_t epoch) override;
     void writeToStream(std::ostream& stream) const override;
-    const Matrix& W() const override;
 
     // Exposed for testing
     //
@@ -38,7 +36,7 @@ class DenseLayer : public Layer {
     Vector m_B;
     Vector m_Z;
     Vector m_A;
-    Vector m_delta;
+    Vector m_inputDelta;
     Vector m_deltaB;
     Matrix m_deltaW;
     netfloat_t m_learnRate;

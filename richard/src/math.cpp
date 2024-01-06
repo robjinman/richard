@@ -399,6 +399,14 @@ ConstVectorPtr Vector::createShallow(const DataArray& data) {
   return ConstVectorPtr(new Vector(const_cast<netfloat_t*>(data.data()), data.size()));
 }
 
+VectorPtr Vector::createShallow(netfloat_t* data, size_t size) {
+  return VectorPtr(new Vector(data, size));
+}
+
+ConstVectorPtr Vector::createShallow(const netfloat_t* data, size_t size) {
+  return ConstVectorPtr(new Vector(const_cast<netfloat_t*>(data), size));
+}
+
 std::ostream& operator<<(std::ostream& os, const Vector& v) {
   os << "[ ";
   for (size_t i = 0; i < v.size(); ++i) {
@@ -657,6 +665,17 @@ Vector Matrix::transposeMultiply(const Vector& rhs) const {
   return v;
 }
 
+Matrix Matrix::hadamard(const Matrix& rhs) const {
+  DBG_ASSERT(rhs.m_cols == m_cols);
+  DBG_ASSERT(rhs.m_rows == m_rows);
+
+  Matrix m(m_cols, m_rows);
+  for (size_t i = 0; i < size(); ++i) {
+    m.m_data[i] = m_data[i] * rhs.m_data[i];
+  }
+  return m;
+}
+
 void Matrix::zero() {
   memset(m_data, 0, size() * sizeof(netfloat_t));
 }
@@ -714,6 +733,14 @@ MatrixPtr Matrix::createShallow(DataArray& data, size_t cols, size_t rows) {
 ConstMatrixPtr Matrix::createShallow(const DataArray& data, size_t cols, size_t rows) {
   DBG_ASSERT(data.size() == cols * rows);
   return ConstMatrixPtr(new Matrix(const_cast<netfloat_t*>(data.data()), cols, rows));
+}
+
+MatrixPtr Matrix::createShallow(netfloat_t* data, size_t cols, size_t rows) {
+  return MatrixPtr(new Matrix(data, cols, rows));
+}
+
+ConstMatrixPtr Matrix::createShallow(const netfloat_t* data, size_t cols, size_t rows) {
+  return ConstMatrixPtr(new Matrix(const_cast<netfloat_t*>(data), cols, rows));
 }
 
 std::ostream& operator<<(std::ostream& os, const Matrix& m) {
@@ -823,32 +850,6 @@ Kernel::Kernel(Kernel&& mv) {
     mv.m_W = 0;
     mv.m_H = 0;
     mv.m_D = 0;
-  }
-}
-
-void Kernel::convolve(const Array3& image, Array2& featureMap) const {
-  DBG_ASSERT(image.W() >= m_W);
-  DBG_ASSERT(image.H() >= m_H);
-  DBG_ASSERT(image.D() == m_D);
-
-  size_t fmW = image.W() - m_W + 1;
-  size_t fmH = image.H() - m_H + 1;
-
-  DBG_ASSERT(featureMap.W() == fmW);
-  DBG_ASSERT(featureMap.H() == fmH);
-
-  for (size_t fmY = 0; fmY < fmH; ++fmY) {
-    for (size_t fmX = 0; fmX < fmW; ++fmX) {
-      netfloat_t sum = 0.0;
-      for (size_t k = 0; k < m_D; ++k) {
-        for (size_t j = 0; j < m_H; ++j) {
-          for (size_t i = 0; i < m_W; ++i) {
-            sum += image.at(fmX + i, fmY + j, k) * at(i, j, k);
-          }
-        }
-      }
-      featureMap.set(fmX, fmY, sum);
-    }
   }
 }
 
@@ -965,6 +966,18 @@ Kernel Kernel::operator/(netfloat_t x) const {
   return K;
 }
 
+Kernel Kernel::hadamard(const Kernel& rhs) const {
+  DBG_ASSERT(rhs.m_W == m_W);
+  DBG_ASSERT(rhs.m_H == m_H);
+  DBG_ASSERT(rhs.m_D == m_D);
+
+  Kernel k(m_W, m_H, m_D);
+  for (size_t i = 0; i < size(); ++i) {
+    k.m_data[i] = m_data[i] * rhs.m_data[i];
+  }
+  return k;
+}
+
 Kernel& Kernel::operator+=(netfloat_t x) {
   for (size_t i = 0; i < size(); ++i) {
     m_data[i] += x;
@@ -1029,6 +1042,100 @@ KernelPtr Kernel::createShallow(DataArray& data, size_t W, size_t H, size_t D) {
 ConstKernelPtr Kernel::createShallow(const DataArray& data, size_t W, size_t H, size_t D) {
   DBG_ASSERT(data.size() == W * H * D);
   return std::unique_ptr<const Kernel>(new Kernel(const_cast<netfloat_t*>(data.data()), W, H, D));
+}
+
+KernelPtr Kernel::createShallow(netfloat_t* data, size_t W, size_t H, size_t D) {
+  return std::unique_ptr<Kernel>(new Kernel(data, W, H, D));
+}
+
+ConstKernelPtr Kernel::createShallow(const netfloat_t* data, size_t W, size_t H, size_t D) {
+  return std::unique_ptr<const Kernel>(new Kernel(const_cast<netfloat_t*>(data), W, H, D));
+}
+
+void computeCrossCorrelation(const Array3& image, const Kernel& kernel, Array2& result,
+  bool flipKernel) {
+
+  const size_t kD = kernel.D();
+  const size_t kH = kernel.H();
+  const size_t kW = kernel.W();
+
+  DBG_ASSERT(image.W() >= kW);
+  DBG_ASSERT(image.H() >= kH);
+  DBG_ASSERT(image.D() == kD);
+
+  const size_t fmW = image.W() - kW + 1;
+  const size_t fmH = image.H() - kH + 1;
+
+  DBG_ASSERT(result.W() == fmW);
+  DBG_ASSERT(result.H() == fmH);
+
+  for (size_t fmY = 0; fmY < fmH; ++fmY) {
+    for (size_t fmX = 0; fmX < fmW; ++fmX) {
+      netfloat_t sum = 0.0;
+
+      for (size_t k = 0; k < kD; ++k) {
+        for (size_t j = 0; j < kH; ++j) {
+          for (size_t i = 0; i < kW; ++i) {
+            netfloat_t kPx = flipKernel ? kernel.at(kW - i - 1, kH - j - 1, k) : kernel.at(i, j, k);
+            sum += image.at(fmX + i, fmY + j, k) * kPx;
+          }
+        }
+      }
+
+      result.set(fmX, fmY, sum);
+    }
+  }
+}
+
+void computeFullCrossCorrelation(const Array3& image, const Kernel& kernel, Array2& result,
+  bool flipKernel) {
+
+  const size_t kD = kernel.D();
+  const size_t kH = kernel.H();
+  const size_t kW = kernel.W();
+
+  DBG_ASSERT(image.D() == kD);
+
+  const size_t imW = image.W();
+  const size_t imH = image.H();
+
+  const size_t fmW = imW + kW - 1;
+  const size_t fmH = imH + kH - 1;
+
+  DBG_ASSERT(result.W() == fmW);
+  DBG_ASSERT(result.H() == fmH);
+
+  const int xMin = kW - 1;
+  const int yMin = kH - 1;
+
+  for (size_t fmY = 0; fmY < fmH; ++fmY) {
+    for (size_t fmX = 0; fmX < fmW; ++fmX) {
+      netfloat_t sum = 0.0;
+
+      for (size_t k = 0; k < kD; ++k) {
+        for (size_t j = 0; j < kH; ++j) {
+          for (size_t i = 0; i < kW; ++i) {
+            int imX = xMin + fmX + i;
+            int imY = yMin + fmY + j;
+
+            // TODO: Do this more efficiently
+            if (imX < 0 || imX >= imW) {
+              continue;
+            }
+
+            if (imY < 0 || imY >= imH) {
+              continue;
+            }
+
+            netfloat_t kPx = flipKernel ? kernel.at(kW - i - 1, kH - j - 1, k) : kernel.at(i, j, k);
+            sum += image.at(imX, imY, k) * kPx;
+          }
+        }
+      }
+
+      result.set(fmX, fmY, sum);
+    }
+  }
 }
 
 std::ostream& operator<<(std::ostream& os, const Kernel& k) {

@@ -17,17 +17,14 @@ class ConvolutionalLayer : public Layer {
     ConvolutionalLayer(const nlohmann::json& obj, const Size3& inputShape);
     ConvolutionalLayer(const nlohmann::json& obj, std::istream& stream, const Size3& inputShape);
 
-    LayerType type() const override { return LayerType::CONVOLUTIONAL; }
     Size3 outputSize() const override;
     const DataArray& activations() const override;
-    const DataArray& delta() const override;
+    const DataArray& inputDelta() const override;
     void trainForward(const DataArray& inputs) override;
     DataArray evalForward(const DataArray& inputs) const override;
-    void updateDelta(const DataArray& inputs, const Layer& nextLayer) override;
+    void updateDeltas(const DataArray& inputs, const DataArray& outputDelta) override;
     void updateParams(size_t epoch) override;
     void writeToStream(std::ostream& stream) const override;
-    // Don't use. Use filters() instead.
-    const Matrix& W() const override;
     const std::vector<Filter>& filters() const;
 
     std::array<size_t, 2> kernelSize() const;
@@ -46,7 +43,7 @@ class ConvolutionalLayer : public Layer {
     std::vector<Filter> m_filters;
     Array3 m_Z;
     Array3 m_A;
-    Array3 m_delta;
+    Array3 m_inputDelta;
     std::vector<Filter> m_paramDeltas;
     size_t m_inputW;
     size_t m_inputH;

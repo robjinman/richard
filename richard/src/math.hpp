@@ -21,7 +21,6 @@ class DataArray {
 
     inline netfloat_t* data();
     inline const netfloat_t* data() const;
-    inline std::unique_ptr<netfloat_t[]>& uniquePtr();
 
     inline size_t size() const;
 
@@ -65,8 +64,6 @@ using ArrayPtr = VectorPtr;
 using ConstArrayPtr = ConstVectorPtr;
 
 class Vector {
-  friend class Matrix;
-
   public:
     explicit Vector();
     explicit Vector(std::initializer_list<netfloat_t> data);
@@ -131,10 +128,13 @@ class Vector {
 
     static VectorPtr createShallow(DataArray& data);
     static ConstVectorPtr createShallow(const DataArray& data);
+    static VectorPtr createShallow(netfloat_t* data, size_t size);
+    static ConstVectorPtr createShallow(const netfloat_t* data, size_t size);
 
     friend std::ostream& operator<<(std::ostream& os, const Vector& v);
 
   private:
+    // Creates a shallow Vector
     Vector(netfloat_t* data, size_t size);
 
     DataArray m_storage;
@@ -147,10 +147,12 @@ bool Vector::isShallow() const {
 }
 
 const DataArray& Vector::storage() const {
+  ASSERT_MSG(!isShallow(), "Attempt to retrieve storage of shallow object");
   return m_storage;
 }
 
 DataArray& Vector::storage() {
+  ASSERT_MSG(!isShallow(), "Attempt to retrieve storage of shallow object");
   return m_storage;
 }
 
@@ -194,8 +196,6 @@ using Array2Ptr = MatrixPtr;
 using ConstArray2Ptr = ConstMatrixPtr;
 
 class Matrix {
-  friend class Kernel;
-
   public:
     explicit Matrix();
     explicit Matrix(std::initializer_list<std::initializer_list<netfloat_t>> data);
@@ -243,6 +243,8 @@ class Matrix {
     Matrix& operator+=(const Matrix& rhs);
     Matrix& operator-=(const Matrix& rhs);
 
+    Matrix hadamard(const Matrix& rhs) const;
+
     Vector transposeMultiply(const Vector& rhs) const;
 
     void zero();
@@ -264,12 +266,15 @@ class Matrix {
 
     static MatrixPtr createShallow(DataArray& data, size_t cols, size_t rows);
     static ConstMatrixPtr createShallow(const DataArray& data, size_t cols, size_t rows);
+    static MatrixPtr createShallow(netfloat_t* data, size_t cols, size_t rows);
+    static ConstMatrixPtr createShallow(const netfloat_t* data, size_t cols, size_t rows);
 
     friend std::ostream& operator<<(std::ostream& os, const Matrix& m);
 
   private:
+    // Creates a shallow Matrix
     Matrix(netfloat_t* data, size_t cols, size_t rows);
-  
+
     DataArray m_storage;
     netfloat_t* m_data;
     size_t m_rows;
@@ -281,10 +286,12 @@ bool Matrix::isShallow() const {
 }
 
 const DataArray& Matrix::storage() const {
+  ASSERT_MSG(!isShallow(), "Attempt to retrieve storage of shallow object");
   return m_storage;
 }
 
 DataArray& Matrix::storage() {
+  ASSERT_MSG(!isShallow(), "Attempt to retrieve storage of shallow object");
   return m_storage;
 }
 
@@ -325,11 +332,11 @@ size_t Matrix::H() const {
 }
 
 VectorPtr Matrix::slice(size_t row) {
-  return VectorPtr(new Vector(m_data + row * m_cols, m_cols));
+  return Vector::createShallow(m_data + row * m_cols, m_cols);
 }
 
 ConstVectorPtr Matrix::slice(size_t row) const {
-  return ConstVectorPtr(new Vector(m_data + row * m_cols, m_cols));
+  return Vector::createShallow(m_data + row * m_cols, m_cols);
 }
 
 bool Matrix::operator!=(const Matrix& rhs) const {
@@ -379,6 +386,8 @@ class Kernel {
     void fill(netfloat_t x);
     Kernel& randomize(netfloat_t standardDeviation);
 
+    Kernel hadamard(const Kernel& rhs) const;
+
     Kernel operator+(const Kernel& rhs) const;
     Kernel operator-(const Kernel& rhs) const;
 
@@ -404,14 +413,15 @@ class Kernel {
     bool operator==(const Kernel& rhs) const;
     inline bool operator!=(const Kernel& rhs) const;
 
-    void convolve(const Array3& image, Array2& featureMap) const;
-
     static KernelPtr createShallow(DataArray& data, size_t W, size_t H, size_t D);
     static ConstKernelPtr createShallow(const DataArray& data, size_t W, size_t H, size_t D);
+    static KernelPtr createShallow(netfloat_t* data, size_t W, size_t H, size_t D);
+    static ConstKernelPtr createShallow(const netfloat_t* data, size_t W, size_t H, size_t D);
 
     friend std::ostream& operator<<(std::ostream& os, const Kernel& k);
 
   private:
+    // Creates a shallow Kernel
     Kernel(netfloat_t* data, size_t W, size_t H, size_t D);
 
     DataArray m_storage;
@@ -433,10 +443,12 @@ bool Kernel::isShallow() const {
 }
 
 const DataArray& Kernel::storage() const {
+  ASSERT_MSG(!isShallow(), "Attempt to retrieve storage of shallow object");
   return m_storage;
 }
 
 DataArray& Kernel::storage() {
+  ASSERT_MSG(!isShallow(), "Attempt to retrieve storage of shallow object");
   return m_storage;
 }
 
@@ -473,15 +485,53 @@ size_t Kernel::D() const {
 }
 
 MatrixPtr Kernel::slice(size_t z) {
-  return MatrixPtr(new Matrix(m_data + z * m_W * m_H, m_W, m_H));
+  return Matrix::createShallow(m_data + z * m_W * m_H, m_W, m_H);
 }
 
 ConstMatrixPtr Kernel::slice(size_t z) const {
-  return ConstMatrixPtr(new Matrix(m_data + z * m_W * m_H, m_W, m_H));
+  return Matrix::createShallow(m_data + z * m_W * m_H, m_W, m_H);
 }
 
 bool Kernel::operator!=(const Kernel& rhs) const {
   return !(*this == rhs);
+}
+
+void computeCrossCorrelation(const Array3& image, const Kernel& kernel, Array2& result,
+  bool flipKernel = false);
+
+void computeFullCrossCorrelation(const Array3& image, const Kernel& kernel, Array2& result,
+  bool flipKernel = false);
+
+inline void computeConvolution(const Array3& image, const Kernel& kernel, Array2& result) {
+  computeCrossCorrelation(image, kernel, result, true);
+}
+
+inline void computeFullConvolution(const Array3& image, const Kernel& kernel, Array2& result) {
+  computeFullCrossCorrelation(image, kernel, result, true);
+}
+
+inline void computeCrossCorrelation(const Array2& image, const Matrix& kernel, Array2& result,
+  bool flipKernel = false) {
+
+  ConstArray3Ptr pImage = Array3::createShallow(image.data(), image.W(), image.H(), 1);
+  ConstArray3Ptr pKernel = Array3::createShallow(kernel.data(), kernel.W(), kernel.H(), 1);
+  computeCrossCorrelation(*pImage, *pKernel, result, flipKernel);
+}
+
+inline void computeFullCrossCorrelation(const Array2& image, const Matrix& kernel, Array2& result,
+  bool flipKernel = false) {
+
+  ConstArray3Ptr pImage = Array3::createShallow(image.data(), image.W(), image.H(), 1);
+  ConstArray3Ptr pKernel = Array3::createShallow(kernel.data(), kernel.W(), kernel.H(), 1);
+  computeFullCrossCorrelation(*pImage, *pKernel, result, flipKernel);
+}
+
+inline void computeConvolution(const Array2& image, const Matrix& kernel, Array2& result) {
+  computeCrossCorrelation(image, kernel, result, true);
+}
+
+inline void computeFullConvolution(const Array2& image, const Matrix& kernel, Array2& result) {
+  computeFullCrossCorrelation(image, kernel, result, true);
 }
 
 }

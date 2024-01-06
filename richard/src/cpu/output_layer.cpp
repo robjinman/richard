@@ -27,8 +27,8 @@ void OutputLayer::initialize(const nlohmann::json& obj, size_t inputSize) {
 
   m_B = Vector(size);
   m_W = Matrix(inputSize, size);
-  
-  m_delta = Vector(size);
+
+  m_inputDelta = Vector(inputSize);
   m_deltaB = Vector(size);
   m_deltaW = Matrix(inputSize, size);
 }
@@ -43,12 +43,8 @@ const DataArray& OutputLayer::activations() const {
   return m_A.storage();
 }
 
-const DataArray& OutputLayer::delta() const {
-  return m_delta.storage();
-}
-
-const Matrix& OutputLayer::W() const {
-  return m_W;
+const DataArray& OutputLayer::inputDelta() const {
+  return m_inputDelta.storage();
 }
 
 DataArray OutputLayer::evalForward(const DataArray& inputs) const {
@@ -72,24 +68,22 @@ void OutputLayer::trainForward(const DataArray& inputs) {
   m_A = m_Z.computeTransform(m_activationFn);
 }
 
-void OutputLayer::updateDelta(const DataArray&, const Layer&) {
-  EXCEPTION("Use other OutputLayer::updateDelta() overload");
-}
-
-void OutputLayer::updateDelta(const DataArray& inputs, const DataArray& outputs) {
+void OutputLayer::updateDeltas(const DataArray& inputs, const DataArray& outputs) {
   ConstVectorPtr pY = Vector::createShallow(outputs);
   const Vector& y = *pY;
 
   Vector deltaC = quadraticCostDerivatives(m_A, y);
-  m_delta = m_Z.computeTransform(m_activationFnPrime).hadamard(deltaC);
+  Vector delta = m_Z.computeTransform(m_activationFnPrime).hadamard(deltaC);
+
+  m_inputDelta = m_W.transposeMultiply(delta);
 
   for (size_t j = 0; j < m_W.rows(); j++) {
     for (size_t k = 0; k < m_W.cols(); k++) {
-      m_deltaW.set(k, j, m_deltaW.at(k, j) + inputs[k] * m_delta[j]);
+      m_deltaW.set(k, j, m_deltaW.at(k, j) + inputs[k] * delta[j]);
     }
   }
 
-  m_deltaB += m_delta;
+  m_deltaB += delta;
 }
 
 void OutputLayer::updateParams(size_t epoch) {

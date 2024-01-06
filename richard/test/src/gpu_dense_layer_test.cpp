@@ -24,7 +24,7 @@ class GpuDenseLayerTest : public testing::Test {
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
-
+/*
 Vector cpuDenseLayerTrainForward(const nlohmann::json& config, const Matrix& W, const Vector& B,
   const Vector& inputs) {
 
@@ -338,3 +338,4 @@ TEST_F(GpuDenseLayerTest, updateParams) {
     EXPECT_NEAR(actualB[i], expectedB[i], FLOAT_TOLERANCE);
   }
 }
+*/

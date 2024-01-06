@@ -44,15 +44,15 @@ void ConvolutionalLayer::initialize(const nlohmann::json& obj, const Size3& inpu
   auto sz = outputSize();
   m_Z = Array3(sz[0], sz[1], sz[2]);
   m_A = Array3(sz[0], sz[1], sz[2]);
-  m_delta = Array3(sz[0], sz[1], sz[2]);
+  m_inputDelta = Array3(m_inputW, m_inputH, m_inputDepth);
 }
 
 const DataArray& ConvolutionalLayer::activations() const {
   return m_A.storage();
 }
 
-const DataArray& ConvolutionalLayer::delta() const {
-  return m_delta.storage();
+const DataArray& ConvolutionalLayer::inputDelta() const {
+  return m_inputDelta.storage();
 }
 
 Size3 ConvolutionalLayer::outputSize() const {
@@ -78,7 +78,7 @@ void ConvolutionalLayer::forwardPass(const Array3& inputs, Array3& Z) const {
     const Kernel& K = m_filters[slice].K;
     netfloat_t b = m_filters[slice].b;
 
-    K.convolve(inputs, *featureMap);
+    computeCrossCorrelation(inputs, K, *featureMap);
 
     (*featureMap) += b;
   }
@@ -115,52 +115,53 @@ DataArray ConvolutionalLayer::evalForward(const DataArray& inputs) const {
   return Z.storage();
 }
 
-void ConvolutionalLayer::updateDelta(const DataArray& layerInputs, const Layer& nextLayer) {
-  ASSERT_MSG(nextLayer.type() == LayerType::MAX_POOLING,
-    "Expect max pooling after convolutional layer");
-
+void ConvolutionalLayer::updateDeltas(const DataArray& layerInputs, const DataArray& outputDelta) {
   size_t fmW = outputSize()[0];
   size_t fmH = outputSize()[1];
   size_t depth = m_filters.size();
 
-  ConstArray3Ptr pNextDelta = Array3::createShallow(nextLayer.delta(), fmW, fmH, depth);
-  const Array3& nextDelta = *pNextDelta;
+  ConstArray3Ptr pDeltaA = Array3::createShallow(outputDelta, fmW, fmH, depth);
+  const Array3& deltaA = *pDeltaA;
 
-  ConstArray3Ptr pInputs = Array3::createShallow(layerInputs, m_inputW, m_inputH, m_inputDepth);
-  const Array3& inputs = *pInputs;
+  ConstArray3Ptr pInputs3 = Array3::createShallow(layerInputs, m_inputW, m_inputH, m_inputDepth);
+  const Array3& inputs3 = *pInputs3;
+
+  Array3 delta3 = deltaA.hadamard(m_Z.computeTransform(reluPrime));
+  m_inputDelta.zero();
+
+  Array2 dInputDelta(m_inputDelta.W(), m_inputDelta.H());
+  DBG_ASSERT(m_filters.size() > 0);
+  Array2 dDeltaK(m_filters[0].K.W(), m_filters[0].K.H());
 
   for (size_t slice = 0; slice < depth; ++slice) {
-    Kernel& dK = m_paramDeltas[slice].K;
+    const Kernel& K = m_filters[slice].K;
+    Kernel& deltaK3 = m_paramDeltas[slice].K;
     netfloat_t& db = m_paramDeltas[slice].b;
 
-    for (size_t ymin = 0; ymin < fmH; ++ymin) {
-      for (size_t xmin = 0; xmin < fmW; ++xmin) {
-        netfloat_t delta = reluPrime(m_Z.at(xmin, ymin, slice)) * nextDelta.at(xmin, ymin, slice);
-        m_delta.set(xmin, ymin, slice, delta);
-      }
-    }
+    ConstArray2Ptr pDelta = delta3.slice(slice);
+    const Array2& delta = *pDelta;
 
-    for (size_t z = 0; z < dK.D(); ++z) {
-      for (size_t j = 0; j < dK.H(); ++j) {
-        for (size_t i = 0; i < dK.W(); ++i) {
+    for (size_t z = 0; z < K.D(); ++z) {
+      ConstArray2Ptr pW = K.slice(z);
+      const Array2& W = *pW;
 
-          netfloat_t sum = 0.0;
+      Array2Ptr pInputDelta = m_inputDelta.slice(z);
+      Array2& inputDelta = *pInputDelta;
 
-          for (size_t ymin = 0; ymin < fmH; ++ymin) {
-            for (size_t xmin = 0; xmin < fmW; ++xmin) {
-              size_t inputX = xmin + i;
-              size_t inputY = ymin + j;
+      computeFullConvolution(W, delta, dInputDelta);
 
-              netfloat_t delta = m_delta.at(xmin, ymin, slice);
+      inputDelta += dInputDelta;
 
-              sum += inputs.at(inputX, inputY, z) * delta;
-              db += delta;
-            }
-          }
+      ConstArray2Ptr pInputs = inputs3.slice(z);
+      const Array2& inputs = *pInputs;
 
-          dK.set(i, j, z, dK.at(i, j, z) + sum);
-        }
-      }
+      Array2Ptr pDeltaK = deltaK3.slice(z);
+      Array2& deltaK = *pDeltaK;
+
+      computeCrossCorrelation(inputs, delta, dDeltaK);
+      deltaK += dDeltaK;
+
+      db += delta.sum();
     }
   }
 }
@@ -184,12 +185,6 @@ void ConvolutionalLayer::writeToStream(std::ostream& stream) const {
     stream.write(reinterpret_cast<const char*>(filter.K.data()),
       filter.K.size() * sizeof(netfloat_t));
   }
-}
-
-const Matrix& ConvolutionalLayer::W() const {
-  EXCEPTION("Use ConvolutionalLayer::filters() instead of ConvolutionalLayer::W()");
-  static Matrix m(1, 1);
-  return m;
 }
 
 size_t ConvolutionalLayer::depth() const {

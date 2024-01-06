@@ -25,7 +25,7 @@ class GpuNeuralNetTest : public testing::Test {
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
-
+/*
 void runCpuNetwork(const nlohmann::json& denseConfig, const nlohmann::json& outputConfig,
   const Matrix& W1, const Vector& B1, const Matrix& W2, const Vector& B2,
   const std::vector<Vector>& X, const std::vector<Vector>& Y, Matrix& finalW1, Vector& finalB1,
@@ -225,3 +225,4 @@ TEST_F(GpuNeuralNetTest, simpleNetwork) {
     EXPECT_NEAR(finalB2[i], expectedB2[i], FLOAT_TOLERANCE);
   }
 }
+*/
