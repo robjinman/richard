@@ -211,9 +211,9 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
           updateParams(epoch);
         }
 
+        ++samplesProcessed;
         m_logger.info(STR("\r  > " << samplesProcessed << "/" << m_params.batchSize), false);
 
-        ++samplesProcessed;
         if (samplesProcessed >= m_params.batchSize) {
           break;
         }

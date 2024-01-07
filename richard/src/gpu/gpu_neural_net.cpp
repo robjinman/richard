@@ -241,6 +241,9 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
   ASSERT_MSG(trainingData.fetchSize() % m_params.miniBatchSize == 0,
     "Dataset fetch size must be multiple of mini-batch size");
 
+  ASSERT_MSG(m_params.batchSize % m_params.miniBatchSize == 0,
+    "Batch size must be multiple of mini-batch size");
+
   allocateGpuResources();
 
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(m_statusBuffer.data);
@@ -285,6 +288,10 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
 
         samplesProcessed += miniBatchSize;
         m_logger.info(STR("\r  > " << samplesProcessed << "/" << m_params.batchSize), false);
+
+        if (samplesProcessed >= m_params.batchSize) {
+          break;
+        }
       }
 
       samples.clear();

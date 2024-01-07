@@ -205,21 +205,31 @@ TEST_F(GpuNeuralNetTest, simpleNetwork) {
   runCpuNetwork(layer1Config, layer2Config, W1, B1, W2, B2, X, Y, expectedW1, expectedB1,
     expectedW2, expectedB2);
 
+  EXPECT_EQ(expectedW1.cols(), finalW1.cols());
+  EXPECT_EQ(expectedW1.rows(), finalW1.rows());
+
   for (size_t j = 0; j < expectedW1.rows(); ++j) {
     for (size_t i = 0; i < expectedW1.cols(); ++i) {
       EXPECT_NEAR(finalW1.at(i, j), expectedW1.at(i, j), FLOAT_TOLERANCE);
     }
   }
 
+  EXPECT_EQ(expectedB1.size(), finalB1.size());
+
   for (size_t i = 0; i < expectedB1.size(); ++i) {
     EXPECT_NEAR(finalB1[i], expectedB1[i], FLOAT_TOLERANCE);
   }
+
+  EXPECT_EQ(expectedW2.cols(), finalW2.cols());
+  EXPECT_EQ(expectedW2.rows(), finalW2.rows());
 
   for (size_t j = 0; j < expectedW2.rows(); ++j) {
     for (size_t i = 0; i < expectedW2.cols(); ++i) {
       EXPECT_NEAR(finalW2.at(i, j), expectedW2.at(i, j), FLOAT_TOLERANCE);
     }
   }
+
+  EXPECT_EQ(expectedB2.size(), finalB2.size());
 
   for (size_t i = 0; i < expectedB2.size(); ++i) {
     EXPECT_NEAR(finalB2[i], expectedB2[i], FLOAT_TOLERANCE);

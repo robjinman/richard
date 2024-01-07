@@ -317,11 +317,16 @@ TEST_F(GpuDenseLayerTest, updateParams) {
   const Matrix& actualW = layer.test_W();
   const Vector& actualB = layer.test_B();
 
+  EXPECT_EQ(expectedW.cols(), actualW.cols());
+  EXPECT_EQ(expectedW.rows(), actualW.rows());
+
   for (size_t j = 0; j < expectedW.rows(); ++j) {
     for (size_t i = 0; i < expectedW.cols(); ++i) {
       EXPECT_NEAR(actualW.at(i, j), expectedW.at(i, j), FLOAT_TOLERANCE);
     }
   }
+
+  EXPECT_EQ(expectedB.size(), actualB.size());
 
   for (size_t i = 0; i < expectedB.size(); ++i) {
     EXPECT_NEAR(actualB[i], expectedB[i], FLOAT_TOLERANCE);
