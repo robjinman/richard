@@ -860,7 +860,6 @@ TEST_F(MathTest, computeCrossCorrelation) {
 
   Array2 featureMap(2, 3);
 
-  //kernel.convolve(image, featureMap);
   computeCrossCorrelation(image, kernel, featureMap);
 
   ASSERT_EQ(featureMap, Array2({
@@ -868,4 +867,124 @@ TEST_F(MathTest, computeCrossCorrelation) {
     { 2+25+21+16+6+0+6+7, 5+30+24+4+0+0+14+4 },
     { 7+40+12+12+18+0+12+2, 8+10+18+14+42+0+4+3 }
   }));
+}
+
+TEST_F(MathTest, convolutionIsCrossCorrelationWithReversedKernel) {
+  Array3 image({{
+    { 6, 9, 1 },
+    { 2, 5, 6 },
+    { 7, 8, 2 },
+    { 4, 6, 7 }
+  }, {
+    { 5, 9, 1 },
+    { 1, 0, 2 },
+    { 3, 7, 4 },
+    { 6, 2, 3 },
+  }});
+
+  Kernel kernel1({{
+    { 1, 5 },
+    { 3, 2 }
+  }, {
+    { 6, 0 },
+    { 2, 1 }
+  }});
+
+  size_t kW = kernel1.W();
+  size_t kH = kernel1.H();
+  size_t kD = kernel1.D();
+
+  Kernel kernel2(kW, kH, kD);
+  for (size_t k = 0; k < kD; ++k) {
+    for (size_t j = 0; j < kH; ++j) {
+      for (size_t i = 0; i < kW; ++i) {
+        kernel2.set(i, j, k, kernel1.at(kW - i - 1, kH - j - 1, k));
+      }
+    }
+  }
+
+  Array2 convResult(2, 3);
+  Array2 xCorrResult(2, 3);
+
+  computeCrossCorrelation(image, kernel1, xCorrResult);
+  computeConvolution(image, kernel2, convResult);
+
+  ASSERT_EQ(convResult, xCorrResult);
+}
+
+TEST_F(MathTest, computeFullCrossCorrelation) {
+  Array3 image({{
+    { 6, 9, 1 },
+    { 2, 5, 6 },
+    { 7, 8, 2 },
+    { 4, 6, 7 }
+  }, {
+    { 5, 9, 1 },
+    { 1, 0, 2 },
+    { 3, 7, 4 },
+    { 6, 2, 3 },
+  }});
+
+  Kernel kernel({{
+    { 1, 5 },
+    { 3, 2 }
+  }, {
+    { 6, 0 },
+    { 2, 1 }
+  }});
+
+  Array2 featureMap(4, 5);
+
+  computeFullCrossCorrelation(image, kernel, featureMap);
+
+  ASSERT_EQ(featureMap, Array2({
+    { 12+5, 18+18+10+9, 27+2+18+1, 3+2 },
+    { 30+4+0+1, 6+45+6+10+30+0+2+0, 9+5+15+12+54+0+0+2, 1+18+6+4 },
+    { 10+14+0+3, 2+25+21+16+6+0+6+7, 5+30+24+4+0+0+14+4, 6+6+12+8 },
+    { 35+8+0+6, 7+40+12+12+18+0+12+2, 8+10+18+14+42+0+4+3, 2+21+24+6 },
+    { 20+0, 4+30+36+0, 6+35+12+0, 7+18 }
+  }));
+}
+
+TEST_F(MathTest, fullConvolutionIsFullCrossCorrelationWithReversedKernel) {
+  Array3 image({{
+    { 6, 9, 1 },
+    { 2, 5, 6 },
+    { 7, 8, 2 },
+    { 4, 6, 7 }
+  }, {
+    { 5, 9, 1 },
+    { 1, 0, 2 },
+    { 3, 7, 4 },
+    { 6, 2, 3 },
+  }});
+
+  Kernel kernel1({{
+    { 1, 5 },
+    { 3, 2 }
+  }, {
+    { 6, 0 },
+    { 2, 1 }
+  }});
+
+  size_t kW = kernel1.W();
+  size_t kH = kernel1.H();
+  size_t kD = kernel1.D();
+
+  Kernel kernel2(kW, kH, kD);
+  for (size_t k = 0; k < kD; ++k) {
+    for (size_t j = 0; j < kH; ++j) {
+      for (size_t i = 0; i < kW; ++i) {
+        kernel2.set(i, j, k, kernel1.at(kW - i - 1, kH - j - 1, k));
+      }
+    }
+  }
+
+  Array2 convResult(4, 5);
+  Array2 xCorrResult(4, 5);
+
+  computeFullCrossCorrelation(image, kernel1, xCorrResult);
+  computeFullConvolution(image, kernel2, convResult);
+
+  ASSERT_EQ(convResult, xCorrResult);
 }

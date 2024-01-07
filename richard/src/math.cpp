@@ -1096,8 +1096,8 @@ void computeFullCrossCorrelation(const Array3& image, const Kernel& kernel, Arra
 
   DBG_ASSERT(image.D() == kD);
 
-  const size_t imW = image.W();
-  const size_t imH = image.H();
+  const int imW = image.W();
+  const int imH = image.H();
 
   const size_t fmW = imW + kW - 1;
   const size_t fmH = imH + kH - 1;
@@ -1105,8 +1105,8 @@ void computeFullCrossCorrelation(const Array3& image, const Kernel& kernel, Arra
   DBG_ASSERT(result.W() == fmW);
   DBG_ASSERT(result.H() == fmH);
 
-  const int xMin = kW - 1;
-  const int yMin = kH - 1;
+  const int xMin = -kW + 1;
+  const int yMin = -kH + 1;
 
   for (size_t fmY = 0; fmY < fmH; ++fmY) {
     for (size_t fmX = 0; fmX < fmW; ++fmX) {

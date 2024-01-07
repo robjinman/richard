@@ -157,15 +157,17 @@ netfloat_t CpuNeuralNetImpl::feedForward(const Array3& x, const Vector& y) {
 }
 
 void CpuNeuralNetImpl::backPropagate(const Array3& x, const Vector& y) {
-  for (int l = static_cast<int>(m_layers.size()) - 1; l >= 0; --l) {
-    if (l == static_cast<int>(m_layers.size()) - 1) {
-      m_layers[l]->updateDeltas(m_layers[l - 1]->activations(), y.storage());
+  int numLayers = static_cast<int>(m_layers.size());
+
+  for (int i = numLayers - 1; i >= 0; --i) {
+    if (i == numLayers - 1) {
+      m_layers[i]->updateDeltas(m_layers[i - 1]->activations(), y.storage());
     }
-    else if (l == 0) {
-      m_layers[l]->updateDeltas(x.storage(), m_layers[l + 1]->inputDelta());
+    else if (i == 0) {
+      m_layers[i]->updateDeltas(x.storage(), m_layers[i + 1]->inputDelta());
     }
     else {
-      m_layers[l]->updateDeltas(m_layers[l - 1]->activations(), m_layers[l + 1]->inputDelta());
+      m_layers[i]->updateDeltas(m_layers[i - 1]->activations(), m_layers[i + 1]->inputDelta());
     }
   }
 }
