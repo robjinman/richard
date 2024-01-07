@@ -22,6 +22,7 @@ class MaxPoolingLayer : public Layer {
 
     // Exposed for testing
     //
+    void test_setMask(const Array3& mask);
     const Array3& test_mask() const;
 
   private:

@@ -41,7 +41,6 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth1) {
 
   Array3 expectedZ(2, 2, 1);
   computeCrossCorrelation(inputs, filter.K, *expectedZ.slice(0));
-  //filter.K.convolve(inputs, *expectedZ.slice(0));
   expectedZ += filter.b;
 
   ASSERT_EQ(Z, expectedZ);
@@ -83,10 +82,8 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
 
   Array3 expectedZ(2, 2, 2);
   computeCrossCorrelation(inputs, filter0.K, *expectedZ.slice(0));
-  //filter0.K.convolve(inputs, *expectedZ.slice(0));
   *expectedZ.slice(0) += filter0.b;
   computeCrossCorrelation(inputs, filter1.K, *expectedZ.slice(1));
-  //filter1.K.convolve(inputs, *expectedZ.slice(1));
   *expectedZ.slice(1) += filter1.b;
 
   layer.test_forwardPass(inputs, Z);
@@ -146,10 +143,8 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
 
   Array3 expectedZ(2, 2, 2);
   computeCrossCorrelation(inputs, filter0.K, *expectedZ.slice(0));
-  //filter0.K.convolve(inputs, *expectedZ.slice(0));
   *expectedZ.slice(0) += filter0.b;
   computeCrossCorrelation(inputs, filter1.K, *expectedZ.slice(1));
-  //filter1.K.convolve(inputs, *expectedZ.slice(1));
   *expectedZ.slice(1) += filter1.b;
 
   layer.test_forwardPass(inputs, Z);
@@ -199,10 +194,8 @@ TEST_F(CpuConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
 
   Array3 expectedZ(2, 2, 2);
   computeCrossCorrelation(inputs, filter0.K, *expectedZ.slice(0));
-  //filter0.K.convolve(inputs, *expectedZ.slice(0));
   *expectedZ.slice(0) += filter0.b;
   computeCrossCorrelation(inputs, filter1.K, *expectedZ.slice(1));
-  //filter1.K.convolve(inputs, *expectedZ.slice(1));
   *expectedZ.slice(1) += filter1.b;
 
   layer.test_forwardPass(inputs, Z);

@@ -114,16 +114,16 @@ TEST_F(CpuDenseLayerTest, updateDelta) {
   Vector X({ 3, 4, 2 });
 
   layer.trainForward(X.storage());
-/*
-  Vector nextDelta({ 2, 3 });
-  Matrix nextW({
-    { 2, 5 },
-    { 4, 1 }
-  });
 
-  layer.updateDelta(X.storage(), nextDelta.storage());
+  Vector dA({ 2, 3 });
 
-  ConstVectorPtr delta = Vector::createShallow(layer.delta());
+  Vector expectedZ({ 3*2+4*1+2*3+5, 3*1+4*4+2*2+7 });
+  Vector expectedDelta = dA.hadamard(expectedZ.computeTransform(activationFnPrime));
+  Vector expectedDeltaInputs = W.transposeMultiply(expectedDelta);
 
-  ASSERT_EQ(*delta, Vector({ 336, 390 }));*/
+  layer.updateDeltas(X.storage(), dA.storage());
+
+  ConstVectorPtr dInputs = Vector::createShallow(layer.inputDelta());
+
+  ASSERT_EQ(*dInputs, expectedDeltaInputs);
 }

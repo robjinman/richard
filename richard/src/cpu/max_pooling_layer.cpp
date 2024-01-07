@@ -139,6 +139,10 @@ void MaxPoolingLayer::updateDeltas(const DataArray&, const DataArray& outputDelt
   }
 }
 
+void MaxPoolingLayer::test_setMask(const Array3& mask) {
+  m_mask = mask;
+}
+
 const Array3& MaxPoolingLayer::test_mask() const {
   return m_mask;
 }
