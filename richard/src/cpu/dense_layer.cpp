@@ -126,6 +126,10 @@ const Vector& DenseLayer::test_deltaB() const {
   return m_deltaB;
 }
 
+const Matrix& DenseLayer::test_W() const {
+  return m_W;
+}
+
 const Vector& DenseLayer::test_B() const {
   return m_B;
 }

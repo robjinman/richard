@@ -24,7 +24,7 @@ class GpuDenseLayerTest : public testing::Test {
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
-/*
+
 Vector cpuDenseLayerTrainForward(const nlohmann::json& config, const Matrix& W, const Vector& B,
   const Vector& inputs) {
 
@@ -113,13 +113,7 @@ TEST_F(GpuDenseLayerTest, trainForward) {
 }
 
 void cpuDenseLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
-  const Vector& inputs, const Matrix& nextW, const Vector& nextDelta, Vector& delta, Matrix& deltaW,
-  Vector& deltaB) {
-
-  testing::NiceMock<MockCpuLayer> nextLayer;
-
-  ON_CALL(nextLayer, delta).WillByDefault(testing::ReturnRef(nextDelta.storage()));
-  ON_CALL(nextLayer, W).WillByDefault(testing::ReturnRef(nextW));
+  const Vector& inputs, const Vector& dA, Matrix& deltaW, Vector& deltaB) {
 
   cpu::DenseLayer layer(config, inputs.size());
 
@@ -127,9 +121,8 @@ void cpuDenseLayerBackprop(const nlohmann::json& config, const Matrix& W, const 
   layer.test_setBiases(B.storage());
 
   layer.trainForward(inputs.storage());
-  layer.updateDelta(inputs.storage(), nextLayer);
+  layer.updateDeltas(inputs.storage(), dA.storage());
 
-  delta = layer.delta();
   deltaW = layer.test_deltaW();
   deltaB = layer.test_deltaB();
 }
@@ -176,6 +169,8 @@ TEST_F(GpuDenseLayerTest, backprop) {
     { 2, 5 },
     { 4, 3 }
   });
+
+  Vector dA = nextW.transposeMultiply(nextDelta);
 
   GpuBufferFlags bufferFlags = GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess;
 
@@ -224,16 +219,10 @@ TEST_F(GpuDenseLayerTest, backprop) {
   gpu->retrieveBuffer(layer.test_deltaWBuffer(), deltaW.data());
   gpu->retrieveBuffer(layer.test_deltaBBuffer(), deltaB.data());
 
-  Vector expectedDelta;
   Matrix expectedDeltaW;
   Vector expectedDeltaB;
 
-  cpuDenseLayerBackprop(config, W, B, inputs, nextW, nextDelta, expectedDelta,
-    expectedDeltaW, expectedDeltaB);
-
-  for (size_t i = 0; i < delta.size(); ++i) {
-    EXPECT_NEAR(delta[i], expectedDelta[i], FLOAT_TOLERANCE);
-  }
+  cpuDenseLayerBackprop(config, W, B, inputs, dA, expectedDeltaW, expectedDeltaB);
 
   for (size_t j = 0; j < deltaW.rows(); ++j) {
     for (size_t i = 0; i < deltaW.cols(); ++i) {
@@ -338,4 +327,3 @@ TEST_F(GpuDenseLayerTest, updateParams) {
     EXPECT_NEAR(actualB[i], expectedB[i], FLOAT_TOLERANCE);
   }
 }
-*/

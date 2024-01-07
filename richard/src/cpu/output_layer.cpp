@@ -117,6 +117,10 @@ const Vector& OutputLayer::test_deltaB() const {
   return m_deltaB;
 }
 
+const Matrix& OutputLayer::test_W() const {
+  return m_W;
+}
+
 const Vector& OutputLayer::test_B() const {
   return m_B;
 }

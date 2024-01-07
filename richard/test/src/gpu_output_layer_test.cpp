@@ -105,7 +105,7 @@ TEST_F(GpuOutputLayerTest, trainForward) {
 }
 
 void cpuOutputLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
-  const Vector& inputs, const Vector& Y, Vector& delta, Matrix& deltaW, Vector& deltaB) {
+  const Vector& inputs, const Vector& Y, Matrix& deltaW, Vector& deltaB) {
 
   cpu::OutputLayer layer(config, inputs.size());
 
@@ -115,7 +115,6 @@ void cpuOutputLayerBackprop(const nlohmann::json& config, const Matrix& W, const
   layer.trainForward(inputs.storage());
   layer.updateDeltas(inputs.storage(), Y.storage());
 
-  //delta = layer.delta();
   deltaW = layer.test_deltaW();
   deltaB = layer.test_deltaB();
 }
@@ -182,23 +181,16 @@ TEST_F(GpuOutputLayerTest, backprop) {
 
   gpu->flushQueue();
 
-  Vector delta(outputSize);
   Matrix deltaW(W.cols(), W.rows());
   Vector deltaB(B.size());
 
-  gpu->retrieveBuffer(layer.deltaBuffer(), delta.data());
   gpu->retrieveBuffer(layer.test_deltaWBuffer(), deltaW.data());
   gpu->retrieveBuffer(layer.test_deltaBBuffer(), deltaB.data());
 
-  Vector expectedDelta;
   Matrix expectedDeltaW;
   Vector expectedDeltaB;
-/*
-  cpuOutputLayerBackprop(config, W, B, inputs, Y, expectedDelta, expectedDeltaW, expectedDeltaB);
 
-  for (size_t i = 0; i < delta.size(); ++i) {
-    EXPECT_NEAR(delta[i], expectedDelta[i], FLOAT_TOLERANCE);
-  }
+  cpuOutputLayerBackprop(config, W, B, inputs, Y, expectedDeltaW, expectedDeltaB);
 
   for (size_t j = 0; j < deltaW.rows(); ++j) {
     for (size_t i = 0; i < deltaW.cols(); ++i) {
@@ -208,6 +200,5 @@ TEST_F(GpuOutputLayerTest, backprop) {
 
   for (size_t i = 0; i < deltaB.size(); ++i) {
     EXPECT_NEAR(deltaB[i], expectedDeltaB[i], FLOAT_TOLERANCE);
-  }*/
+  }
 }
-
