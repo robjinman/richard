@@ -102,7 +102,7 @@ void OutputLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle 
     m_bufferDeltaW.handle
   };
 
-  const size_t maxWorkgroupSize = 64;
+  const size_t maxWorkgroupSize = 64; // TODO
 
   Size3 workgroupSize{ static_cast<uint32_t>(std::min(m_size, maxWorkgroupSize)), 1, 1 };
   Size3 numWorkgroups{ m_size / workgroupSize[0], 1, 1 };
@@ -184,6 +184,10 @@ GpuBufferHandle OutputLayer::weightsBuffer() const {
 
 GpuBufferHandle OutputLayer::deltaBuffer() const {
   return m_bufferD.handle;
+}
+
+GpuBufferHandle OutputLayer::inputDeltaBuffer() const {
+  EXCEPTION("Output layer does not expose input delta buffer");
 }
 
 void OutputLayer::retrieveBuffers() {

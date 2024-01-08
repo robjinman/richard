@@ -42,6 +42,7 @@ void main() {
   const uint index = gl_GlobalInvocationID.x;
   const float learnRate = LEARN_RATE * pow(LEARN_RATE_DECAY, Status.epoch);
 
+  // TODO: Use a second workgroup dimension and remove loop
   for (uint i = 0; i < LAYER_NUM_INPUTS; ++i) {
     uint wIdx = index * LAYER_NUM_INPUTS + i;
     float w = readW(wIdx);

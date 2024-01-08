@@ -1,3 +1,7 @@
+#define FLOAT_MIN 1.17549e-38
+#define FLOAT_MAX 3.40282e+38
+#define FLOAT_LOWEST -3.40282e+38 
+
 #define FN_READ(BUF) \
   float read##BUF(uint pos) { \
     return BUF[pos / 4][pos % 4]; \
@@ -34,4 +38,8 @@ float relu(float x) {
 
 float reluPrime(float x) {
   return x < 0.0 ? 0.0 : 1.0;
+}
+
+uint arrayIndex3d(uint W, uint H, uint x, uint y, uint z) {
+  return z * W * H + y * W + x;
 }

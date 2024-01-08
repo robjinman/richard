@@ -19,6 +19,8 @@ class MaxPoolingLayer : public Layer {
     GpuBufferHandle outputBuffer() const override;
     GpuBufferHandle weightsBuffer() const override;
     GpuBufferHandle deltaBuffer() const override;
+    GpuBufferHandle inputDeltaBuffer() const override;
+    GpuBufferHandle maskBuffer() const;
     void retrieveBuffers() override;
     Size3 outputSize() const override;
     void evalForward() override;
@@ -28,7 +30,18 @@ class MaxPoolingLayer : public Layer {
     void writeToStream(std::ostream& stream) const override;
 
   private:
-    // TODO
+    Gpu& m_gpu;
+    size_t m_regionW;
+    size_t m_regionH;
+    size_t m_inputW;
+    size_t m_inputH;
+    size_t m_inputDepth;
+    GpuBuffer m_bufferZ;
+    GpuBuffer m_bufferMask;
+    GpuBuffer m_bufferInputDelta;
+    ShaderHandle m_evalForwardShader;
+    ShaderHandle m_trainForwardShader;
+    ShaderHandle m_backpropShader;
 };
 
 }

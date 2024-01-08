@@ -14,11 +14,11 @@ layout(std140, binding = 1) writeonly buffer DSsbo {
 
 FN_WRITE(D)
 
-layout(std140, binding = 2) readonly buffer NextDSsbo {
-  vec4 NextD[];
+layout(std140, binding = 2) readonly buffer DeltaASsbo {
+  vec4 DeltaA[];
 };
 
-FN_READ(NextD)
+FN_READ(DeltaA)
 
 void main() {
   const uint xIdx = gl_GlobalInvocationID.x;
@@ -33,5 +33,5 @@ void main() {
     yIdx * fmW +
     xIdx;
 
-  writeD(idx, reluPrime(readZ(idx)) * readNextD(idx));
+  writeD(idx, reluPrime(readZ(idx)) * readDeltaA(idx));
 }

@@ -21,6 +21,7 @@ class DenseLayer : public Layer {
     GpuBufferHandle outputBuffer() const override;
     GpuBufferHandle weightsBuffer() const override;
     GpuBufferHandle deltaBuffer() const override;
+    GpuBufferHandle inputDeltaBuffer() const override;
     void retrieveBuffers() override;
     Size3 outputSize() const override;
     void evalForward() override;

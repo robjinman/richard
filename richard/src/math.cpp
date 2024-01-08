@@ -4,6 +4,7 @@
 #include <ostream>
 #include <cstring>
 #include <random>
+#include <algorithm>
 
 namespace richard {
 namespace {
@@ -1090,42 +1091,33 @@ void computeCrossCorrelation(const Array3& image, const Kernel& kernel, Array2& 
 void computeFullCrossCorrelation(const Array3& image, const Kernel& kernel, Array2& result,
   bool flipKernel) {
 
-  const size_t kD = kernel.D();
-  const size_t kH = kernel.H();
-  const size_t kW = kernel.W();
+  const int kD = kernel.D();
+  const int kH = kernel.H();
+  const int kW = kernel.W();
 
-  DBG_ASSERT(image.D() == kD);
+  DBG_ASSERT(image.D() == static_cast<size_t>(kD));
 
   const int imW = image.W();
   const int imH = image.H();
 
-  const size_t fmW = imW + kW - 1;
-  const size_t fmH = imH + kH - 1;
+  const int fmW = imW + kW - 1;
+  const int fmH = imH + kH - 1;
 
-  DBG_ASSERT(result.W() == fmW);
-  DBG_ASSERT(result.H() == fmH);
+  DBG_ASSERT(result.W() == static_cast<size_t>(fmW));
+  DBG_ASSERT(result.H() == static_cast<size_t>(fmH));
 
   const int xMin = -kW + 1;
   const int yMin = -kH + 1;
 
-  for (size_t fmY = 0; fmY < fmH; ++fmY) {
-    for (size_t fmX = 0; fmX < fmW; ++fmX) {
+  for (int fmY = 0; fmY < fmH; ++fmY) {
+    for (int fmX = 0; fmX < fmW; ++fmX) {
       netfloat_t sum = 0.0;
 
-      for (size_t k = 0; k < kD; ++k) {
-        for (size_t j = 0; j < kH; ++j) {
-          for (size_t i = 0; i < kW; ++i) {
+      for (int k = 0; k < kD; ++k) {
+        for (int j = std::max(0, kH - fmY - 1); j < std::min(kH, fmH - fmY); ++j) {
+          for (int i = std::max(0, kW - fmX - 1); i < std::min(kW, fmW - fmX); ++i) {
             int imX = xMin + fmX + i;
             int imY = yMin + fmY + j;
-
-            // TODO: Do this more efficiently
-            if (imX < 0 || imX >= imW) {
-              continue;
-            }
-
-            if (imY < 0 || imY >= imH) {
-              continue;
-            }
 
             netfloat_t kPx = flipKernel ? kernel.at(kW - i - 1, kH - j - 1, k) : kernel.at(i, j, k);
             sum += image.at(imX, imY, k) * kPx;

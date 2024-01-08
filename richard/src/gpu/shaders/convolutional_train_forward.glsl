@@ -64,6 +64,7 @@ void main() {
         const uint z = k;
 
         const float pixel = readImage(imageOffset + z * imW * imH + y * imW + x);
+
         const float kernelPixel = readK(
           KERNEL_W * KERNEL_H * KERNEL_D * zIdx +
           KERNEL_W * KERNEL_H * k +

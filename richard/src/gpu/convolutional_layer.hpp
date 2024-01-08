@@ -22,6 +22,7 @@ class ConvolutionalLayer : public Layer {
     GpuBufferHandle outputBuffer() const override;
     GpuBufferHandle weightsBuffer() const override;
     GpuBufferHandle deltaBuffer() const override;
+    GpuBufferHandle inputDeltaBuffer() const override;
     void retrieveBuffers() override;
     Size3 outputSize() const override;
     void evalForward() override;
@@ -35,8 +36,9 @@ class ConvolutionalLayer : public Layer {
     void createEvalForwardShader(GpuBufferHandle inputBuffer);
     void createTrainForwardShader(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer);
     void createBackpropDeltaShader(const Layer* nextLayer);
+    void createBackpropInputDeltaShader();
     void createBackpropParamDeltasShader(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer);
-    void createUpdateParamsShader();
+    void createUpdateParamsShader(GpuBufferHandle statusBuffer);
 
     Gpu& m_gpu;
     size_t m_inputW;
@@ -55,11 +57,13 @@ class ConvolutionalLayer : public Layer {
     GpuBuffer m_bufferZ;
     GpuBuffer m_bufferA;
     GpuBuffer m_bufferD;
+    GpuBuffer m_bufferInputDelta;
     GpuBuffer m_bufferDeltaK;
     GpuBuffer m_bufferDeltaB;
     ShaderHandle m_evalForwardShader;
     ShaderHandle m_trainForwardShader;
     ShaderHandle m_backpropDeltaShader;
+    ShaderHandle m_backpropInputDeltaShader;
     ShaderHandle m_backpropParamDeltasShader;
     ShaderHandle m_updateParamsShader;
 };

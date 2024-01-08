@@ -16,6 +16,7 @@ class MockGpuLayer : public gpu::Layer {
     MOCK_METHOD(GpuBufferHandle, outputBuffer, (), (const, override));
     MOCK_METHOD(GpuBufferHandle, weightsBuffer, (), (const, override));
     MOCK_METHOD(GpuBufferHandle, deltaBuffer, (), (const, override));
+    MOCK_METHOD(GpuBufferHandle, inputDeltaBuffer, (), (const, override));
     MOCK_METHOD(void, retrieveBuffers, (), (override));
     MOCK_METHOD(Size3, outputSize, (), (const, override));
     MOCK_METHOD(void, evalForward, (), (override));

@@ -56,7 +56,8 @@ void ConvolutionalLayer::allocateGpuBuffers() {
   m_bufferB = m_gpu.allocateBuffer(m_depth * sizeof(netfloat_t), paramBuffersFlags);
   m_bufferZ = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferA = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
-  m_bufferD = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
+  m_bufferInputDelta = m_gpu.allocateBuffer(featureMapSizeBytes,
+    GpuBufferFlags::large | GpuBufferFlags::hostReadAccess);
   m_bufferDeltaK = m_gpu.allocateBuffer(m_depth * kernelSize * sizeof(netfloat_t),
     GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
   m_bufferDeltaB = m_gpu.allocateBuffer(m_depth * sizeof(netfloat_t),
@@ -81,7 +82,7 @@ void ConvolutionalLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBuffer
   createTrainForwardShader(statusBuffer, inputBuffer);
   createBackpropDeltaShader(nextLayer);
   createBackpropParamDeltasShader(statusBuffer, inputBuffer);
-  createUpdateParamsShader();
+  createUpdateParamsShader(statusBuffer);
 }
 
 void ConvolutionalLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
@@ -146,7 +147,7 @@ void ConvolutionalLayer::createBackpropDeltaShader(const Layer* nextLayer) {
   GpuBufferBindings buffers{
     m_bufferZ.handle,
     m_bufferD.handle,
-    nextLayer->deltaBuffer()
+    nextLayer->inputDeltaBuffer()
   };
 
   Size3 workgroupSize;
@@ -161,6 +162,32 @@ void ConvolutionalLayer::createBackpropDeltaShader(const Layer* nextLayer) {
     includesDir);
 }
 
+void ConvolutionalLayer::createBackpropInputDeltaShader() {
+  GpuBufferBindings buffers{
+    m_bufferK.handle,
+    m_bufferD.handle,
+    m_bufferInputDelta.handle
+  };
+
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[0]) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[1]) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[2]) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_depth) }
+  };
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ m_inputW, m_inputH, m_inputDepth }, workgroupSize, numWorkgroups);
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/convolutional_backprop_input_delta.glsl");
+
+  m_backpropDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
+}
+
 void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusBuffer,
   GpuBufferHandle inputBuffer) {
 
@@ -173,17 +200,16 @@ void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusB
   };
 
   SpecializationConstants constants{
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[0]) },
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[1]) },
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_depth) },
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(outputSize()[0]) },
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(outputSize()[1]) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputW) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputH) },
     { SpecializationConstant::Type::bool_type, m_isFirstLayer }
   };
 
   Size3 workgroupSize;
   Size3 numWorkgroups;
-  optimumWorkgroups({ m_depth, m_kernelSize[0] * m_kernelSize[1] * m_inputDepth, 1 },
+  optimumWorkgroups({ m_kernelSize[0] * m_kernelSize[1], m_inputDepth, m_depth },
     workgroupSize, numWorkgroups);
 
   // TODO: Remove hard-coded paths
@@ -194,8 +220,33 @@ void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusB
     numWorkgroups, includesDir);
 }
 
-void ConvolutionalLayer::createUpdateParamsShader() {
+void ConvolutionalLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
+  GpuBufferBindings buffers{
+    statusBuffer,
+    m_bufferK.handle,
+    m_bufferB.handle,
+    m_bufferDeltaK.handle,
+    m_bufferDeltaB.handle
+  };
 
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[0]) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[1]) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputDepth) },
+    { SpecializationConstant::Type::float_type, m_learnRate },
+    { SpecializationConstant::Type::float_type, m_learnRateDecay }
+  };
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ m_kernelSize[0], m_kernelSize[1], m_depth }, workgroupSize, numWorkgroups);
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/convolutional_update_params.glsl");
+
+  m_backpropDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
 }
 
 size_t ConvolutionalLayer::size() const {
@@ -237,6 +288,10 @@ GpuBufferHandle ConvolutionalLayer::weightsBuffer() const {
 
 GpuBufferHandle ConvolutionalLayer::deltaBuffer() const {
   return m_bufferD.handle;
+}
+
+GpuBufferHandle ConvolutionalLayer::inputDeltaBuffer() const {
+  return m_bufferInputDelta.handle;
 }
 
 void ConvolutionalLayer::retrieveBuffers() {

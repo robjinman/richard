@@ -290,6 +290,10 @@ TEST_F(GpuTest, convolution) {
         BUF[pos / 4][pos % 4] = val; \
       }
 
+    uint arrayIndex3d(uint W, uint H, uint x, uint y, uint z) {
+      return z * W * H + y * W + x;
+    }
+
     layout(constant_id = 0) const uint local_size_x = 1;
     layout(constant_id = 1) const uint local_size_y = 1;
     layout(constant_id = 2) const uint local_size_z = 1;
@@ -336,8 +340,10 @@ TEST_F(GpuTest, convolution) {
             const uint y = yIdx + j;
             const uint z = k;
 
-            float pixel = readImage(z * imW * imH + y * imW + x);
-            sum += pixel * readKernel(k * KERNEL_W * KERNEL_H + j * KERNEL_W + i);
+            const float pixel = readImage(arrayIndex3d(imW, imH, x, y, z));
+            const uint kernelIdx = arrayIndex3d(KERNEL_W, KERNEL_H, KERNEL_W - i - 1,
+              KERNEL_H - j - 1, k);
+            sum += pixel * readKernel(kernelIdx);
           }
         }
       }
@@ -367,7 +373,149 @@ TEST_F(GpuTest, convolution) {
   gpu->retrieveBuffer(bufferR.handle, R.data());
 
   Array2 expectedR(4, 3);
-  computeCrossCorrelation(X, K, expectedR);
+  computeConvolution(X, K, expectedR);
+
+  for (size_t j = 0; j < expectedR.rows(); ++j) {
+    for (size_t i = 0; i < expectedR.cols(); ++i) {
+      EXPECT_NEAR(R.at(i, j), expectedR.at(i, j), FLOAT_TOLERANCE);
+    }
+  }
+}
+
+TEST_F(GpuTest, fullConvolution) {
+  testing::NiceMock<MockLogger> logger;
+  GpuPtr gpu = createGpu(logger);
+
+  Array3 X({{
+    { 4, 2, 5, 7, 4 },
+    { 7, 3, 8, 2, 8 },
+    { 9, 1, 6, 1, 2 },
+    { 6, 3, 4, 8, 9 }
+  }, {
+    { 5, 4, 8, 1, 3 },
+    { 3, 1, 7, 8, 9 },
+    { 8, 2, 5, 2, 4 },
+    { 3, 9, 8, 2, 5 }
+  }});
+
+  Kernel K({{
+    { 5, 4 },
+    { 1, 3 }
+  }, {
+    { 3, 7 },
+    { 2, 4 }
+  }});
+
+  Array2 R(6, 5);
+
+  GpuBuffer bufferX = gpu->allocateBuffer(X.size() * sizeof(netfloat_t), GpuBufferFlags::large);
+  GpuBuffer bufferK = gpu->allocateBuffer(K.size() * sizeof(netfloat_t), GpuBufferFlags::large);
+  GpuBuffer bufferR = gpu->allocateBuffer(R.size() * sizeof(netfloat_t), GpuBufferFlags::large);
+
+  gpu->submitBufferData(bufferX.handle, X.data());
+  gpu->submitBufferData(bufferK.handle, K.data());
+
+  std::string shaderSource = R"(
+    #version 430
+
+    #define FN_READ(BUF) \
+      float read##BUF(uint pos) { \
+        return BUF[pos / 4][pos % 4]; \
+      }
+
+    #define FN_WRITE(BUF) \
+      void write##BUF(uint pos, float val) { \
+        BUF[pos / 4][pos % 4] = val; \
+      }
+
+    uint arrayIndex3d(uint W, uint H, uint x, uint y, uint z) {
+      return z * W * H + y * W + x;
+    }
+
+    layout(constant_id = 0) const uint local_size_x = 1;
+    layout(constant_id = 1) const uint local_size_y = 1;
+    layout(constant_id = 2) const uint local_size_z = 1;
+
+    layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+    layout(constant_id = 3) const uint KERNEL_W = 1;
+    layout(constant_id = 4) const uint KERNEL_H = 1;
+    layout(constant_id = 5) const uint KERNEL_D = 1;
+
+    layout(std140, binding = 0) readonly buffer ImageSsbo {
+      vec4 Image[];
+    };
+
+    FN_READ(Image)
+
+    layout(std140, binding = 1) readonly buffer KernelSsbo {
+      vec4 Kernel[];
+    };
+
+    FN_READ(Kernel)
+
+    layout(std140, binding = 2) writeonly buffer ResultSsbo {
+      vec4 Result[];
+    };
+
+    FN_WRITE(Result)
+
+    void main() {
+      const int xIdx = int(gl_GlobalInvocationID.x);
+      const int yIdx = int(gl_GlobalInvocationID.y);
+
+      const int fmW = int(gl_WorkGroupSize.x * gl_NumWorkGroups.x);
+      const int fmH = int(gl_WorkGroupSize.y * gl_NumWorkGroups.y);
+
+      const int kW = int(KERNEL_W);
+      const int kH = int(KERNEL_H);
+
+      const int imW = fmW - kW + 1;
+      const int imH = fmH - kH + 1;
+
+      const int xMin = -kW + 1;
+      const int yMin = -kH + 1;
+
+      float sum = 0.0;
+      for (int k = 0; k < KERNEL_D; ++k) {
+        for (int j = max(0, kH - yIdx - 1); j < min(kH, fmH - yIdx); ++j) {
+          for (int i = max(0, kW - xIdx - 1); i < min(kW, fmW - xIdx); ++i) {
+            const int x = xMin + xIdx + i;
+            const int y = yMin + yIdx + j;
+
+            const float pixel = readImage(arrayIndex3d(imW, imH, x, y, k));
+            const uint kernelIdx = arrayIndex3d(KERNEL_W, KERNEL_H, kW - i - 1, kH - j - 1, k);
+            sum += pixel * readKernel(kernelIdx);
+          }
+        }
+      }
+
+      writeResult(yIdx * fmW + xIdx, sum);
+    }
+  )";
+
+  Size3 workgroupSize{
+    static_cast<uint32_t>(R.W()),
+    static_cast<uint32_t>(R.H()),
+    1
+  };
+
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(K.W()) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(K.H()) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(K.D()) }
+  };
+
+  ShaderHandle shader = gpu->compileShader(shaderSource,
+    { bufferX.handle, bufferK.handle, bufferR.handle }, constants, workgroupSize, { 1, 1, 1 });
+
+  gpu->queueShader(shader);
+  gpu->flushQueue();
+
+  gpu->retrieveBuffer(bufferR.handle, R.data());
+
+  Array2 expectedR(6, 5);
+  computeFullConvolution(X, K, expectedR);
 
   for (size_t j = 0; j < expectedR.rows(); ++j) {
     for (size_t i = 0; i < expectedR.cols(); ++i) {

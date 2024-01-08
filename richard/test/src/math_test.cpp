@@ -988,3 +988,33 @@ TEST_F(MathTest, fullConvolutionIsFullCrossCorrelationWithReversedKernel) {
 
   ASSERT_EQ(convResult, xCorrResult);
 }
+
+TEST_F(MathTest, fullConvolutionIsCommutative) {
+  Array3 image({{
+    { 6, 9, 1 },
+    { 2, 5, 6 },
+    { 7, 8, 2 },
+    { 4, 6, 7 }
+  }, {
+    { 5, 9, 1 },
+    { 1, 0, 2 },
+    { 3, 7, 4 },
+    { 6, 2, 3 },
+  }});
+
+  Kernel kernel({{
+    { 1, 5 },
+    { 3, 2 }
+  }, {
+    { 6, 0 },
+    { 2, 1 }
+  }});
+
+  Array2 convResult1(4, 5);
+  Array2 convResult2(4, 5);
+
+  computeFullConvolution(image, kernel, convResult1);
+  computeFullConvolution(kernel, image, convResult2);
+
+  ASSERT_EQ(convResult1, convResult2);
+}
