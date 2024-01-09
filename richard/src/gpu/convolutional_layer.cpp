@@ -56,8 +56,7 @@ void ConvolutionalLayer::allocateGpuBuffers() {
   m_bufferB = m_gpu.allocateBuffer(m_depth * sizeof(netfloat_t), paramBuffersFlags);
   m_bufferZ = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferA = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
-  m_bufferInputDelta = m_gpu.allocateBuffer(featureMapSizeBytes,
-    GpuBufferFlags::large | GpuBufferFlags::hostReadAccess);
+  m_bufferInputDelta = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferDeltaK = m_gpu.allocateBuffer(m_depth * kernelSize * sizeof(netfloat_t),
     GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
   m_bufferDeltaB = m_gpu.allocateBuffer(m_depth * sizeof(netfloat_t),
