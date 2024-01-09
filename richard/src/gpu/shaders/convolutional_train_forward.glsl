@@ -53,7 +53,7 @@ void main() {
   const uint imW = fmW + KERNEL_W - 1;
   const uint imH = fmH + KERNEL_H - 1;
 
-  const uint imageOffset = IS_FIRST_LAYER ? Status.sampleIndex * imW * imH : 0;
+  const uint imageOffset = IS_FIRST_LAYER ? Status.sampleIndex * imW * imH * KERNEL_D : 0;
 
   float sum = 0.0;
   for (uint k = 0; k < KERNEL_D; ++k) {

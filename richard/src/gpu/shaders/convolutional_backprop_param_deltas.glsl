@@ -6,7 +6,8 @@ layout(constant_id = 3) const uint DELTA_W = 1;
 layout(constant_id = 4) const uint DELTA_H = 1;
 layout(constant_id = 5) const uint IMAGE_W = 1;
 layout(constant_id = 6) const uint IMAGE_H = 1;
-layout(constant_id = 7) const bool IS_FIRST_LAYER = false;
+layout(constant_id = 7) const uint IMAGE_D = 1;
+layout(constant_id = 8) const bool IS_FIRST_LAYER = false;
 
 layout(std140, binding = 0) readonly buffer StatusSsbo {
   StatusBuffer Status;
@@ -49,7 +50,7 @@ void main() {
   const uint zIdx = gl_GlobalInvocationID.y;
   const uint dIdx = gl_GlobalInvocationID.z;
 
-  const uint imageOffset = IS_FIRST_LAYER ? Status.sampleIndex * IMAGE_W * IMAGE_H : 0;
+  const uint imageOffset = IS_FIRST_LAYER ? Status.sampleIndex * IMAGE_W * IMAGE_H * IMAGE_D : 0;
 
   float weightedSum = 0.0;
   float sum = 0.0;
@@ -61,7 +62,7 @@ void main() {
 
       const uint deltaIdx = arrayIndex3d(DELTA_W, DELTA_H, i, j, dIdx);
 
-      const float pixel = readImage(arrayIndex3d(IMAGE_W, IMAGE_H, x, y, zIdx));
+      const float pixel = readImage(imageOffset + arrayIndex3d(IMAGE_W, IMAGE_H, x, y, zIdx));
       const float deltaValue = readD(deltaIdx);
 
       weightedSum += pixel * deltaValue;
@@ -69,7 +70,7 @@ void main() {
     }
   }
 
-  const uint deltaKOffset = dIdx * deltaKW * deltaKH;
+  const uint deltaKOffset = dIdx * deltaKW * deltaKH * IMAGE_D;
   const uint deltaKIdx = deltaKOffset + arrayIndex3d(deltaKW, deltaKH, xIdx, yIdx, zIdx);
 
   const float dK = readDeltaK(deltaKIdx);

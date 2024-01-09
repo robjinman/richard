@@ -209,6 +209,7 @@ void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusB
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(outputSize()[1]) },
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputW) },
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputH) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputDepth) },
     { SpecializationConstant::Type::bool_type, m_isFirstLayer }
   };
 
