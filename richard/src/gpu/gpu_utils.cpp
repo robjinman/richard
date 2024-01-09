@@ -28,10 +28,10 @@ size_t lowestDivisor(size_t value) {
   return value;
 }
 
-std::ostream& operator<<(std::ostream& os, const Size3& size) {
-  os << size[0] << ", " << size[1] << ", " << size[2];
-  return os;
-}
+//std::ostream& operator<<(std::ostream& os, const Size3& size) {
+//  os << size[0] << ", " << size[1] << ", " << size[2];
+//  return os;
+//}
 
 }
 

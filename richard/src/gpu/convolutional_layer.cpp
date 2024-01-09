@@ -251,7 +251,7 @@ void ConvolutionalLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) 
   const std::string includesDir = "./shaders";
   const std::string source = loadFile("./shaders/convolutional_update_params.glsl");
 
-  m_backpropDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+  m_updateParamsShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
     numWorkgroups, includesDir);
 }
 
