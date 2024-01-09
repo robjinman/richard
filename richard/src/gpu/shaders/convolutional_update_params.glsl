@@ -41,18 +41,19 @@ FN_READ(DeltaB)
 FN_WRITE(DeltaB)
 
 void main() {
-  const uint xIdx = gl_GlobalInvocationID.x;
-  const uint yIdx = gl_GlobalInvocationID.y;
+  const uint xIdx = gl_GlobalInvocationID.x % KERNEL_W;
+  const uint yIdx = gl_GlobalInvocationID.x / KERNEL_W;
+  const uint zIdx = gl_GlobalInvocationID.y;
   const uint dIdx = gl_GlobalInvocationID.z;
 
   const float learnRate = LEARN_RATE * pow(LEARN_RATE_DECAY, Status.epoch);
 
   const uint kOffset = dIdx * KERNEL_W * KERNEL_H * KERNEL_D;
-  const uint kIdx = kOffset + arrayIndex3d(KERNEL_W, KERNEL_H, xIdx, yIdx);
+  const uint kIdx = kOffset + arrayIndex3d(KERNEL_W, KERNEL_H, xIdx, yIdx, zIdx);
   writeK(kIdx, readK(kIdx) - readDeltaK(kIdx) * learnRate);
   writeDeltaK(kIdx, 0.0);
 
-  if (xIdx == 0 && yIdx == 0) {
+  if (xIdx == 0 && yIdx == 0 && zIdx == 0) {
     writeB(dIdx, readB(dIdx) - readDeltaB(dIdx) * learnRate);
     writeDeltaB(dIdx, 0.0);
   }

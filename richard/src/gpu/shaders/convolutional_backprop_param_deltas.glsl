@@ -44,8 +44,8 @@ void main() {
   const uint deltaKW = IMAGE_W - DELTA_W + 1;
   const uint deltaKH = IMAGE_H - DELTA_H + 1;
 
-  const uint xIdx = gl_GlobalInvocationID.x / deltaKW;
-  const uint yIdx = gl_GlobalInvocationID.x % deltaKW;
+  const uint xIdx = gl_GlobalInvocationID.x % deltaKW;
+  const uint yIdx = gl_GlobalInvocationID.x / deltaKW;
   const uint zIdx = gl_GlobalInvocationID.y;
   const uint dIdx = gl_GlobalInvocationID.z;
 
@@ -59,10 +59,10 @@ void main() {
       const uint x = xIdx + i;
       const uint y = yIdx + j;
 
+      const uint deltaIdx = arrayIndex3d(DELTA_W, DELTA_H, i, j, dIdx);
+
       const float pixel = readImage(arrayIndex3d(IMAGE_W, IMAGE_H, x, y, zIdx));
       const float deltaValue = readD(deltaIdx);
-
-      const uint deltaIdx = arrayIndex3d(DELTA_W, DELTA_H, i, j, dIdx);
 
       weightedSum += pixel * deltaValue;
       sum += deltaValue;

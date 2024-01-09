@@ -34,6 +34,12 @@ void ConvolutionalLayer::initialize(const nlohmann::json& obj, const Size3& inpu
   size_t depth = getOrThrow(obj, "depth").get<size_t>();
   m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
 
+  ASSERT_MSG(kernelSize[0] <= m_inputW,
+    "Kernel width " << kernelSize[0] << " is larger than input width " << m_inputW);
+
+  ASSERT_MSG(kernelSize[1] <= m_inputH,
+    "Kernel height " << kernelSize[1] << " is larger than input height " << m_inputH);
+
   for (size_t i = 0; i < depth; ++i) {
     m_filters.push_back(Filter{ Kernel(kernelSize[0], kernelSize[1], m_inputDepth), 0.f });
     m_filters.back().K.randomize(0.1);

@@ -125,12 +125,7 @@ class Vulkan : public Gpu {
     ~Vulkan();
 
   private:
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT,
-      VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT* data, void*);
-
-    VkDebugUtilsMessengerCreateInfoEXT getDebugMessengerCreateInfo() const;
     void createVulkanInstance();
-    void setupDebugMessenger();
     void pickPhysicalDevice();
     void createLogicalDevice();
     uint32_t findComputeQueueFamily() const;
@@ -147,9 +142,17 @@ class Vulkan : public Gpu {
     void dispatchWorkgroups(VkCommandBuffer commandBuffer, size_t pipelineIdx,
       const Size3& numWorkgroups);
     void createSyncObjects();
-    void destroyDebugMessenger();
     VkShaderModule createShaderModule(const std::string& sourcePath,
       const std::string& includesPath) const;
+
+#ifndef NDEBUG
+    void setupDebugMessenger();
+    void destroyDebugMessenger();
+    VkDebugUtilsMessengerCreateInfoEXT getDebugMessengerCreateInfo() const;
+
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT,
+      VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT* data, void*);
+#endif
 
     Logger& m_logger;
     VkInstance m_instance;
@@ -416,6 +419,7 @@ void Vulkan::retrieveBuffer(GpuBufferHandle bufIdx, void* data) {
   vkDestroyBuffer(m_device, stagingBuffer, nullptr);
 }
 
+#ifndef NDEBUG
 void checkValidationLayerSupport() {
   uint32_t layerCount;
   VK_CHECK(vkEnumerateInstanceLayerProperties(&layerCount, nullptr),
@@ -459,16 +463,6 @@ VkDebugUtilsMessengerCreateInfoEXT Vulkan::getDebugMessengerCreateInfo() const {
   return createInfo;
 }
 
-std::vector<const char*> getRequiredExtensions() {
-  std::vector<const char*> extensions;
-
-#ifndef NDEBUG
-  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
-
-  return extensions;
-}
-
 void Vulkan::setupDebugMessenger() {
   auto createInfo = getDebugMessengerCreateInfo();
 
@@ -479,6 +473,23 @@ void Vulkan::setupDebugMessenger() {
   }
   VK_CHECK(func(m_instance, &createInfo, nullptr, &m_debugMessenger),
     "Error setting up debug messenger");
+}
+
+void Vulkan::destroyDebugMessenger() {
+  auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+    vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
+  func(m_instance, m_debugMessenger, nullptr);
+}
+#endif
+
+std::vector<const char*> getRequiredExtensions() {
+  std::vector<const char*> extensions;
+
+#ifndef NDEBUG
+  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
+
+  return extensions;
 }
 
 void Vulkan::pickPhysicalDevice() {
@@ -748,7 +759,7 @@ void Vulkan::createDescriptorPool() {
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   poolInfo.poolSizeCount = poolSizes.size();
   poolInfo.pPoolSizes = poolSizes.data();
-  poolInfo.maxSets = 16; // TODO
+  poolInfo.maxSets = 32; // TODO
 
   VK_CHECK(vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool),
     "Failed to create descriptor pool");
@@ -846,12 +857,6 @@ void Vulkan::createSyncObjects() {
 
   VK_CHECK(vkCreateFence(m_device, &fenceInfo, nullptr, &m_taskCompleteFence),
     "Failed to create fence");
-}
-
-void Vulkan::destroyDebugMessenger() {
-  auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-    vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
-  func(m_instance, m_debugMessenger, nullptr);
 }
 
 Vulkan::~Vulkan() {

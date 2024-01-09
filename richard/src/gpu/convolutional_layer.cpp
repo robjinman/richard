@@ -42,6 +42,12 @@ void ConvolutionalLayer::initialize(const nlohmann::json& obj, const Size3& inpu
   m_isFirstLayer = isFirstLayer;
   m_kernelData = Vector(m_kernelSize[0] * m_kernelSize[1] * m_inputDepth * m_depth);
   m_biasData = Vector(m_depth);
+
+  ASSERT_MSG(m_kernelSize[0] <= m_inputW,
+    "Kernel width " << m_kernelSize[0] << " is larger than input width " << m_inputW);
+
+  ASSERT_MSG(m_kernelSize[1] <= m_inputH,
+    "Kernel height " << m_kernelSize[1] << " is larger than input height " << m_inputH);
 }
 
 void ConvolutionalLayer::allocateGpuBuffers() {
@@ -183,7 +189,7 @@ void ConvolutionalLayer::createBackpropInputDeltaShader() {
   const std::string includesDir = "./shaders";
   const std::string source = loadFile("./shaders/convolutional_backprop_input_delta.glsl");
 
-  m_backpropDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+  m_backpropInputDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
     numWorkgroups, includesDir);
 }
 
@@ -215,7 +221,7 @@ void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusB
   const std::string includesDir = "./shaders";
   const std::string source = loadFile("./shaders/convolutional_backprop_param_deltas.glsl");
 
-  m_backpropDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+  m_backpropParamDeltasShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
     numWorkgroups, includesDir);
 }
 
@@ -238,7 +244,8 @@ void ConvolutionalLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) 
 
   Size3 workgroupSize;
   Size3 numWorkgroups;
-  optimumWorkgroups({ m_kernelSize[0], m_kernelSize[1], m_depth }, workgroupSize, numWorkgroups);
+  optimumWorkgroups({ m_kernelSize[0] * m_kernelSize[1], m_inputDepth, m_depth }, workgroupSize,
+    numWorkgroups);
 
   // TODO: Remove hard-coded paths
   const std::string includesDir = "./shaders";
