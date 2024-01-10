@@ -60,7 +60,7 @@ shaderc_include_result* SourceIncluder::GetInclude(const char* requested_source,
 
     size_t sourceNameLength = sourcePath.string().length();
     char* nameBuffer = new char[sourceNameLength];
-    strcpy(nameBuffer, sourcePath.c_str());
+    strcpy(nameBuffer, reinterpret_cast<const char*>(sourcePath.c_str()));
 
     result->source_name = nameBuffer;
     result->source_name_length = sourceNameLength;
@@ -284,11 +284,7 @@ ShaderHandle Vulkan::compileShader(const std::string& source,
 
   for (uint32_t i = 0; i < 3; ++i) {
     size_t offset = specializationData.size();
-    entries.push_back({
-      .constantID = i,
-      .offset = static_cast<uint32_t>(offset),
-      .size = sizeof(uint32_t)
-    });
+    entries.push_back({ i, static_cast<uint32_t>(offset), sizeof(uint32_t) });
     specializationData.resize(offset + sizeof(uint32_t));
     memcpy(specializationData.data() + offset, &workgroupSize[i], sizeof(uint32_t));
   }
@@ -315,18 +311,14 @@ ShaderHandle Vulkan::compileShader(const std::string& source,
         break;
       }
     }
-    entries.push_back({
-      .constantID = constantId,
-      .offset = static_cast<uint32_t>(offset),
-      .size = typeSize
-    });
+    entries.push_back({ constantId, static_cast<uint32_t>(offset), typeSize });
   }
 
   const VkSpecializationInfo specializationInfo = {
-    .mapEntryCount = static_cast<uint32_t>(entries.size()),
-    .pMapEntries  = entries.data(),
-    .dataSize = specializationData.size(),
-    .pData = specializationData.data()
+    static_cast<uint32_t>(entries.size()),
+    entries.data(),
+    specializationData.size(),
+    specializationData.data()
   };
 
   Pipeline pipeline;

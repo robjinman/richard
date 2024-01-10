@@ -47,6 +47,23 @@ And for a debug build:
     cmake --build build/debug
 ```
 
+### Windows
+
+#### Prerequisites
+
+Install CMake, Python 3, and the Vulkan SDK.
+
+#### Compile
+
+From the richard subdirectory, run
+
+```
+    mkdir build\release
+    cd build\release
+
+    cmake -D CMAKE_BUILD_TYPE=Release -G "Visual Studio 16 2019" ..\..
+    cmake --build . --config Release
+```
 
 Usage
 -----

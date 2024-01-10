@@ -43,6 +43,8 @@ void ConvolutionalLayer::initialize(const nlohmann::json& obj, const Size3& inpu
   m_kernelData = Vector(m_kernelSize[0] * m_kernelSize[1] * m_inputDepth * m_depth);
   m_biasData = Vector(m_depth);
 
+  m_kernelData.randomize(0.1);
+
   ASSERT_MSG(m_kernelSize[0] <= m_inputW,
     "Kernel width " << m_kernelSize[0] << " is larger than input width " << m_inputW);
 
@@ -68,7 +70,6 @@ void ConvolutionalLayer::allocateGpuBuffers() {
   m_bufferDeltaB = m_gpu.allocateBuffer(m_depth * sizeof(netfloat_t),
     GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
 
-  m_kernelData.randomize(0.1);
   m_gpu.submitBufferData(m_bufferK.handle, m_kernelData.data());
 
   Vector deltaKData(m_kernelData.size());
@@ -101,7 +102,7 @@ void ConvolutionalLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
   SpecializationConstants constants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[0]) },
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[1]) },
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_depth) }
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputDepth) }
   };
 
   Size3 workgroupSize;
@@ -131,7 +132,7 @@ void ConvolutionalLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
   SpecializationConstants constants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[0]) },
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[1]) },
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_depth) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputDepth) },
     { SpecializationConstant::Type::bool_type, m_isFirstLayer },
   //  { SpecializationConstant::Type::float_type, m_dropoutRate }
   };

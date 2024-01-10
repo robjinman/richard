@@ -72,10 +72,12 @@ void main() {
           i
         );
 
-        sum += pixel * kernelPixel + readB(zIdx);
+        sum += pixel * kernelPixel;
       }
     }
   }
+
+  sum += readB(zIdx);
 
   writeZ(zIdx * fmW * fmH + yIdx * fmW + xIdx, sum);
   writeA(zIdx * fmW * fmH + yIdx * fmW + xIdx, relu(sum));

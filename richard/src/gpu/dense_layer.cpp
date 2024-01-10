@@ -8,7 +8,6 @@ DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize, bo
   : m_gpu(gpu) {
 
   initialize(obj, inputSize, isFirstLayer);
-  m_W.randomize(0.1);
 }
 
 DenseLayer::DenseLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputSize,
@@ -32,6 +31,8 @@ void DenseLayer::initialize(const nlohmann::json& obj, size_t inputSize, bool is
 
   m_B = Vector(m_size);
   m_W = Matrix(m_inputSize, m_size);
+
+  m_W.randomize(0.1);
 }
 
 void DenseLayer::allocateGpuBuffers() {
