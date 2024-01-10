@@ -173,8 +173,7 @@ void ConvolutionalLayer::updateDeltas(const DataArray& layerInputs, const DataAr
 }
 
 void ConvolutionalLayer::updateParams(size_t epoch) {
-  size_t featureMapSize = outputSize()[0] * outputSize()[1];
-  netfloat_t learnRate = m_learnRate * pow(m_learnRateDecay, epoch) / featureMapSize;
+  netfloat_t learnRate = m_learnRate * pow(m_learnRateDecay, epoch);
 
   for (size_t slice = 0; slice < m_filters.size(); ++slice) {
     m_filters[slice].K -= m_paramDeltas[slice].K * learnRate;
@@ -193,26 +192,16 @@ void ConvolutionalLayer::writeToStream(std::ostream& stream) const {
   }
 }
 
-size_t ConvolutionalLayer::depth() const {
-  return m_filters.size();
-}
-
-const std::vector<ConvolutionalLayer::Filter>& ConvolutionalLayer::filters() const {
-  return m_filters;
-}
-
-std::array<size_t, 2> ConvolutionalLayer::kernelSize() const {
-  ASSERT(m_filters.size() > 0);
-  return { m_filters[0].K.W(), m_filters[0].K.H() };
-}
-
-void ConvolutionalLayer::test_setFilters(const std::vector<ConvolutionalLayer::Filter>& filters) {
-  ASSERT(filters.size() == m_filters.size());
+void ConvolutionalLayer::test_setFilters(const std::vector<Filter>& filters) {
   m_filters = filters;
 }
 
-void ConvolutionalLayer::test_forwardPass(const Array3& inputs, Array3& Z) const {
-  forwardPass(inputs, Z);
+const std::vector<ConvolutionalLayer::Filter> ConvolutionalLayer::test_filters() const {
+  return m_filters;
+}
+
+const std::vector<ConvolutionalLayer::Filter> ConvolutionalLayer::test_filterDeltas() const {
+  return m_paramDeltas;
 }
 
 }

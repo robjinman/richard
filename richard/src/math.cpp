@@ -101,15 +101,21 @@ DataArray& DataArray::operator=(DataArray&& rhs) {
   return *this;
 }
 
-DataArray DataArray::concat(const DataArray& A, const DataArray& B) {
-  DataArray C(A.size() + B.size());
+DataArray DataArray::concat(const std::vector<std::reference_wrapper<DataArray>>& arrays) {
+  size_t totalSize = 0;
+  for (auto array : arrays) {
+    totalSize += array.get().size();
+  }
 
-  netfloat_t* ptr = C.m_data.get();
-  memcpy(ptr, A.m_data.get(), A.size() * sizeof(netfloat_t));
-  ptr += A.size();
-  memcpy(ptr, B.m_data.get(), B.size() * sizeof(netfloat_t));
+  DataArray result(totalSize);
 
-  return C;
+  netfloat_t* ptr = result.m_data.get();
+  for (auto array : arrays) {
+    memcpy(ptr, array.get().m_data.get(), array.get().size() * sizeof(netfloat_t));
+    ptr += array.get().size();
+  }
+
+  return result;
 }
 
 std::ostream& operator<<(std::ostream& os, const DataArray& v) {
@@ -797,6 +803,13 @@ Kernel::Kernel(size_t W, size_t H, size_t D)
   , m_H(H)
   , m_W(W) {}
 
+Kernel::Kernel(const Size3& shape)
+  : m_storage(shape[0] * shape[1] * shape[2])
+  , m_data(m_storage.data())
+  , m_D(shape[0])
+  , m_H(shape[1])
+  , m_W(shape[2]) {}
+
 Kernel::Kernel(const DataArray& data, size_t W, size_t H, size_t D)
   : m_storage(data)
   , m_data(m_storage.data())
@@ -807,12 +820,42 @@ Kernel::Kernel(const DataArray& data, size_t W, size_t H, size_t D)
   DBG_ASSERT(m_storage.size() == size());    
 }
 
+Kernel::Kernel(const DataArray& data, const Size3& shape)
+  : m_storage(data)
+  , m_data(m_storage.data())
+  , m_D(shape[0])
+  , m_H(shape[1])
+  , m_W(shape[2]) {
+
+  DBG_ASSERT(m_storage.size() == size());    
+}
+
+Kernel::Kernel(DataArray& data, const Size3& shape)
+  : m_storage(data)
+  , m_data(m_storage.data())
+  , m_D(shape[0])
+  , m_H(shape[1])
+  , m_W(shape[2]) {
+
+  DBG_ASSERT(m_storage.size() == size());    
+}
+
 Kernel::Kernel(DataArray&& data, size_t W, size_t H, size_t D)
   : m_storage(std::move(data))
   , m_data(m_storage.data())
   , m_D(D)
   , m_H(H)
   , m_W(W) {
+
+  DBG_ASSERT(m_storage.size() == size());    
+}
+
+Kernel::Kernel(DataArray&& data, const Size3& shape)
+  : m_storage(std::move(data))
+  , m_data(m_storage.data())
+  , m_D(shape[0])
+  , m_H(shape[1])
+  , m_W(shape[2]) {
 
   DBG_ASSERT(m_storage.size() == size());    
 }

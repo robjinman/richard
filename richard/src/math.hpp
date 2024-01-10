@@ -27,7 +27,7 @@ class DataArray {
     inline netfloat_t& operator[](size_t i);
     inline const netfloat_t& operator[](size_t i) const;
 
-    static DataArray concat(const DataArray& A, const DataArray& B);
+    static DataArray concat(const std::vector<std::reference_wrapper<DataArray>>& arrays);
 
     friend std::ostream& operator<<(std::ostream& os, const DataArray& v);
 
@@ -356,8 +356,13 @@ class Kernel {
     explicit Kernel(
       std::initializer_list<std::initializer_list<std::initializer_list<netfloat_t>>> data);
     explicit Kernel(size_t W, size_t H, size_t D);
+    explicit Kernel(const Size3& shape);
     Kernel(const DataArray& data, size_t W, size_t H, size_t D);
+    Kernel(const DataArray& data, const Size3& shape);
+    Kernel(DataArray& data, size_t W, size_t H, size_t D);
+    Kernel(DataArray& data, const Size3& shape);
     Kernel(DataArray&& data, size_t W, size_t H, size_t D);
+    Kernel(DataArray&& data, const Size3& shape);
     Kernel(const Kernel& cpy);
     Kernel(Kernel&& mv);
 
@@ -371,6 +376,7 @@ class Kernel {
     inline const netfloat_t* data() const;
 
     inline size_t size() const;
+    inline Size3 shape() const;
 
     inline netfloat_t at(size_t x, size_t y, size_t z) const;
     inline void set(size_t x, size_t y, size_t z, netfloat_t value);
@@ -462,6 +468,10 @@ const netfloat_t* Kernel::data() const {
 
 size_t Kernel::size() const {
   return m_W * m_H * m_D;
+}
+
+Size3 Kernel::shape() const {
+  return { m_W, m_H, m_D };
 }
 
 netfloat_t Kernel::at(size_t x, size_t y, size_t z) const {

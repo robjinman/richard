@@ -25,15 +25,12 @@ class ConvolutionalLayer : public Layer {
     void updateDeltas(const DataArray& inputs, const DataArray& outputDelta) override;
     void updateParams(size_t epoch) override;
     void writeToStream(std::ostream& stream) const override;
-    const std::vector<Filter>& filters() const;
-
-    std::array<size_t, 2> kernelSize() const;
-    size_t depth() const;
 
     // Exposed for testing
     //
-    void test_forwardPass(const Array3& inputs, Array3& Z) const;
-    void test_setFilters(const std::vector<ConvolutionalLayer::Filter>& filters);
+    void test_setFilters(const std::vector<Filter>& filters);
+    const std::vector<Filter> test_filters() const;
+    const std::vector<Filter> test_filterDeltas() const;
 
   private:
     void initialize(const nlohmann::json& obj, const Size3& inputShape);

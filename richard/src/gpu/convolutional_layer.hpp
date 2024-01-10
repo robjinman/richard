@@ -31,6 +31,16 @@ class ConvolutionalLayer : public Layer {
     void updateParams() override;
     void writeToStream(std::ostream& stream) const override;
 
+    // Exposed for testing
+    //
+    void test_setKernels(const DataArray& kernelData);
+    void test_setBiases(const DataArray& biasData);
+    GpuBufferHandle test_activationsBuffer() const;
+    GpuBufferHandle test_deltaKBuffer() const;
+    GpuBufferHandle test_deltaBBuffer() const;
+    const DataArray& test_kernels() const;
+    const Vector& test_biases() const;
+
   private:
     void initialize(const nlohmann::json& obj, const Size3& inputShape, bool isFirstLayer);
     void createEvalForwardShader(GpuBufferHandle inputBuffer);

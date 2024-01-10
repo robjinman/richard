@@ -35,15 +35,15 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth1) {
     { 8, 7, 6 }
   }});
 
-  Array3 Z(2, 2, 1);
-
-  layer.test_forwardPass(inputs, Z);
+  layer.trainForward(inputs.storage());
 
   Array3 expectedZ(2, 2, 1);
   computeCrossCorrelation(inputs, filter.K, *expectedZ.slice(0));
   expectedZ += filter.b;
 
-  ASSERT_EQ(Z, expectedZ);
+  Array3 A(layer.activations(), 2, 2, 1);
+
+  ASSERT_EQ(A, expectedZ.computeTransform(relu));
 }
 
 TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
@@ -72,8 +72,6 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
 
   layer.test_setFilters({ filter0, filter1 });
 
-  Array3 Z(2, 2, 2);
-
   Array3 inputs({{
     { 0, 1, 2 },
     { 5, 6, 7 },
@@ -86,9 +84,11 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
   computeCrossCorrelation(inputs, filter1.K, *expectedZ.slice(1));
   *expectedZ.slice(1) += filter1.b;
 
-  layer.test_forwardPass(inputs, Z);
+  layer.trainForward(inputs.storage());
 
-  ASSERT_EQ(Z, expectedZ);
+  Array3 A(layer.activations(), 2, 2, 2);
+
+  ASSERT_EQ(A, expectedZ.computeTransform(relu));
 }
 
 TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
@@ -127,8 +127,6 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
 
   layer.test_setFilters({ filter0, filter1 });
 
-  Array3 Z(2, 2, 2);
-
   Array3 inputs({
     {
       { 0, 1, 2 },
@@ -147,9 +145,11 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
   computeCrossCorrelation(inputs, filter1.K, *expectedZ.slice(1));
   *expectedZ.slice(1) += filter1.b;
 
-  layer.test_forwardPass(inputs, Z);
+  layer.trainForward(inputs.storage());
 
-  ASSERT_EQ(Z, expectedZ);
+  Array3 A(layer.activations(), 2, 2, 2);
+
+  ASSERT_EQ(A, expectedZ.computeTransform(relu));
 }
 
 TEST_F(CpuConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
@@ -178,8 +178,6 @@ TEST_F(CpuConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
 
   layer.test_setFilters({ filter0, filter1 });
 
-  Array3 Z(2, 2, 2);
-
   Array3 poolingLayerDelta({
     {
       { 7 }
@@ -198,9 +196,11 @@ TEST_F(CpuConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
   computeCrossCorrelation(inputs, filter1.K, *expectedZ.slice(1));
   *expectedZ.slice(1) += filter1.b;
 
-  layer.test_forwardPass(inputs, Z);
+  layer.trainForward(inputs.storage());
 
-  ASSERT_EQ(Z, expectedZ);
+  Array3 A(layer.activations(), 2, 2, 2);
+
+  ASSERT_EQ(A, expectedZ.computeTransform(relu));
 
   Array3 paddedPoolingLayerDelta({
     {

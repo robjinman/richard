@@ -1,8 +1,8 @@
 #include "mock_logger.hpp"
 #include "mock_gpu_layer.hpp"
 #include "mock_cpu_layer.hpp"
-#include <cpu/dense_layer.hpp>
-#include <gpu/dense_layer.hpp>
+#include <cpu/convolutional_layer.hpp>
+#include <gpu/convolutional_layer.hpp>
 #include <gpu/gpu.hpp>
 #include <gtest/gtest.h>
 
@@ -19,26 +19,25 @@ struct StatusBuffer {
   uint32_t sampleIndex;
 };
 
-class GpuDenseLayerTest : public testing::Test {
+class GpuConvolutionalLayerTest : public testing::Test {
   public:
     virtual void SetUp() override {}
     virtual void TearDown() override {}
 };
 
-Vector cpuDenseLayerTrainForward(const nlohmann::json& config, const Matrix& W, const Vector& B,
-  const Vector& inputs) {
+DataArray cpuConvolutionalLayerTrainForward(const nlohmann::json& config,
+  const std::vector<cpu::ConvolutionalLayer::Filter>& filters, const Array3& inputs) {
 
-  cpu::DenseLayer layer(config, inputs.size());
+  cpu::ConvolutionalLayer layer(config, inputs.shape());
 
-  layer.test_setWeights(W.storage());
-  layer.test_setBiases(B.storage());
+  layer.test_setFilters(filters);
 
   layer.trainForward(inputs.storage());
 
   return layer.activations();
 }
 
-TEST_F(GpuDenseLayerTest, trainForward) {
+TEST_F(GpuConvolutionalLayerTest, trainForward) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
 
@@ -47,27 +46,25 @@ TEST_F(GpuDenseLayerTest, trainForward) {
                                    | GpuBufferFlags::hostWriteAccess;
   GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
 
-  size_t miniBatchSize = 1;
-  const size_t layerSize = 2;
-  const size_t layerInputSize = 4;
-  const size_t networkOutputSize = 2;
+  Array3 inputs({
+    {
+      { 0, 1, 2 },
+      { 5, 6, 7 },
+      { 8, 7, 6 },
+    }, {
+      { 5, 4, 3 },
+      { 2, 1, 0 },
+      { 1, 2, 5 }
+    }
+  });
 
-  size_t bufferYSize = miniBatchSize * networkOutputSize * sizeof(netfloat_t);
-
-  GpuBufferFlags bufferYFlags = GpuBufferFlags::frequentHostAccess
-                              | GpuBufferFlags::large
-                              | GpuBufferFlags::hostWriteAccess;
-
-  GpuBuffer bufferY = gpu->allocateBuffer(bufferYSize, bufferYFlags);
-
-  size_t inputBufferSize = layerInputSize * sizeof(netfloat_t);
+  size_t inputBufferSize = inputs.size() * sizeof(netfloat_t);
 
   GpuBufferFlags inputBufferFlags = GpuBufferFlags::large
                                   | GpuBufferFlags::hostWriteAccess;
 
   GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
 
-  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
   gpu->submitBufferData(inputBuffer.handle, inputs.data());
 
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
@@ -75,47 +72,72 @@ TEST_F(GpuDenseLayerTest, trainForward) {
   status.sampleIndex = 0;
 
   nlohmann::json config;
-  config["size"] = layerSize;
-  config["learnRate"] = 0.1;
+  config["depth"] = 2;
+  config["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
+  config["learnRate"] = 1.0;
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::DenseLayer layer(*gpu, config, layerInputSize, true);
+  gpu::ConvolutionalLayer layer(*gpu, config, { 3, 3, 2 }, true);
 
-  Matrix W({
-    { 0.1, 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3, 0.2 }
+  cpu::ConvolutionalLayer::Filter filter0;
+  filter0.K = Kernel({
+    {
+      { 5, 3 },
+      { 1, 2 }
+    }, {
+      { 8, 4 },
+      { 5, 3 }
+    }
   });
+  filter0.b = 7;
 
-  Vector B({ 0.7, 0.8 });
+  cpu::ConvolutionalLayer::Filter filter1;
+  filter1.K = Kernel({
+    {
+      { 5, 3 },
+      { 1, 2 }
+    }, {
+      { 8, 4 },
+      { 5, 3 }
+    }
+  });
+  filter1.b = 3;
 
-  layer.test_setWeights(W.storage());
-  layer.test_setBiases(B.storage());
+  DataArray kernelData = DataArray::concat({ filter0.K.storage(), filter1.K.storage() });
+  Vector biasData{ filter0.b, filter1.b };
+
+  layer.test_setKernels(kernelData);
+  layer.test_setBiases(biasData.storage());
 
   testing::NiceMock<MockGpuLayer> nextLayer;
-  ON_CALL(nextLayer, weightsBuffer).WillByDefault(testing::Return(0));
-  ON_CALL(nextLayer, deltaBuffer).WillByDefault(testing::Return(0));
+  ON_CALL(nextLayer, inputDeltaBuffer).WillByDefault(testing::Return(0));
 
   layer.allocateGpuBuffers();
-  layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, &nextLayer, bufferY.handle);
+  layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, &nextLayer, 0);
 
   layer.trainForward();
   gpu->flushQueue();
 
-  Vector A(layerSize);
+  Array3 A(layer.outputSize());
   gpu->retrieveBuffer(layer.test_activationsBuffer(), A.data());
 
-  Vector expectedA = cpuDenseLayerTrainForward(config, W, B, inputs);
+  Array3 expectedA(cpuConvolutionalLayerTrainForward(config, { filter0, filter1 }, inputs),
+    layer.outputSize());
 
-  for (size_t i = 0; i < A.size(); ++i) {
-    EXPECT_NEAR(A[i], expectedA[i], FLOAT_TOLERANCE);
+  for (size_t k = 0; k < expectedA.D(); ++k) {
+    for (size_t j = 0; j < expectedA.H(); ++j) {
+      for (size_t i = 0; i < expectedA.W(); ++i) {
+        EXPECT_NEAR(A.at(i, j, k), expectedA.at(i, j, k), FLOAT_TOLERANCE);
+      }
+    }
   }
 }
-
-void cpuDenseLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
+/*
+void cpuConvolutionalLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
   const Vector& inputs, const Vector& dA, Matrix& deltaW, Vector& deltaB) {
 
-  cpu::DenseLayer layer(config, inputs.size());
+  cpu::ConvolutionalLayer layer(config, inputs.size());
 
   layer.test_setWeights(W.storage());
   layer.test_setBiases(B.storage());
@@ -127,7 +149,7 @@ void cpuDenseLayerBackprop(const nlohmann::json& config, const Matrix& W, const 
   deltaB = layer.test_deltaB();
 }
 
-TEST_F(GpuDenseLayerTest, backprop) {
+TEST_F(GpuConvolutionalLayerTest, backprop) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
 
@@ -135,9 +157,6 @@ TEST_F(GpuDenseLayerTest, backprop) {
                                    | GpuBufferFlags::hostReadAccess
                                    | GpuBufferFlags::hostWriteAccess;
   GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
-
-  const size_t layerInputSize = 4;
-  const size_t layerSize = 2;
 
   size_t inputBufferSize = layerInputSize * sizeof(netfloat_t);
 
@@ -175,7 +194,7 @@ TEST_F(GpuDenseLayerTest, backprop) {
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::DenseLayer layer(*gpu, config, layerInputSize, true);
+  gpu::ConvolutionalLayer layer(*gpu, config, layerInputSize, true);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },
@@ -211,7 +230,7 @@ TEST_F(GpuDenseLayerTest, backprop) {
   Matrix expectedDeltaW;
   Vector expectedDeltaB;
 
-  cpuDenseLayerBackprop(config, W, B, inputs, dA, expectedDeltaW, expectedDeltaB);
+  cpuConvolutionalLayerBackprop(config, W, B, inputs, dA, expectedDeltaW, expectedDeltaB);
 
   for (size_t j = 0; j < deltaW.rows(); ++j) {
     for (size_t i = 0; i < deltaW.cols(); ++i) {
@@ -224,7 +243,7 @@ TEST_F(GpuDenseLayerTest, backprop) {
   }
 }
 
-TEST_F(GpuDenseLayerTest, updateParams) {
+TEST_F(GpuConvolutionalLayerTest, updateParams) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
 
@@ -232,9 +251,6 @@ TEST_F(GpuDenseLayerTest, updateParams) {
                                    | GpuBufferFlags::hostReadAccess
                                    | GpuBufferFlags::hostWriteAccess;
   GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
-
-  const size_t layerInputSize = 4;
-  const size_t layerSize = 2;
 
   size_t inputBufferSize = layerInputSize * sizeof(netfloat_t);
 
@@ -256,7 +272,7 @@ TEST_F(GpuDenseLayerTest, updateParams) {
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::DenseLayer layer(*gpu, config, layerInputSize, true);
+  gpu::ConvolutionalLayer layer(*gpu, config, layerInputSize, true);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },
@@ -310,3 +326,4 @@ TEST_F(GpuDenseLayerTest, updateParams) {
     EXPECT_NEAR(actualB[i], expectedB[i], FLOAT_TOLERANCE);
   }
 }
+*/

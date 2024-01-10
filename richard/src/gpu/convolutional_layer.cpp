@@ -316,5 +316,33 @@ void ConvolutionalLayer::writeToStream(std::ostream& stream) const {
   }
 }
 
+void ConvolutionalLayer::test_setKernels(const DataArray& kernelData) {
+  m_kernelData = kernelData;
+}
+
+void ConvolutionalLayer::test_setBiases(const DataArray& biasData) {
+  m_biasData = biasData;
+}
+
+GpuBufferHandle ConvolutionalLayer::test_activationsBuffer() const {
+  return m_bufferA.handle;
+}
+
+GpuBufferHandle ConvolutionalLayer::test_deltaKBuffer() const {
+  return m_bufferDeltaK.handle;
+}
+
+GpuBufferHandle ConvolutionalLayer::test_deltaBBuffer() const {
+  return m_bufferDeltaB.handle;
+}
+
+const DataArray& ConvolutionalLayer::test_kernels() const {
+  return m_kernelData.storage();
+}
+
+const Vector& ConvolutionalLayer::test_biases() const {
+  return m_biasData;
+}
+
 }
 }
