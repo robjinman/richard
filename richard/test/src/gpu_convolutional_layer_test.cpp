@@ -287,7 +287,7 @@ TEST_F(GpuConvolutionalLayerTest, backprop) {
     }
   }
 }
-/*
+
 TEST_F(GpuConvolutionalLayerTest, updateParams) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
@@ -297,51 +297,77 @@ TEST_F(GpuConvolutionalLayerTest, updateParams) {
                                    | GpuBufferFlags::hostWriteAccess;
   GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
 
-  size_t inputBufferSize = layerInputSize * sizeof(netfloat_t);
-
-  GpuBufferFlags inputBufferFlags = GpuBufferFlags::large
-                                  | GpuBufferFlags::hostWriteAccess;
-
-  GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
-
-  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
-  gpu->submitBufferData(inputBuffer.handle, inputs.data());
-
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
   status.epoch = 0;
   status.sampleIndex = 0;
 
+  size_t layerDepth = 2;
+  netfloat_t learnRate = 0.47;
+
   nlohmann::json config;
-  config["size"] = layerSize;
-  config["learnRate"] = 0.1;
+  config["depth"] = layerDepth;
+  config["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
+  config["learnRate"] = learnRate;
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::ConvolutionalLayer layer(*gpu, config, layerInputSize, true);
+  gpu::ConvolutionalLayer layer(*gpu, config, { 3, 3, 2 }, true);
 
-  Matrix W({
-    { 0.1, 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3, 0.2 }
-  });
+  Kernel K1{
+    {
+      { 5, 3 },
+      { 1, 2 }
+    }, {
+      { 8, 4 },
+      { 5, 3 }
+    }
+  };
 
-  Vector B({ 0.7, 0.8 });
+  Kernel K2{
+    {
+      { 2, 4 },
+      { 5, 6 }
+    }, {
+      { 4, 1 },
+      { 2, 9 }
+    }
+  };
+
+  Vector B{ 9, 5 };
+  DataArray K = DataArray::concat({ K1.storage(), K2.storage() });
+
+  layer.test_setKernels(K);
+  layer.test_setBiases(B.storage());
 
   testing::NiceMock<MockGpuLayer> nextLayer;
 
-  layer.test_setWeights(W.storage());
-  layer.test_setBiases(B.storage());
-
   layer.allocateGpuBuffers();
-  layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, &nextLayer, 0);
+  layer.createGpuShaders(0, statusBuffer.handle, &nextLayer, 0);
 
-  Matrix deltaW({
-    { 0.5, 0.3, 0.7, 0.1 },
-    { 0.8, 0.6, 0.2, 0.9 }
-  });
+  Kernel deltaK1{
+    {
+      { 1, 2 },
+      { 6, 4 }
+    }, {
+      { 8, 7 },
+      { 5, 8 }
+    }
+  };
 
-  Vector deltaB({ 0.5, 0.1 });
+  Kernel deltaK2{
+    {
+      { 1, 5 },
+      { 9, 7 }
+    }, {
+      { 3, 2 },
+      { 3, 6 }
+    }
+  };
 
-  gpu->submitBufferData(layer.test_deltaWBuffer(), deltaW.data());
+  DataArray deltaK = DataArray::concat({ deltaK1.storage(), deltaK2.storage() });
+  Vector deltaB{ 6, 2 };
+
+  gpu->submitBufferData(layer.test_deltaKBuffer(), deltaK.data());
   gpu->submitBufferData(layer.test_deltaBBuffer(), deltaB.data());
 
   layer.updateParams();
@@ -350,18 +376,35 @@ TEST_F(GpuConvolutionalLayerTest, updateParams) {
 
   layer.retrieveBuffers();
 
-  Matrix expectedW = W - deltaW * 0.1;
-  Vector expectedB = B - deltaB * 0.1;
+  Kernel expectedK1 = K1 - deltaK1 * learnRate;
+  Kernel expectedK2 = K2 - deltaK2 * learnRate;
+  Vector expectedB = B - deltaB * learnRate;
 
-  const Matrix& actualW = layer.test_W();
-  const Vector& actualB = layer.test_B();
+  layer.retrieveBuffers();
 
-  EXPECT_EQ(expectedW.cols(), actualW.cols());
-  EXPECT_EQ(expectedW.rows(), actualW.rows());
+  const DataArray& actualK = layer.test_kernels();
+  ConstKernelPtr pActualK1 = Kernel::createShallow(actualK.data(), K1.shape());
+  const Kernel& actualK1 = *pActualK1;
+  ConstKernelPtr pActualK2 = Kernel::createShallow(actualK.data() + K1.size(), K2.shape());
+  const Kernel& actualK2 = *pActualK2;
+  const Vector& actualB = layer.test_biases();
 
-  for (size_t j = 0; j < expectedW.rows(); ++j) {
-    for (size_t i = 0; i < expectedW.cols(); ++i) {
-      EXPECT_NEAR(actualW.at(i, j), expectedW.at(i, j), FLOAT_TOLERANCE);
+  EXPECT_EQ(expectedK1.shape(), actualK1.shape());
+  EXPECT_EQ(expectedK2.shape(), actualK2.shape());
+
+  for (size_t k = 0; k < expectedK1.D(); ++k) {
+    for (size_t j = 0; j < expectedK1.H(); ++j) {
+      for (size_t i = 0; i < expectedK1.W(); ++i) {
+        EXPECT_NEAR(expectedK1.at(i, j, k), actualK1.at(i, j, k), FLOAT_TOLERANCE);
+      }
+    }
+  }
+
+  for (size_t k = 0; k < expectedK2.D(); ++k) {
+    for (size_t j = 0; j < expectedK2.H(); ++j) {
+      for (size_t i = 0; i < expectedK2.W(); ++i) {
+        EXPECT_NEAR(expectedK2.at(i, j, k), actualK2.at(i, j, k), FLOAT_TOLERANCE);
+      }
     }
   }
 
@@ -371,4 +414,3 @@ TEST_F(GpuConvolutionalLayerTest, updateParams) {
     EXPECT_NEAR(actualB[i], expectedB[i], FLOAT_TOLERANCE);
   }
 }
-*/

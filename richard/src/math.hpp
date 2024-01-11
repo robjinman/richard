@@ -420,9 +420,13 @@ class Kernel {
     inline bool operator!=(const Kernel& rhs) const;
 
     static KernelPtr createShallow(DataArray& data, size_t W, size_t H, size_t D);
+    inline static KernelPtr createShallow(DataArray& data, const Size3& shape);
     static ConstKernelPtr createShallow(const DataArray& data, size_t W, size_t H, size_t D);
+    inline static ConstKernelPtr createShallow(const DataArray& data, const Size3& shape);
     static KernelPtr createShallow(netfloat_t* data, size_t W, size_t H, size_t D);
+    inline static KernelPtr createShallow(netfloat_t* data, const Size3& shape);
     static ConstKernelPtr createShallow(const netfloat_t* data, size_t W, size_t H, size_t D);
+    inline static ConstKernelPtr createShallow(const netfloat_t* data, const Size3& shape);
 
     friend std::ostream& operator<<(std::ostream& os, const Kernel& k);
 
@@ -436,6 +440,22 @@ class Kernel {
     size_t m_H;
     size_t m_W;
 };
+
+KernelPtr Kernel::createShallow(DataArray& data, const Size3& shape) {
+  return Kernel::createShallow(data, shape[0], shape[1], shape[2]);
+}
+
+ConstKernelPtr Kernel::createShallow(const DataArray& data, const Size3& shape) {
+  return Kernel::createShallow(data, shape[0], shape[1], shape[2]);
+}
+
+KernelPtr Kernel::createShallow(netfloat_t* data, const Size3& shape) {
+  return Kernel::createShallow(data, shape[0], shape[1], shape[2]);
+}
+
+ConstKernelPtr Kernel::createShallow(const netfloat_t* data, const Size3& shape) {
+  return Kernel::createShallow(data, shape[0], shape[1], shape[2]);
+}
 
 inline void Kernel::setData(DataArray&& data) {
   DBG_ASSERT(data.size() == size());
