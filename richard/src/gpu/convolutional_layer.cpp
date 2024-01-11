@@ -64,6 +64,7 @@ void ConvolutionalLayer::allocateGpuBuffers() {
   m_bufferB = m_gpu.allocateBuffer(m_depth * sizeof(netfloat_t), paramBuffersFlags);
   m_bufferZ = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferA = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
+  m_bufferD = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferInputDelta = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferDeltaK = m_gpu.allocateBuffer(m_depth * kernelSize * sizeof(netfloat_t),
     GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
@@ -75,8 +76,10 @@ void ConvolutionalLayer::allocateGpuBuffers() {
   Vector deltaKData(m_kernelData.size());
   m_gpu.submitBufferData(m_bufferDeltaK.handle, deltaKData.data());
 
+  Vector deltaBData(m_biasData.size());
+  m_gpu.submitBufferData(m_bufferDeltaB.handle, deltaBData.data());
+
   m_gpu.submitBufferData(m_bufferB.handle, m_biasData.data());
-  m_gpu.submitBufferData(m_bufferDeltaB.handle, m_biasData.data());
 }
 
 void ConvolutionalLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
@@ -87,6 +90,7 @@ void ConvolutionalLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBuffer
   createEvalForwardShader(inputBuffer);
   createTrainForwardShader(statusBuffer, inputBuffer);
   createBackpropDeltaShader(nextLayer);
+  createBackpropInputDeltaShader();
   createBackpropParamDeltasShader(statusBuffer, inputBuffer);
   createUpdateParamsShader(statusBuffer);
 }
@@ -279,6 +283,7 @@ void ConvolutionalLayer::trainForward() {
 
 void ConvolutionalLayer::backprop() {
   m_gpu.queueShader(m_backpropDeltaShader);
+  m_gpu.queueShader(m_backpropInputDeltaShader);
   m_gpu.queueShader(m_backpropParamDeltasShader);
 }
 

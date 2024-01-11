@@ -95,11 +95,11 @@ TEST_F(GpuConvolutionalLayerTest, trainForward) {
   cpu::ConvolutionalLayer::Filter filter1;
   filter1.K = Kernel({
     {
-      { 5, 3 },
-      { 1, 2 }
+      { 2, 4 },
+      { 5, 6 }
     }, {
-      { 8, 4 },
-      { 5, 3 }
+      { 4, 1 },
+      { 2, 9 }
     }
   });
   filter1.b = 3;
@@ -133,20 +133,26 @@ TEST_F(GpuConvolutionalLayerTest, trainForward) {
     }
   }
 }
-/*
-void cpuConvolutionalLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
-  const Vector& inputs, const Vector& dA, Matrix& deltaW, Vector& deltaB) {
 
-  cpu::ConvolutionalLayer layer(config, inputs.size());
+void cpuConvolutionalLayerBackprop(const nlohmann::json& config,
+  const std::vector<cpu::ConvolutionalLayer::Filter>& filters, const Array3& inputs,
+  const Vector& dA, std::vector<Kernel>& deltaK, Vector& deltaB) {
 
-  layer.test_setWeights(W.storage());
-  layer.test_setBiases(B.storage());
+  deltaB = Vector(filters.size());
+
+  cpu::ConvolutionalLayer layer(config, inputs.shape());
+
+  layer.test_setFilters(filters);
 
   layer.trainForward(inputs.storage());
   layer.updateDeltas(inputs.storage(), dA.storage());
 
-  deltaW = layer.test_deltaW();
-  deltaB = layer.test_deltaB();
+  const auto& deltas = layer.test_filterDeltas();
+
+  for (size_t i = 0; i < deltas.size(); ++i) {
+    deltaK.push_back(deltas[i].K);
+    deltaB[i] = deltas[i].b;
+  }
 }
 
 TEST_F(GpuConvolutionalLayerTest, backprop) {
@@ -158,58 +164,89 @@ TEST_F(GpuConvolutionalLayerTest, backprop) {
                                    | GpuBufferFlags::hostWriteAccess;
   GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
 
-  size_t inputBufferSize = layerInputSize * sizeof(netfloat_t);
+  Array3 inputs({
+    {
+      { 0, 1, 2 },
+      { 5, 6, 7 },
+      { 8, 7, 6 },
+    }, {
+      { 5, 4, 3 },
+      { 2, 1, 0 },
+      { 1, 2, 5 }
+    }
+  });
+
+  size_t inputBufferSize = inputs.size() * sizeof(netfloat_t);
 
   GpuBufferFlags inputBufferFlags = GpuBufferFlags::large
                                   | GpuBufferFlags::hostWriteAccess;
 
   GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
 
-  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
   gpu->submitBufferData(inputBuffer.handle, inputs.data());
 
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  Vector nextDelta({ 2, 7 });
-  Matrix nextW({
-    { 2, 5 },
-    { 4, 3 }
+  Array3 dA({
+    {
+      { 2, 1 },
+      { 4, 7 }
+    }, {
+      { 5, 2 },
+      { 9, 8 }
+    }
   });
 
-  Vector dA = nextW.transposeMultiply(nextDelta);
-
   GpuBufferFlags bufferFlags = GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess;
+  GpuBuffer bufferDeltaA = gpu->allocateBuffer(dA.size() * sizeof(netfloat_t), bufferFlags);
 
-  GpuBuffer nextBufferW = gpu->allocateBuffer(nextW.size() * sizeof(netfloat_t), bufferFlags);
-  GpuBuffer nextBufferD = gpu->allocateBuffer(nextDelta.size() * sizeof(netfloat_t), bufferFlags);
+  gpu->submitBufferData(bufferDeltaA.handle, dA.data());
 
-  gpu->submitBufferData(nextBufferW.handle, nextW.data());
-  gpu->submitBufferData(nextBufferD.handle, nextDelta.data());
+  size_t layerDepth = 2;
 
   nlohmann::json config;
-  config["size"] = layerSize;
-  config["learnRate"] = 0.1;
+  config["depth"] = layerDepth;
+  config["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
+  config["learnRate"] = 1.0;
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::ConvolutionalLayer layer(*gpu, config, layerInputSize, true);
+  gpu::ConvolutionalLayer layer(*gpu, config, { 3, 3, 2 }, true);
 
-  Matrix W({
-    { 0.1, 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3, 0.2 }
+  cpu::ConvolutionalLayer::Filter filter0;
+  filter0.K = Kernel({
+    {
+      { 5, 3 },
+      { 1, 2 }
+    }, {
+      { 8, 4 },
+      { 5, 3 }
+    }
   });
+  filter0.b = 7;
 
-  Vector B({ 0.7, 0.8 });
+  cpu::ConvolutionalLayer::Filter filter1;
+  filter1.K = Kernel({
+    {
+      { 2, 4 },
+      { 5, 6 }
+    }, {
+      { 4, 1 },
+      { 2, 9 }
+    }
+  });
+  filter1.b = 3;
+
+  DataArray kernelData = DataArray::concat({ filter0.K.storage(), filter1.K.storage() });
+  Vector biasData{ filter0.b, filter1.b };
+
+  layer.test_setKernels(kernelData);
+  layer.test_setBiases(biasData.storage());
 
   testing::NiceMock<MockGpuLayer> nextLayer;
-  ON_CALL(nextLayer, weightsBuffer).WillByDefault(testing::Return(nextBufferW.handle));
-  ON_CALL(nextLayer, deltaBuffer).WillByDefault(testing::Return(nextBufferD.handle));
-  ON_CALL(nextLayer, size).WillByDefault(testing::Return(nextDelta.size()));
-
-  layer.test_setWeights(W.storage());
-  layer.test_setBiases(B.storage());
+  ON_CALL(nextLayer, inputDeltaBuffer).WillByDefault(testing::Return(bufferDeltaA.handle));
 
   layer.allocateGpuBuffers();
   layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, &nextLayer, 0);
@@ -219,30 +256,38 @@ TEST_F(GpuConvolutionalLayerTest, backprop) {
 
   gpu->flushQueue();
 
-  Vector delta(layerSize);
-  Matrix deltaW(W.cols(), W.rows());
-  Vector deltaB(B.size());
+  size_t kernelSize = filter0.K.size();
 
-  gpu->retrieveBuffer(layer.deltaBuffer(), delta.data());
-  gpu->retrieveBuffer(layer.test_deltaWBuffer(), deltaW.data());
+  DataArray deltaKData(kernelSize * layerDepth);
+  Vector deltaB(layerDepth);
+
+  gpu->retrieveBuffer(layer.test_deltaKBuffer(), deltaKData.data());
   gpu->retrieveBuffer(layer.test_deltaBBuffer(), deltaB.data());
 
-  Matrix expectedDeltaW;
+  std::vector<Kernel> expectedDeltaK;
   Vector expectedDeltaB;
 
-  cpuConvolutionalLayerBackprop(config, W, B, inputs, dA, expectedDeltaW, expectedDeltaB);
+  cpuConvolutionalLayerBackprop(config, { filter0, filter1 }, inputs, dA.storage(), expectedDeltaK,
+    expectedDeltaB);
 
-  for (size_t j = 0; j < deltaW.rows(); ++j) {
-    for (size_t i = 0; i < deltaW.cols(); ++i) {
-      EXPECT_NEAR(deltaW.at(i, j), expectedDeltaW.at(i, j), FLOAT_TOLERANCE);
+  for (size_t d = 0; d < expectedDeltaK.size(); ++d) {
+    ConstKernelPtr pDeltaK = Kernel::createShallow(deltaKData.data() + d * kernelSize, 2, 2, 2);
+    const Kernel& deltaK = *pDeltaK;
+
+    for (size_t k = 0; k < deltaK.D(); ++k) {
+      for (size_t j = 0; j < deltaK.H(); ++j) {
+        for (size_t i = 0; i < deltaK.W(); ++i) {
+          EXPECT_NEAR(deltaK.at(i, j, k), expectedDeltaK[d].at(i, j, k), FLOAT_TOLERANCE);
+        }
+      }
+    }
+
+    for (size_t i = 0; i < expectedDeltaB.size(); ++i) {
+      EXPECT_NEAR(deltaB[i], expectedDeltaB[i], FLOAT_TOLERANCE);
     }
   }
-
-  for (size_t i = 0; i < deltaB.size(); ++i) {
-    EXPECT_NEAR(deltaB[i], expectedDeltaB[i], FLOAT_TOLERANCE);
-  }
 }
-
+/*
 TEST_F(GpuConvolutionalLayerTest, updateParams) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);

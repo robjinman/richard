@@ -153,10 +153,10 @@ TEST_F(GpuDenseLayerTest, backprop) {
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  Vector nextDelta({ 2, 7 });
+  Vector nextDelta({ 0.2, 0.7 });
   Matrix nextW({
-    { 2, 5 },
-    { 4, 3 }
+    { 0.2, 0.5 },
+    { 0.4, 0.3 }
   });
 
   Vector dA = nextW.transposeMultiply(nextDelta);

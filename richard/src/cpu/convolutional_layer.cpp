@@ -166,9 +166,9 @@ void ConvolutionalLayer::updateDeltas(const DataArray& layerInputs, const DataAr
 
       computeCrossCorrelation(inputs, delta, dDeltaK);
       deltaK += dDeltaK;
-
-      db += delta.sum();
     }
+
+    db += delta.sum();
   }
 }
 
