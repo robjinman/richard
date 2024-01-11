@@ -2,6 +2,7 @@
 #include "gpu/gpu_utils.hpp"
 #include "utils.hpp"
 #include "math.hpp"
+#include <iostream> // TODO
 
 namespace richard {
 namespace gpu {
@@ -53,23 +54,19 @@ void ConvolutionalLayer::initialize(const nlohmann::json& obj, const Size3& inpu
 }
 
 void ConvolutionalLayer::allocateGpuBuffers() {
-  GpuBufferFlags paramBuffersFlags = GpuBufferFlags::large
-                                   | GpuBufferFlags::hostReadAccess
-                                   | GpuBufferFlags::hostWriteAccess;
-
   size_t kernelSize = m_kernelSize[0] * m_kernelSize[1] * m_inputDepth;
   size_t featureMapSizeBytes = calcProduct(outputSize()) * sizeof(netfloat_t);
 
-  m_bufferK = m_gpu.allocateBuffer(m_depth * kernelSize * sizeof(netfloat_t), paramBuffersFlags);
-  m_bufferB = m_gpu.allocateBuffer(m_depth * sizeof(netfloat_t), paramBuffersFlags);
+  m_bufferK = m_gpu.allocateBuffer(m_depth * kernelSize * sizeof(netfloat_t),
+    GpuBufferFlags::large);
+  m_bufferB = m_gpu.allocateBuffer(m_depth * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferZ = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferA = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferD = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferInputDelta = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferDeltaK = m_gpu.allocateBuffer(m_depth * kernelSize * sizeof(netfloat_t),
-    GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
-  m_bufferDeltaB = m_gpu.allocateBuffer(m_depth * sizeof(netfloat_t),
-    GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
+    GpuBufferFlags::large);
+  m_bufferDeltaB = m_gpu.allocateBuffer(m_depth * sizeof(netfloat_t), GpuBufferFlags::large);
 
   m_gpu.submitBufferData(m_bufferK.handle, m_kernelData.data());
 
@@ -109,6 +106,8 @@ void ConvolutionalLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputDepth) }
   };
 
+  std::cout << "Creating convolutional_eval_forward shader\n";
+
   Size3 workgroupSize;
   Size3 numWorkgroups;
   optimumWorkgroups({ outputSize()[0], outputSize()[1], m_depth }, workgroupSize, numWorkgroups);
@@ -141,6 +140,8 @@ void ConvolutionalLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
   //  { SpecializationConstant::Type::float_type, m_dropoutRate }
   };
 
+  std::cout << "Creating convolutional_train_forward shader\n";
+
   Size3 workgroupSize;
   Size3 numWorkgroups;
   optimumWorkgroups({ outputSize()[0], outputSize()[1], m_depth }, workgroupSize, numWorkgroups);
@@ -159,6 +160,8 @@ void ConvolutionalLayer::createBackpropDeltaShader(const Layer* nextLayer) {
     m_bufferD.handle,
     nextLayer->inputDeltaBuffer()
   };
+
+  std::cout << "Creating convolutional_backprop_delta shader\n";
 
   Size3 workgroupSize;
   Size3 numWorkgroups;
@@ -182,9 +185,11 @@ void ConvolutionalLayer::createBackpropInputDeltaShader() {
   SpecializationConstants constants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[0]) },
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[1]) },
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[2]) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputDepth) },
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_depth) }
   };
+
+  std::cout << "Creating convolutional_backprop_input_delta shader\n";
 
   Size3 workgroupSize;
   Size3 numWorkgroups;
@@ -218,6 +223,8 @@ void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusB
     { SpecializationConstant::Type::bool_type, m_isFirstLayer }
   };
 
+  std::cout << "Creating convolutional_backprop_param_deltas shader\n";
+
   Size3 workgroupSize;
   Size3 numWorkgroups;
   optimumWorkgroups({ m_kernelSize[0] * m_kernelSize[1], m_inputDepth, m_depth },
@@ -247,6 +254,8 @@ void ConvolutionalLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) 
     { SpecializationConstant::Type::float_type, m_learnRate },
     { SpecializationConstant::Type::float_type, m_learnRateDecay }
   };
+
+  std::cout << "Creating convolutional_update_params shader\n";
 
   Size3 workgroupSize;
   Size3 numWorkgroups;

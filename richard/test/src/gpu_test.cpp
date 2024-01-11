@@ -478,10 +478,18 @@ TEST_F(GpuTest, fullConvolution) {
 
       float sum = 0.0;
       for (int k = 0; k < KERNEL_D; ++k) {
-        for (int j = max(0, kH - yIdx - 1); j < min(kH, fmH - yIdx); ++j) {
-          for (int i = max(0, kW - xIdx - 1); i < min(kW, fmW - xIdx); ++i) {
+        for (int j = 0; j < kH; ++j) {
+          for (int i = 0; i < kW; ++i) {
             const int x = xMin + xIdx + i;
             const int y = yMin + yIdx + j;
+
+            if (x < 0 || x + 1 > imW) {
+              continue;
+            }
+
+            if (y < 0 || y + 1 > imH) {
+              continue;
+            }
 
             const float pixel = readImage(arrayIndex3d(imW, imH, x, y, k));
             const uint kernelIdx = arrayIndex3d(KERNEL_W, KERNEL_H, kW - i - 1, kH - j - 1, k);
