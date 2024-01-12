@@ -53,14 +53,14 @@ shaderc_include_result* SourceIncluder::GetInclude(const char* requested_source,
     ASSERT_MSG(stream.good(), "Error opening file " << sourcePath);
 
     size_t contentLength = stream.tellg();
-    stream.seekg(0);
+    stream.seekg(0, stream.beg);
 
     char* contentBuffer = new char[contentLength];
     stream.read(contentBuffer, contentLength);
 
     size_t sourceNameLength = sourcePath.string().length();
     char* nameBuffer = new char[sourceNameLength];
-    strcpy(nameBuffer, reinterpret_cast<const char*>(sourcePath.c_str()));
+    memcpy(nameBuffer, reinterpret_cast<const char*>(sourcePath.c_str()), sourceNameLength);
 
     result->source_name = nameBuffer;
     result->source_name_length = sourceNameLength;

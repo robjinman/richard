@@ -5,11 +5,11 @@
 layout(constant_id = 3) const uint REGION_W = 1;
 layout(constant_id = 4) const uint REGION_H = 1;
 
-layout(std140, binding = 0) readonly buffer ZSsbo {
-  vec4 Z[];
+layout(std140, binding = 0) readonly buffer DeltaASsbo {
+  vec4 DeltaA[];
 };
 
-FN_READ(Z)
+FN_READ(DeltaA)
 
 layout(std140, binding = 1) readonly buffer MaskSsbo {
   vec4 Mask[];
@@ -42,12 +42,7 @@ void main() {
       const uint imgY = yIdx * REGION_H + j;
       const uint imgOffset = arrayIndex3d(imgW, imgH, imgX, imgY, zIdx);
 
-      if (readMask(imgOffset) != 0.0) {
-        writeInputDelta(imgOffset, readZ(outOffset));
-      }
-      else {
-        writeInputDelta(imgOffset, 0.0);
-      }
+      writeInputDelta(imgOffset, readDeltaA(outOffset) * readMask(imgOffset));
     }
   }
 }

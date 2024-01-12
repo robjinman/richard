@@ -116,203 +116,81 @@ TEST_F(GpuMaxPoolingLayerTest, trainForward) {
     }
   }
 }
-/*
-void cpuMaxPoolingLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
-  const Vector& inputs, const Vector& dA, Matrix& deltaW, Vector& deltaB) {
 
-  cpu::MaxPoolingLayer layer(config, inputs.size());
+void cpuMaxPoolingLayerBackprop(const nlohmann::json& config, const Array3& mask,
+  const Array3& outputDelta, Array3& inputDelta) {
 
-  layer.test_setWeights(W.storage());
-  layer.test_setBiases(B.storage());
+  cpu::MaxPoolingLayer layer(config, { 4, 4, 2 });
 
-  layer.trainForward(inputs.storage());
-  layer.updateDeltas(inputs.storage(), dA.storage());
-
-  deltaW = layer.test_deltaW();
-  deltaB = layer.test_deltaB();
+  layer.test_setMask(mask);
+  layer.updateDeltas(DataArray(), outputDelta.storage());
+  
+  inputDelta = Array3(layer.inputDelta(), 4, 4, 2);
 }
 
 TEST_F(GpuMaxPoolingLayerTest, backprop) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
 
-  GpuBufferFlags statusBufferFlags = GpuBufferFlags::frequentHostAccess
-                                   | GpuBufferFlags::hostReadAccess
-                                   | GpuBufferFlags::hostWriteAccess;
-  GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
-
-  const size_t layerInputSize = 4;
-  const size_t layerSize = 2;
-
-  size_t inputBufferSize = layerInputSize * sizeof(netfloat_t);
-
-  GpuBufferFlags inputBufferFlags = GpuBufferFlags::large
-                                  | GpuBufferFlags::hostWriteAccess;
-
-  GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
-
-  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
-  gpu->submitBufferData(inputBuffer.handle, inputs.data());
-
-  StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
-  status.epoch = 0;
-  status.sampleIndex = 0;
-
-  Vector nextDelta({ 0.2, 0.7 });
-  Matrix nextW({
-    { 0.2, 0.5 },
-    { 0.4, 0.3 }
+  Array3 mask({
+    {
+      { 0, 0, 0, 1 },
+      { 1, 0, 0, 0 },
+      { 0, 1, 0, 0 },
+      { 0, 0, 0, 1 }
+    },{
+      { 0, 1, 0, 0 },
+      { 0, 0, 1, 0 },
+      { 0, 0, 0, 1 },
+      { 1, 0, 0, 0 }
+    }
   });
 
-  Vector dA = nextW.transposeMultiply(nextDelta);
+  Array3 deltaA({
+    {
+      { 3, 6 },
+      { 4, 2 }
+    }, {
+      { 5, 1 },
+      { 9, 8 }
+    }
+  });
 
-  GpuBufferFlags bufferFlags = GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess;
+  GpuBuffer deltaABuffer = gpu->allocateBuffer(deltaA.size() * sizeof(netfloat_t),
+    GpuBufferFlags::large);
 
-  GpuBuffer nextBufferW = gpu->allocateBuffer(nextW.size() * sizeof(netfloat_t), bufferFlags);
-  GpuBuffer nextBufferD = gpu->allocateBuffer(nextDelta.size() * sizeof(netfloat_t), bufferFlags);
-
-  gpu->submitBufferData(nextBufferW.handle, nextW.data());
-  gpu->submitBufferData(nextBufferD.handle, nextDelta.data());
+  gpu->submitBufferData(deltaABuffer.handle, deltaA.data());
 
   nlohmann::json config;
-  config["size"] = layerSize;
-  config["learnRate"] = 0.1;
-  config["learnRateDecay"] = 1.0;
-  config["dropoutRate"] = 0.0;
+  config["regionSize"] = { 2, 2 };
 
-  gpu::MaxPoolingLayer layer(*gpu, config, layerInputSize, true);
-
-  Matrix W({
-    { 0.1, 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3, 0.2 }
-  });
-
-  Vector B({ 0.7, 0.8 });
+  gpu::MaxPoolingLayer layer(*gpu, config, { 4, 4, 2 });
 
   testing::NiceMock<MockGpuLayer> nextLayer;
-  ON_CALL(nextLayer, weightsBuffer).WillByDefault(testing::Return(nextBufferW.handle));
-  ON_CALL(nextLayer, deltaBuffer).WillByDefault(testing::Return(nextBufferD.handle));
-  ON_CALL(nextLayer, size).WillByDefault(testing::Return(nextDelta.size()));
-
-  layer.test_setWeights(W.storage());
-  layer.test_setBiases(B.storage());
+  ON_CALL(nextLayer, inputDeltaBuffer).WillByDefault(testing::Return(deltaABuffer.handle));
 
   layer.allocateGpuBuffers();
-  layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, &nextLayer, 0);
 
-  layer.trainForward();
+  gpu->submitBufferData(layer.test_maskBuffer(), mask.data());
+
+  layer.createGpuShaders(0, 0, &nextLayer, 0);
+
   layer.backprop();
-
   gpu->flushQueue();
 
-  Vector delta(layerSize);
-  Matrix deltaW(W.cols(), W.rows());
-  Vector deltaB(B.size());
+  Array3 inputDelta(4, 4, 2);
+  gpu->retrieveBuffer(layer.inputDeltaBuffer(), inputDelta.data());
 
-  gpu->retrieveBuffer(layer.deltaBuffer(), delta.data());
-  gpu->retrieveBuffer(layer.test_deltaWBuffer(), deltaW.data());
-  gpu->retrieveBuffer(layer.test_deltaBBuffer(), deltaB.data());
+  Array3 expectedInputDelta;
+  cpuMaxPoolingLayerBackprop(config, mask, deltaA, expectedInputDelta);
 
-  Matrix expectedDeltaW;
-  Vector expectedDeltaB;
+  EXPECT_EQ(inputDelta.shape(), expectedInputDelta.shape());
 
-  cpuMaxPoolingLayerBackprop(config, W, B, inputs, dA, expectedDeltaW, expectedDeltaB);
-
-  for (size_t j = 0; j < deltaW.rows(); ++j) {
-    for (size_t i = 0; i < deltaW.cols(); ++i) {
-      EXPECT_NEAR(deltaW.at(i, j), expectedDeltaW.at(i, j), FLOAT_TOLERANCE);
+  for (size_t k = 0; k < inputDelta.D(); ++k) {
+    for (size_t j = 0; j < inputDelta.H(); ++j) {
+      for (size_t i = 0; i < inputDelta.W(); ++i) {
+        EXPECT_NEAR(inputDelta.at(i, j, k), expectedInputDelta.at(i, j, k), FLOAT_TOLERANCE);
+      }
     }
   }
-
-  for (size_t i = 0; i < deltaB.size(); ++i) {
-    EXPECT_NEAR(deltaB[i], expectedDeltaB[i], FLOAT_TOLERANCE);
-  }
 }
-
-TEST_F(GpuMaxPoolingLayerTest, updateParams) {
-  testing::NiceMock<MockLogger> logger;
-  GpuPtr gpu = gpu::createGpu(logger);
-
-  GpuBufferFlags statusBufferFlags = GpuBufferFlags::frequentHostAccess
-                                   | GpuBufferFlags::hostReadAccess
-                                   | GpuBufferFlags::hostWriteAccess;
-  GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
-
-  const size_t layerInputSize = 4;
-  const size_t layerSize = 2;
-
-  size_t inputBufferSize = layerInputSize * sizeof(netfloat_t);
-
-  GpuBufferFlags inputBufferFlags = GpuBufferFlags::large
-                                  | GpuBufferFlags::hostWriteAccess;
-
-  GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
-
-  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
-  gpu->submitBufferData(inputBuffer.handle, inputs.data());
-
-  StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
-  status.epoch = 0;
-  status.sampleIndex = 0;
-
-  nlohmann::json config;
-  config["size"] = layerSize;
-  config["learnRate"] = 0.1;
-  config["learnRateDecay"] = 1.0;
-  config["dropoutRate"] = 0.0;
-
-  gpu::MaxPoolingLayer layer(*gpu, config, layerInputSize, true);
-
-  Matrix W({
-    { 0.1, 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3, 0.2 }
-  });
-
-  Vector B({ 0.7, 0.8 });
-
-  testing::NiceMock<MockGpuLayer> nextLayer;
-
-  layer.test_setWeights(W.storage());
-  layer.test_setBiases(B.storage());
-
-  layer.allocateGpuBuffers();
-  layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, &nextLayer, 0);
-
-  Matrix deltaW({
-    { 0.5, 0.3, 0.7, 0.1 },
-    { 0.8, 0.6, 0.2, 0.9 }
-  });
-
-  Vector deltaB({ 0.5, 0.1 });
-
-  gpu->submitBufferData(layer.test_deltaWBuffer(), deltaW.data());
-  gpu->submitBufferData(layer.test_deltaBBuffer(), deltaB.data());
-
-  layer.updateParams();
-
-  gpu->flushQueue();
-
-  layer.retrieveBuffers();
-
-  Matrix expectedW = W - deltaW * 0.1;
-  Vector expectedB = B - deltaB * 0.1;
-
-  const Matrix& actualW = layer.test_W();
-  const Vector& actualB = layer.test_B();
-
-  EXPECT_EQ(expectedW.cols(), actualW.cols());
-  EXPECT_EQ(expectedW.rows(), actualW.rows());
-
-  for (size_t j = 0; j < expectedW.rows(); ++j) {
-    for (size_t i = 0; i < expectedW.cols(); ++i) {
-      EXPECT_NEAR(actualW.at(i, j), expectedW.at(i, j), FLOAT_TOLERANCE);
-    }
-  }
-
-  EXPECT_EQ(expectedB.size(), actualB.size());
-
-  for (size_t i = 0; i < expectedB.size(); ++i) {
-    EXPECT_NEAR(actualB[i], expectedB[i], FLOAT_TOLERANCE);
-  }
-}
-*/

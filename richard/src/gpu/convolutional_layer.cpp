@@ -56,6 +56,7 @@ void ConvolutionalLayer::initialize(const nlohmann::json& obj, const Size3& inpu
 void ConvolutionalLayer::allocateGpuBuffers() {
   size_t kernelSize = m_kernelSize[0] * m_kernelSize[1] * m_inputDepth;
   size_t featureMapSizeBytes = calcProduct(outputSize()) * sizeof(netfloat_t);
+  size_t inputSizeBytes = m_inputW * m_inputH * m_inputDepth * sizeof(netfloat_t);
 
   m_bufferK = m_gpu.allocateBuffer(m_depth * kernelSize * sizeof(netfloat_t),
     GpuBufferFlags::large);
@@ -63,7 +64,7 @@ void ConvolutionalLayer::allocateGpuBuffers() {
   m_bufferZ = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferA = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
   m_bufferD = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
-  m_bufferInputDelta = m_gpu.allocateBuffer(featureMapSizeBytes, GpuBufferFlags::large);
+  m_bufferInputDelta = m_gpu.allocateBuffer(inputSizeBytes, GpuBufferFlags::large);
   m_bufferDeltaK = m_gpu.allocateBuffer(m_depth * kernelSize * sizeof(netfloat_t),
     GpuBufferFlags::large);
   m_bufferDeltaB = m_gpu.allocateBuffer(m_depth * sizeof(netfloat_t), GpuBufferFlags::large);

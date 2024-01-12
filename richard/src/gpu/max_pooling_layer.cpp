@@ -46,9 +46,9 @@ void MaxPoolingLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHan
   };
 
   GpuBufferBindings backpropBuffers{
-    m_bufferZ.handle,
+    nextLayer->inputDeltaBuffer(),
     m_bufferMask.handle,
-    nextLayer->deltaBuffer()
+    m_bufferInputDelta.handle
   };
 
   Size3 workgroupSize;

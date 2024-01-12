@@ -59,20 +59,21 @@ void main() {
       //for (int j = max(0, kH - yIdx - 1); j < min(kH, resultH - yIdx); ++j) {
       //  for (int i = max(0, kW - xIdx - 1); i < min(kW, resultW - xIdx); ++i) {
       for (uint j = 0; j < KERNEL_H; ++j) {
+        const int y = yMin + int(yIdx + j);
+        if (y < 0 || y + 1 > imH) {
+          continue;
+        }
+
         for (uint i = 0; i < KERNEL_W; ++i) {
           const int x = xMin + int(xIdx + i);
-          const int y = yMin + int(yIdx + j);
 
           if (x < 0 || x + 1 > imW) {
             continue;
           }
 
-          if (y < 0 || y + 1 > imH) {
-            continue;
-          }
-
           const float pixel = readD(arrayIndex3d(imW, imH, x, y, d));
-          const uint kernelIdx = arrayIndex3d(KERNEL_W, KERNEL_H, KERNEL_W - i - 1, KERNEL_H - j - 1, k);
+          const uint kernelIdx = arrayIndex3d(KERNEL_W, KERNEL_H, KERNEL_W - i - 1,
+            KERNEL_H - j - 1, k);
 
           sum += pixel * readK(kernelOffset + kernelIdx);
         }
