@@ -41,6 +41,12 @@ class DenseLayer : public Layer {
 
   private:
     void initialize(const nlohmann::json& obj, size_t inputSize, bool isFirstLayer);
+    void createEvalForwardShader(GpuBufferHandle inputBuffer);
+    void createTrainForwardShader(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer);
+    void createBackpropDeltaShader(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer,
+      const Layer* nextLayer);
+    void createBackpropInputDeltaShader();
+    void createUpdateParamsShader(GpuBufferHandle statusBuffer);
 
     Gpu& m_gpu;
     netfloat_t m_learnRate;
@@ -56,11 +62,13 @@ class DenseLayer : public Layer {
     GpuBuffer m_bufferZ;
     GpuBuffer m_bufferA;
     GpuBuffer m_bufferD;
+    GpuBuffer m_bufferInputDelta;
     GpuBuffer m_bufferDeltaB;
     GpuBuffer m_bufferDeltaW;
     ShaderHandle m_evalForwardShader;
     ShaderHandle m_trainForwardShader;
-    ShaderHandle m_backpropShader;
+    ShaderHandle m_backpropDeltaShader;
+    ShaderHandle m_backpropInputDeltaShader;
     ShaderHandle m_updateParamsShader;
 };
 

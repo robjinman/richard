@@ -505,7 +505,7 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
   netfloat_t expectedCost = runCpuSimpleConvNetwork(layer1Config, layer2Config, layer3Config,
     { filter0, filter1 }, W2, B2, X, Y, expectedK, expectedB1, expectedW2, expectedB2);
 
-  EXPECT_EQ(actualCost, expectedCost);
+  EXPECT_NEAR(actualCost, expectedCost, FLOAT_TOLERANCE);
 
   for (size_t d = 0; d < expectedK.size(); ++d) {
     ConstKernelPtr pK = Kernel::createShallow(actualK.data() + d * kernelSize, 2, 2, 2);

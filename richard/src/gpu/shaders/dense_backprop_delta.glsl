@@ -3,7 +3,8 @@
 #include "common.glsl"
 
 layout(constant_id = 3) const uint LAYER_NUM_INPUTS = 1;
-layout(constant_id = 4) const bool IS_FIRST_LAYER = false;
+layout(constant_id = 4) const uint NEXT_LAYER_SIZE = 1;
+layout(constant_id = 5) const bool IS_FIRST_LAYER = false;
 
 layout(std140, binding = 0) readonly buffer StatusSsbo {
   StatusBuffer Status;
@@ -77,7 +78,7 @@ void main() {
   const uint layerSize = gl_NumWorkGroups.x * gl_WorkGroupSize.x;
 
   float weightedSum = 0.0;
-  for (uint i = 0; i < layerSize; ++i) {
+  for (uint i = 0; i < NEXT_LAYER_SIZE; ++i) {
     weightedSum += readNextW(i * layerSize + index) * readNextD(i);
   }
   writeD(index, weightedSum * sigmoidPrime(readZ(index)));

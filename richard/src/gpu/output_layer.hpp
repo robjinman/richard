@@ -41,6 +41,12 @@ class OutputLayer : public Layer {
 
   private:
     void initialize(const nlohmann::json& obj, size_t inputSize);
+    void createEvalForwardShader(GpuBufferHandle inputBuffer);
+    void createTrainForwardShader(GpuBufferHandle inputBuffer);
+    void createBackpropDeltaShader(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer,
+      GpuBufferHandle sampleYBuffer);
+    void createBackpropInputDeltaShader();
+    void createUpdateParamsShader(GpuBufferHandle statusBuffer);
 
     Gpu& m_gpu;
     netfloat_t m_learnRate;
@@ -55,11 +61,13 @@ class OutputLayer : public Layer {
     GpuBuffer m_bufferZ;
     GpuBuffer m_bufferA;
     GpuBuffer m_bufferD;
+    GpuBuffer m_bufferInputDelta;
     GpuBuffer m_bufferDeltaB;
     GpuBuffer m_bufferDeltaW;
     ShaderHandle m_evalForwardShader;
     ShaderHandle m_trainForwardShader;
-    ShaderHandle m_backpropShader;
+    ShaderHandle m_backpropDeltaShader;
+    ShaderHandle m_backpropInputDeltaShader;
     ShaderHandle m_updateParamsShader;
 };
 

@@ -1,4 +1,5 @@
 #include "gpu/dense_layer.hpp"
+#include "gpu/gpu_utils.hpp"
 #include "utils.hpp"
 
 namespace richard {
@@ -36,19 +37,17 @@ void DenseLayer::initialize(const nlohmann::json& obj, size_t inputSize, bool is
 }
 
 void DenseLayer::allocateGpuBuffers() {
-  GpuBufferFlags paramBuffersFlags = GpuBufferFlags::large
-                                   | GpuBufferFlags::hostReadAccess
-                                   | GpuBufferFlags::hostWriteAccess;
-
-  m_bufferB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), paramBuffersFlags);
-  m_bufferW = m_gpu.allocateBuffer(m_inputSize * m_size * sizeof(netfloat_t), paramBuffersFlags);
+  m_bufferB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
+  m_bufferW = m_gpu.allocateBuffer(m_inputSize * m_size * sizeof(netfloat_t),
+    GpuBufferFlags::large);
   m_bufferZ = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferA = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferD = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
-  m_bufferDeltaB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t),
-    GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
+  m_bufferInputDelta = m_gpu.allocateBuffer(m_inputSize * sizeof(netfloat_t),
+    GpuBufferFlags::large);
+  m_bufferDeltaB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferDeltaW = m_gpu.allocateBuffer(m_inputSize * m_size * sizeof(netfloat_t),
-    GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
+    GpuBufferFlags::large);
 
   m_gpu.submitBufferData(m_bufferB.handle, m_B.data());
   m_gpu.submitBufferData(m_bufferW.handle, m_W.data());
@@ -65,14 +64,41 @@ void DenseLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle s
 
   DBG_ASSERT(nextLayer != nullptr);
 
-  GpuBufferBindings evalForwardBuffers{
+  createEvalForwardShader(inputBuffer);
+  createTrainForwardShader(statusBuffer, inputBuffer);
+  createBackpropDeltaShader(statusBuffer, inputBuffer, nextLayer);
+  createBackpropInputDeltaShader();
+  createUpdateParamsShader(statusBuffer);
+}
+
+void DenseLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
+  GpuBufferBindings buffers{
     inputBuffer,
     m_bufferB.handle,
     m_bufferW.handle,
     m_bufferA.handle
   };
 
-  GpuBufferBindings trainForwardBuffers{
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
+  };
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/dense_eval_forward.glsl");
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+
+  m_evalForwardShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
+}
+
+void DenseLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
+  GpuBufferHandle inputBuffer) {
+
+  GpuBufferBindings buffers{
     statusBuffer,
     inputBuffer,
     m_bufferB.handle,
@@ -81,7 +107,28 @@ void DenseLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle s
     m_bufferA.handle
   };
 
-  GpuBufferBindings backpropBuffers{
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
+    { SpecializationConstant::Type::bool_type, m_isFirstLayer },
+  //  { SpecializationConstant::Type::float_type, m_dropoutRate }
+  };
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/dense_train_forward.glsl");
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+
+  m_trainForwardShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
+}
+
+void DenseLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
+  GpuBufferHandle inputBuffer, const Layer* nextLayer) {
+
+  GpuBufferBindings buffers{
     statusBuffer,
     inputBuffer,
     m_bufferB.handle,
@@ -95,7 +142,50 @@ void DenseLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle s
     m_bufferDeltaW.handle
   };
 
-  GpuBufferBindings updateParamsBuffers{
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(nextLayer->size()) },
+    { SpecializationConstant::Type::bool_type, m_isFirstLayer },
+  };
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/dense_backprop_delta.glsl");
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+
+  m_backpropDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
+}
+
+void DenseLayer::createBackpropInputDeltaShader() {
+  GpuBufferBindings buffers{
+    m_bufferW.handle,
+    m_bufferD.handle,
+    m_bufferInputDelta.handle
+  };
+
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_size) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
+  };
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/dense_backprop_input_delta.glsl");
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ static_cast<uint32_t>(m_inputSize), 1, 1 }, workgroupSize, numWorkgroups);
+
+  m_backpropInputDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
+}
+
+void DenseLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
+  GpuBufferBindings buffers{
     statusBuffer,
     m_bufferB.handle,
     m_bufferW.handle,
@@ -103,30 +193,7 @@ void DenseLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle s
     m_bufferDeltaW.handle
   };
 
-  const size_t maxWorkgroupSize = 64; // TODO
-
-  Size3 workgroupSize{ static_cast<uint32_t>(std::min(m_size, maxWorkgroupSize)), 1, 1 };
-  Size3 numWorkgroups{ m_size / workgroupSize[0], 1, 1 };
-
-  ASSERT_MSG(workgroupSize[0] * numWorkgroups[0] == m_size,
-    "Layer size " << m_size << " is not divisible by workgroup size " << workgroupSize[0]);
-
-  SpecializationConstants evalForwardConstants{
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
-  };
-
-  SpecializationConstants trainForwardConstants{
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
-    { SpecializationConstant::Type::bool_type, m_isFirstLayer },
-  //  { SpecializationConstant::Type::float_type, m_dropoutRate }
-  };
-
-  SpecializationConstants backpropConstants{
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
-    { SpecializationConstant::Type::bool_type, m_isFirstLayer },
-  };
-
-  SpecializationConstants updateParamsConstants{
+  SpecializationConstants constants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
     { SpecializationConstant::Type::float_type, m_learnRate },
     { SpecializationConstant::Type::float_type, m_learnRateDecay },
@@ -134,19 +201,14 @@ void DenseLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle s
 
   // TODO: Remove hard-coded paths
   const std::string includesDir = "./shaders";
-  const std::string evalForwardSrc = loadFile("./shaders/dense_eval_forward.glsl");
-  const std::string trainForwardSrc = loadFile("./shaders/dense_train_forward.glsl");
-  const std::string backpropSrc = loadFile("./shaders/dense_backprop.glsl");
-  const std::string updateParamsSrc = loadFile("./shaders/dense_update_params.glsl");
+  const std::string source = loadFile("./shaders/dense_update_params.glsl");
 
-  m_evalForwardShader = m_gpu.compileShader(evalForwardSrc, evalForwardBuffers,
-    evalForwardConstants, workgroupSize, numWorkgroups, includesDir);
-  m_trainForwardShader = m_gpu.compileShader(trainForwardSrc, trainForwardBuffers,
-    trainForwardConstants, workgroupSize, numWorkgroups, includesDir);
-  m_backpropShader = m_gpu.compileShader(backpropSrc, backpropBuffers, backpropConstants,
-    workgroupSize, numWorkgroups, includesDir);
-  m_updateParamsShader = m_gpu.compileShader(updateParamsSrc, updateParamsBuffers,
-    updateParamsConstants, workgroupSize, numWorkgroups, includesDir);
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+
+  m_updateParamsShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
 }
 
 size_t DenseLayer::size() const {
@@ -166,7 +228,8 @@ void DenseLayer::trainForward() {
 }
 
 void DenseLayer::backprop() {
-  m_gpu.queueShader(m_backpropShader);
+  m_gpu.queueShader(m_backpropDeltaShader);
+  m_gpu.queueShader(m_backpropInputDeltaShader);
 }
 
 void DenseLayer::updateParams() {
@@ -186,7 +249,7 @@ GpuBufferHandle DenseLayer::deltaBuffer() const {
 }
 
 GpuBufferHandle DenseLayer::inputDeltaBuffer() const {
-  EXCEPTION("Dense layer does not expose input delta buffer");
+  return m_bufferInputDelta.handle;
 }
 
 void DenseLayer::retrieveBuffers() {

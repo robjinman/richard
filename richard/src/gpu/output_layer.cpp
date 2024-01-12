@@ -1,4 +1,5 @@
 #include "gpu/output_layer.hpp"
+#include "gpu/gpu_utils.hpp"
 #include "utils.hpp"
 
 namespace richard {
@@ -48,6 +49,8 @@ void OutputLayer::allocateGpuBuffers() {
   m_bufferZ = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferA = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), activationsBufferFlags);
   m_bufferD = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
+  m_bufferInputDelta = m_gpu.allocateBuffer(m_inputSize * sizeof(netfloat_t),
+    GpuBufferFlags::large);
   m_bufferDeltaB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t),
     GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
   m_bufferDeltaW = m_gpu.allocateBuffer(m_inputSize * m_size * sizeof(netfloat_t),
@@ -66,14 +69,39 @@ void OutputLayer::allocateGpuBuffers() {
 void OutputLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
   const Layer*, GpuBufferHandle sampleYBuffer) {
 
-  GpuBufferBindings evalForwardBuffers{
+  createEvalForwardShader(inputBuffer);
+  createTrainForwardShader(inputBuffer);
+  createBackpropDeltaShader(statusBuffer, inputBuffer, sampleYBuffer);
+  createBackpropInputDeltaShader();
+  createUpdateParamsShader(statusBuffer);
+}
+
+void OutputLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
+  GpuBufferBindings buffers{
     inputBuffer,
     m_bufferB.handle,
     m_bufferW.handle,
     m_bufferA.handle
   };
 
-  GpuBufferBindings trainForwardBuffers{
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
+  };
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/output_eval_forward.glsl");
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+
+  m_evalForwardShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
+}
+
+void OutputLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
+  GpuBufferBindings buffers{
     inputBuffer,
     m_bufferB.handle,
     m_bufferW.handle,
@@ -81,7 +109,26 @@ void OutputLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle 
     m_bufferA.handle
   };
 
-  GpuBufferBindings backpropBuffers{
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
+  };
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/output_train_forward.glsl");
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+
+  m_trainForwardShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
+}
+
+void OutputLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
+  GpuBufferHandle inputBuffer, GpuBufferHandle sampleYBuffer) {
+
+  GpuBufferBindings buffers{
     statusBuffer,
     inputBuffer,
     sampleYBuffer,
@@ -94,7 +141,48 @@ void OutputLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle 
     m_bufferDeltaW.handle
   };
 
-  GpuBufferBindings updateParamsBuffers{
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
+  };
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/output_backprop_delta.glsl");
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+
+  m_backpropDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
+}
+
+void OutputLayer::createBackpropInputDeltaShader() {
+  GpuBufferBindings buffers{
+    m_bufferW.handle,
+    m_bufferD.handle,
+    m_bufferInputDelta.handle
+  };
+
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_size) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
+  };
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/dense_backprop_input_delta.glsl");
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ static_cast<uint32_t>(m_inputSize), 1, 1 }, workgroupSize, numWorkgroups);
+
+  m_backpropInputDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
+}
+
+void OutputLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
+  GpuBufferBindings buffers{
     statusBuffer,
     m_bufferB.handle,
     m_bufferW.handle,
@@ -102,27 +190,7 @@ void OutputLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle 
     m_bufferDeltaW.handle
   };
 
-  const size_t maxWorkgroupSize = 64; // TODO
-
-  Size3 workgroupSize{ static_cast<uint32_t>(std::min(m_size, maxWorkgroupSize)), 1, 1 };
-  Size3 numWorkgroups{ m_size / workgroupSize[0], 1, 1 };
-
-  ASSERT_MSG(workgroupSize[0] * numWorkgroups[0] == m_size,
-    "Layer size " << m_size << " is not divisible by workgroup size " << workgroupSize[0]);
-
-  SpecializationConstants evalForwardConstants{
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
-  };
-
-  SpecializationConstants trainForwardConstants{
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
-  };
-
-  SpecializationConstants backpropConstants{
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
-  };
-
-  SpecializationConstants updateParamsConstants{
+  SpecializationConstants constants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
     { SpecializationConstant::Type::float_type, m_learnRate },
     { SpecializationConstant::Type::float_type, m_learnRateDecay },
@@ -130,19 +198,14 @@ void OutputLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle 
 
   // TODO: Remove hard-coded paths
   const std::string includesDir = "./shaders";
-  const std::string evalForwardSrc = loadFile("./shaders/output_eval_forward.glsl");
-  const std::string trainForwardSrc = loadFile("./shaders/output_train_forward.glsl");
-  const std::string backpropSrc = loadFile("./shaders/output_backprop.glsl");
-  const std::string updateParamsSrc = loadFile("./shaders/dense_update_params.glsl");
+  const std::string source = loadFile("./shaders/dense_update_params.glsl");
 
-  m_evalForwardShader = m_gpu.compileShader(evalForwardSrc, evalForwardBuffers,
-    evalForwardConstants, workgroupSize, numWorkgroups, includesDir);
-  m_trainForwardShader = m_gpu.compileShader(trainForwardSrc, trainForwardBuffers,
-    trainForwardConstants, workgroupSize, numWorkgroups, includesDir);
-  m_backpropShader = m_gpu.compileShader(backpropSrc, backpropBuffers, backpropConstants,
-    workgroupSize, numWorkgroups, includesDir);
-  m_updateParamsShader = m_gpu.compileShader(updateParamsSrc, updateParamsBuffers,
-    updateParamsConstants, workgroupSize, numWorkgroups, includesDir);
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+
+  m_updateParamsShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
+    numWorkgroups, includesDir);
 }
 
 size_t OutputLayer::size() const {
@@ -167,7 +230,8 @@ void OutputLayer::trainForward() {
 }
 
 void OutputLayer::backprop() {
-  m_gpu.queueShader(m_backpropShader);
+  m_gpu.queueShader(m_backpropDeltaShader);
+  m_gpu.queueShader(m_backpropInputDeltaShader);
 }
 
 void OutputLayer::updateParams() {
@@ -187,7 +251,7 @@ GpuBufferHandle OutputLayer::deltaBuffer() const {
 }
 
 GpuBufferHandle OutputLayer::inputDeltaBuffer() const {
-  EXCEPTION("Output layer does not expose input delta buffer");
+  return m_bufferInputDelta.handle;
 }
 
 void OutputLayer::retrieveBuffers() {
