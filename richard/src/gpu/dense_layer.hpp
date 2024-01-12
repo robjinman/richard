@@ -34,7 +34,6 @@ class DenseLayer : public Layer {
     //
     void test_setWeights(const DataArray& W);
     void test_setBiases(const DataArray& B);
-    GpuBufferHandle test_activationsBuffer() const;
     GpuBufferHandle test_deltaWBuffer() const;
     GpuBufferHandle test_deltaBBuffer() const;
     const Matrix& test_W() const;

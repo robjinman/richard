@@ -122,7 +122,7 @@ GpuBufferHandle MaxPoolingLayer::inputDeltaBuffer() const {
   return m_bufferInputDelta.handle;
 }
 
-GpuBufferHandle MaxPoolingLayer::maskBuffer() const {
+GpuBufferHandle MaxPoolingLayer::test_maskBuffer() const {
   return m_bufferMask.handle;
 }
 

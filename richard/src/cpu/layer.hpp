@@ -33,7 +33,7 @@ const ActivationFn reluPrime = [](netfloat_t x) {
 const CostDerivativesFn quadraticCostDerivatives = [](const Vector& actual,
   const Vector& expected) {
 
-  ASSERT(actual.size() == expected.size());
+  DBG_ASSERT(actual.size() == expected.size());
   return actual - expected;
 };
 

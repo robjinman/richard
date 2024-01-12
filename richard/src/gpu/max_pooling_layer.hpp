@@ -20,7 +20,6 @@ class MaxPoolingLayer : public Layer {
     GpuBufferHandle weightsBuffer() const override;
     GpuBufferHandle deltaBuffer() const override;
     GpuBufferHandle inputDeltaBuffer() const override;
-    GpuBufferHandle maskBuffer() const;
     void retrieveBuffers() override;
     Size3 outputSize() const override;
     void evalForward() override;
@@ -28,6 +27,10 @@ class MaxPoolingLayer : public Layer {
     void backprop() override;
     void updateParams() override;
     void writeToStream(std::ostream& stream) const override;
+
+    // Exposed for testing
+    //
+    GpuBufferHandle test_maskBuffer() const;
 
   private:
     Gpu& m_gpu;

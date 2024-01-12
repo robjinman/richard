@@ -17,7 +17,7 @@ namespace richard {
 namespace cpu {
 namespace {
 
-const NeuralNet::CostFn quadradicCost = [](const Vector& actual, const Vector& expected) {
+const NeuralNet::CostFn quadraticCost = [](const Vector& actual, const Vector& expected) {
   DBG_ASSERT(actual.size() == expected.size());
   return (expected - actual).squareMagnitude() * 0.5;
 };
@@ -129,7 +129,7 @@ void CpuNeuralNetImpl::abort() {
 }
 
 NeuralNet::CostFn CpuNeuralNetImpl::costFn() const {
-  return quadradicCost;
+  return quadraticCost;
 }
 
 void CpuNeuralNetImpl::writeToStream(std::ostream& stream) const {
@@ -153,7 +153,7 @@ netfloat_t CpuNeuralNetImpl::feedForward(const Array3& x, const Vector& y) {
 
   ConstVectorPtr outputs = Vector::createShallow(*A);
 
-  return quadradicCost(*outputs, y);
+  return quadraticCost(*outputs, y);
 }
 
 void CpuNeuralNetImpl::backPropagate(const Array3& x, const Vector& y) {

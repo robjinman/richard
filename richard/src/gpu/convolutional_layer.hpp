@@ -35,7 +35,6 @@ class ConvolutionalLayer : public Layer {
     //
     void test_setKernels(const DataArray& kernelData);
     void test_setBiases(const DataArray& biasData);
-    GpuBufferHandle test_activationsBuffer() const;
     GpuBufferHandle test_deltaKBuffer() const;
     GpuBufferHandle test_deltaBBuffer() const;
     const DataArray& test_kernels() const;

@@ -208,10 +208,6 @@ void DenseLayer::test_setBiases(const DataArray& B) {
   m_B = B;
 }
 
-GpuBufferHandle DenseLayer::test_activationsBuffer() const {
-  return m_bufferA.handle;
-}
-
 GpuBufferHandle DenseLayer::test_deltaWBuffer() const {
   return m_bufferDeltaW.handle;
 }

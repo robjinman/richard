@@ -34,8 +34,6 @@ void main() {
   const uint imgW = outW * REGION_W;
   const uint imgH = outH * REGION_H;
 
-  const uint outOffset = arrayIndex3d(outW, outH, xIdx, yIdx, zIdx);
-
   float largest = FLOAT_LOWEST;
   uint largestX = 0;
   uint largestY = 0;
@@ -58,6 +56,7 @@ void main() {
     }
   }
 
+  const uint outOffset = arrayIndex3d(outW, outH, xIdx, yIdx, zIdx);
   const uint imgOffset = arrayIndex3d(imgW, imgH, largestX, largestY, zIdx);
 
   writeMask(imgOffset, 1.0);

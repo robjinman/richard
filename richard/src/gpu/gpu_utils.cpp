@@ -1,7 +1,7 @@
 #include "gpu/gpu_utils.hpp"
 #include "utils.hpp"
 #include "exception.hpp"
-#include <iostream> // TODO
+//#include <iostream> // TODO
 
 namespace richard {
 namespace gpu {
@@ -28,10 +28,10 @@ size_t lowestDivisor(size_t value) {
   return value;
 }
 
-std::ostream& operator<<(std::ostream& os, const Size3& size) {
-  os << size[0] << ", " << size[1] << ", " << size[2];
-  return os;
-}
+//std::ostream& operator<<(std::ostream& os, const Size3& size) {
+//  os << size[0] << ", " << size[1] << ", " << size[2];
+//  return os;
+//}
 
 }
 
@@ -41,9 +41,9 @@ void optimumWorkgroups(const Size3& workSize, Size3& workgroupSize, Size3& numWo
   workgroupSize = workSize;
   numWorkgroups = { 1, 1, 1 };
 
-  std::cout << "Calculating optimum workgroups\n";
-  std::cout << "Work size: " << workSize << "\n";
-  std::cout << "Total: " << calcProduct(workSize) << "\n";
+  //std::cout << "Calculating optimum workgroups\n";
+  //std::cout << "Work size: " << workSize << "\n";
+  //std::cout << "Total: " << calcProduct(workSize) << "\n";
 
   while (calcProduct(workgroupSize) > maxWorkgroupSize) {
     size_t largest = 0;
@@ -55,9 +55,9 @@ void optimumWorkgroups(const Size3& workSize, Size3& workgroupSize, Size3& numWo
     numWorkgroups[i] *= scale;
   }
 
-  std::cout << "Workgroup size: " << workgroupSize << "\n";
-  std::cout << "Total: " << calcProduct(workgroupSize) << "\n";
-  std::cout << "Workgroups: " << numWorkgroups << "\n\n";
+  //std::cout << "Workgroup size: " << workgroupSize << "\n";
+  //std::cout << "Total: " << calcProduct(workgroupSize) << "\n";
+  //std::cout << "Workgroups: " << numWorkgroups << "\n\n";
 
   ASSERT_MSG(workgroupSize[0] * numWorkgroups[0] == workSize[0],
     "Work size " << workSize[0] << " is not divisible by workgroup size " << workgroupSize[0]);

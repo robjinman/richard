@@ -1,8 +1,12 @@
 #include "mock_logger.hpp"
 #include <utils.hpp>
 #include <cpu/dense_layer.hpp>
+#include <cpu/convolutional_layer.hpp>
+#include <cpu/max_pooling_layer.hpp>
 #include <cpu/output_layer.hpp>
 #include <gpu/dense_layer.hpp>
+#include <gpu/convolutional_layer.hpp>
+#include <gpu/max_pooling_layer.hpp>
 #include <gpu/output_layer.hpp>
 #include <gpu/gpu.hpp>
 #include <gtest/gtest.h>
@@ -15,6 +19,10 @@ using richard::gpu::GpuBufferFlags;
 
 const double FLOAT_TOLERANCE = 0.0001;
 
+const auto quadraticCost = [](const Vector& actual, const Vector& expected) {
+  return (expected - actual).squareMagnitude() * 0.5;
+};
+
 struct StatusBuffer {
   uint32_t epoch;
   uint32_t sampleIndex;
@@ -26,7 +34,7 @@ class GpuNeuralNetTest : public testing::Test {
     virtual void TearDown() override {}
 };
 
-void runCpuNetwork(const nlohmann::json& denseConfig, const nlohmann::json& outputConfig,
+void runCpuSimpleDenseNetwork(const nlohmann::json& denseConfig, const nlohmann::json& outputConfig,
   const Matrix& W1, const Vector& B1, const Matrix& W2, const Vector& B2,
   const std::vector<Vector>& X, const std::vector<Vector>& Y, Matrix& finalW1, Vector& finalB1,
   Matrix& finalW2, Vector& finalB2) {
@@ -63,7 +71,7 @@ void runCpuNetwork(const nlohmann::json& denseConfig, const nlohmann::json& outp
   finalB2 = layer2.test_B();
 }
 
-TEST_F(GpuNeuralNetTest, simpleNetwork) {
+TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
 
@@ -202,7 +210,7 @@ TEST_F(GpuNeuralNetTest, simpleNetwork) {
   Matrix expectedW2;
   Vector expectedB2;
 
-  runCpuNetwork(layer1Config, layer2Config, W1, B1, W2, B2, X, Y, expectedW1, expectedB1,
+  runCpuSimpleDenseNetwork(layer1Config, layer2Config, W1, B1, W2, B2, X, Y, expectedW1, expectedB1,
     expectedW2, expectedB2);
 
   EXPECT_EQ(expectedW1.cols(), finalW1.cols());
@@ -233,5 +241,299 @@ TEST_F(GpuNeuralNetTest, simpleNetwork) {
 
   for (size_t i = 0; i < expectedB2.size(); ++i) {
     EXPECT_NEAR(finalB2[i], expectedB2[i], FLOAT_TOLERANCE);
+  }
+}
+
+netfloat_t runCpuSimpleConvNetwork(const nlohmann::json& config1, const nlohmann::json& config2,
+  const nlohmann::json& config3, const std::vector<cpu::ConvolutionalLayer::Filter>& filters,
+  const Matrix& W2, const Vector& B2, const std::vector<Array3>& X, const std::vector<Vector>& Y,
+  std::vector<Kernel>& finalK, Vector& finalB1, Matrix& finalW2, Vector& finalB2) {
+
+  cpu::ConvolutionalLayer layer1(config1, { 3, 3, 2 });
+  cpu::MaxPoolingLayer layer2(config2, { 2, 2, 2 });
+  cpu::OutputLayer layer3(config3, calcProduct(layer2.outputSize()));
+
+  layer1.test_setFilters(filters);
+
+  layer3.test_setWeights(W2.storage());
+  layer3.test_setBiases(B2.storage());
+
+  netfloat_t cost = 0.0;
+
+  for (size_t i = 0; i < X.size(); ++i) {
+    const Array3& x = X[i];
+    const Vector& y = Y[i];
+
+    layer1.trainForward(x.storage());
+    layer2.trainForward(layer1.activations());
+    layer3.trainForward(layer2.activations());
+
+    cost += quadraticCost(layer3.activations(), y);
+    std::cout << layer3.activations();
+
+    layer3.updateDeltas(layer2.activations(), y.storage());
+    layer2.updateDeltas(layer1.activations(), layer3.inputDelta());
+    layer1.updateDeltas(x.storage(), layer2.inputDelta());
+
+    layer1.updateParams(0);
+    layer2.updateParams(0);
+    layer3.updateParams(0);
+  }
+
+  cost /= X.size();
+
+  const auto& finalFilters = layer1.test_filters();
+
+  finalB1 = Vector(finalFilters.size());
+
+  for (size_t i = 0; i < finalFilters.size(); ++i) {
+    finalK.push_back(finalFilters[i].K);
+    finalB1[i] = finalFilters[i].b;
+  }
+
+  finalW2 = layer3.test_W();
+  finalB2 = layer3.test_B();
+
+  return cost;
+}
+
+TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
+  testing::NiceMock<MockLogger> logger;
+  GpuPtr gpu = gpu::createGpu(logger);
+
+  GpuBufferFlags statusBufferFlags = GpuBufferFlags::frequentHostAccess
+                                   | GpuBufferFlags::hostReadAccess
+                                   | GpuBufferFlags::hostWriteAccess;
+  GpuBuffer statusBuffer = gpu->allocateBuffer(sizeof(StatusBuffer), statusBufferFlags);
+
+  const size_t miniBatchSize = 1;
+  const size_t outputLayerSize = 2;
+
+  std::vector<Array3> X{
+    Array3{{
+      { 0.7, 0.1, 0.3 },
+      { 0.8, 0.6, 0.2 },
+      { 0.2, 0.9, 0.5 }
+    }, {
+      { 0.8, 0.5, 0.4 },
+      { 0.9, 0.1, 0.2 },
+      { 0.5, 0.8, 0.6 }
+    }},/*
+    Array3{{
+      { 0.1, 0.8, 0.6 },
+      { 0.5, 0.4, 0.1 },
+      { 0.2, 0.5, 0.7 }
+    }, {
+      { 0.3, 0.5, 0.2 },
+      { 0.8, 0.1, 0.6 },
+      { 0.1, 0.8, 0.4 }
+    }},
+    Array3{{
+      { 0.2, 0.3, 0.5 },
+      { 0.4, 0.8, 0.2 },
+      { 0.1, 0.7, 0.2 }
+    }, {
+      { 0.9, 0.2, 0.1 },
+      { 0.2, 0.3, 0.1 },
+      { 0.4, 0.6, 0.5 }
+    }}*/
+  };
+  std::vector<Vector> Y{
+    Vector{ 1.0, 0.0 },
+    //Vector{ 0.0, 1.0 },
+    //Vector{ 1.0, 0.0 }
+  };
+
+  Size3 inputShape{ 3, 3, 2 };
+  size_t inputSize = calcProduct(inputShape);
+
+  size_t bufferXSize = miniBatchSize * inputSize * sizeof(netfloat_t);
+  size_t bufferYSize = miniBatchSize * outputLayerSize * sizeof(netfloat_t);
+
+  GpuBufferFlags bufferXFlags = GpuBufferFlags::frequentHostAccess
+                              | GpuBufferFlags::large
+                              | GpuBufferFlags::hostWriteAccess;
+
+  GpuBuffer bufferX = gpu->allocateBuffer(bufferXSize, bufferXFlags);
+
+  GpuBufferFlags bufferYFlags = GpuBufferFlags::frequentHostAccess
+                              | GpuBufferFlags::large
+                              | GpuBufferFlags::hostWriteAccess;
+
+  GpuBuffer bufferY = gpu->allocateBuffer(bufferYSize, bufferYFlags);
+
+  StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
+  status.epoch = 0;
+  status.sampleIndex = 0;
+
+  nlohmann::json layer1Config;
+  layer1Config["depth"] = 2;
+  layer1Config["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
+  layer1Config["learnRate"] = 0.1;
+  layer1Config["learnRateDecay"] = 1.0;
+  layer1Config["dropoutRate"] = 0.0;
+
+  nlohmann::json layer2Config;
+  layer2Config["regionSize"] = std::array<size_t, 2>({ 2, 2 });
+
+  nlohmann::json layer3Config;
+  layer3Config["size"] = 2;
+  layer3Config["learnRate"] = 0.1;
+  layer3Config["learnRateDecay"] = 1.0;
+
+  gpu::ConvolutionalLayer layer1(*gpu, layer1Config, { 3, 3, 2 }, true);
+  gpu::MaxPoolingLayer layer2(*gpu, layer2Config, { 2, 2, 2 });
+  gpu::OutputLayer layer3(*gpu, layer3Config, 2);
+
+  cpu::ConvolutionalLayer::Filter filter0;
+  filter0.K = Kernel({
+    {
+      { 0.5, 0.3 },
+      { 0.1, 0.2 }
+    }, {
+      { 0.8, 0.4 },
+      { 0.5, 0.3 }
+    }
+  });
+  filter0.b = 0.7;
+
+  cpu::ConvolutionalLayer::Filter filter1;
+  filter1.K = Kernel({
+    {
+      { 0.2, 0.4 },
+      { 0.5, 0.6 }
+    }, {
+      { 0.4, 0.1 },
+      { 0.2, 0.9 }
+    }
+  });
+  filter1.b = 0.3;
+
+  size_t kernelSize = 2 * 2 * 2;
+
+  DataArray K = DataArray::concat({ filter0.K.storage(), filter1.K.storage() });
+  Vector biasData{ filter0.b, filter1.b };
+
+  layer1.test_setKernels(K);
+  layer1.test_setBiases(biasData.storage());
+
+  Matrix W2({
+    { 0.8, 0.3, 0.1 },
+    { 0.9, 0.4, 0.5 }
+  });
+
+  Vector B2({ 0.4, 0.2 });
+
+  layer3.test_setWeights(W2.storage());
+  layer3.test_setBiases(B2.storage());
+
+  layer1.allocateGpuBuffers();
+  layer2.allocateGpuBuffers();
+  layer3.allocateGpuBuffers();
+
+  layer1.createGpuShaders(bufferX.handle, statusBuffer.handle, &layer2, bufferY.handle);
+  layer2.createGpuShaders(layer1.outputBuffer(), statusBuffer.handle, &layer3, bufferY.handle);
+  layer3.createGpuShaders(layer2.outputBuffer(), statusBuffer.handle, nullptr, bufferY.handle);
+
+  const std::string shaderIncludesDir = "./shaders";
+  const std::string computeCostsSrc = loadFile("./shaders/compute_costs.glsl");
+
+  GpuBufferFlags costsBufferFlags = GpuBufferFlags::frequentHostAccess
+                                  | GpuBufferFlags::large
+                                  | GpuBufferFlags::hostReadAccess;
+
+  GpuBuffer costsBuffer = gpu->allocateBuffer(outputLayerSize * sizeof(netfloat_t),
+    costsBufferFlags);
+
+  gpu::GpuBufferBindings computeCostsBuffers{
+    statusBuffer.handle,
+    layer3.outputBuffer(),
+    bufferY.handle,
+    costsBuffer.handle
+  };
+
+  gpu::SpecializationConstants computeCostsConstants{
+    { gpu::SpecializationConstant::Type::uint_type, static_cast<uint32_t>(miniBatchSize) }
+  };
+
+  gpu::ShaderHandle computeCostsShader = gpu->compileShader(computeCostsSrc, computeCostsBuffers,
+    computeCostsConstants, { static_cast<uint32_t>(outputLayerSize), 1, 1 }, { 1, 1, 1 },
+    shaderIncludesDir);
+
+  for (size_t i = 0; i < X.size(); ++i) {
+    memcpy(bufferX.data, X[i].data(), inputSize * sizeof(netfloat_t));
+    memcpy(bufferY.data, Y[i].data(), outputLayerSize * sizeof(netfloat_t));
+
+    layer1.trainForward();
+    layer2.trainForward();
+    layer3.trainForward();
+
+    layer3.backprop();
+    layer2.backprop();
+    layer1.backprop();
+
+    gpu->queueShader(computeCostsShader);
+
+    layer1.updateParams();
+    layer2.updateParams();
+    layer3.updateParams();
+
+    gpu->flushQueue();
+  }
+
+  layer1.retrieveBuffers();
+  layer2.retrieveBuffers();
+  layer3.retrieveBuffers();
+
+  const DataArray& actualK = layer1.test_kernels();
+  const Vector& actualB1 = layer1.test_biases();
+
+  const Matrix& actualW2 = layer3.test_W();
+  const Vector& actualB2 = layer3.test_B();
+
+  netfloat_t actualCost = 0.0;
+  for (size_t i = 0; i < outputLayerSize; ++i) {
+    actualCost += reinterpret_cast<const netfloat_t*>(costsBuffer.data)[i];
+  }
+  actualCost /= X.size();
+
+  std::vector<Kernel> expectedK;
+  Vector expectedB1;
+  Matrix expectedW2;
+  Vector expectedB2;
+
+  netfloat_t expectedCost = runCpuSimpleConvNetwork(layer1Config, layer2Config, layer3Config,
+    { filter0, filter1 }, W2, B2, X, Y, expectedK, expectedB1, expectedW2, expectedB2);
+
+  EXPECT_EQ(actualCost, expectedCost);
+
+  for (size_t d = 0; d < expectedK.size(); ++d) {
+    ConstKernelPtr pK = Kernel::createShallow(actualK.data() + d * kernelSize, 2, 2, 2);
+    const Kernel& K = *pK;
+
+    for (size_t k = 0; k < K.D(); ++k) {
+      for (size_t j = 0; j < K.H(); ++j) {
+        for (size_t i = 0; i < K.W(); ++i) {
+          EXPECT_NEAR(K.at(i, j, k), expectedK[d].at(i, j, k), FLOAT_TOLERANCE);
+        }
+      }
+    }
+
+    EXPECT_NEAR(actualB1[d], expectedB1[d], FLOAT_TOLERANCE);
+  }
+
+  EXPECT_EQ(expectedW2.cols(), actualW2.cols());
+  EXPECT_EQ(expectedW2.rows(), actualW2.rows());
+
+  for (size_t j = 0; j < expectedW2.rows(); ++j) {
+    for (size_t i = 0; i < expectedW2.cols(); ++i) {
+      EXPECT_NEAR(actualW2.at(i, j), expectedW2.at(i, j), FLOAT_TOLERANCE);
+    }
+  }
+
+  EXPECT_EQ(actualB2.size(), expectedB2.size());
+
+  for (size_t i = 0; i < expectedB2.size(); ++i) {
+    EXPECT_NEAR(actualB2[i], expectedB2[i], FLOAT_TOLERANCE);
   }
 }

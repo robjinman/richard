@@ -120,7 +120,7 @@ TEST_F(GpuConvolutionalLayerTest, trainForward) {
   gpu->flushQueue();
 
   Array3 A(layer.outputSize());
-  gpu->retrieveBuffer(layer.test_activationsBuffer(), A.data());
+  gpu->retrieveBuffer(layer.outputBuffer(), A.data());
 
   Array3 expectedA(cpuConvolutionalLayerTrainForward(config, { filter0, filter1 }, inputs),
     layer.outputSize());
@@ -282,9 +282,7 @@ TEST_F(GpuConvolutionalLayerTest, backprop) {
       }
     }
 
-    for (size_t i = 0; i < expectedDeltaB.size(); ++i) {
-      EXPECT_NEAR(deltaB[i], expectedDeltaB[i], FLOAT_TOLERANCE);
-    }
+    EXPECT_NEAR(deltaB[d], expectedDeltaB[d], FLOAT_TOLERANCE);
   }
 }
 
@@ -315,21 +313,21 @@ TEST_F(GpuConvolutionalLayerTest, updateParams) {
 
   Kernel K1{
     {
-      { 5, 3 },
-      { 1, 2 }
+      { 0.5, 0.3 },
+      { 0.1, 0.2 }
     }, {
-      { 8, 4 },
-      { 5, 3 }
+      { 0.8, 0.4 },
+      { 0.5, 0.3 }
     }
   };
 
   Kernel K2{
     {
-      { 2, 4 },
-      { 5, 6 }
+      { 0.2, 0.4 },
+      { 0.5, 0.6 }
     }, {
-      { 4, 1 },
-      { 2, 9 }
+      { 0.4, 0.1 },
+      { 0.2, 0.9 }
     }
   };
 
@@ -346,21 +344,21 @@ TEST_F(GpuConvolutionalLayerTest, updateParams) {
 
   Kernel deltaK1{
     {
-      { 1, 2 },
-      { 6, 4 }
+      { 0.1, 0.2 },
+      { 0.6, 0.4 }
     }, {
-      { 8, 7 },
-      { 5, 8 }
+      { 0.8, 0.7 },
+      { 0.5, 0.8 }
     }
   };
 
   Kernel deltaK2{
     {
-      { 1, 5 },
-      { 9, 7 }
+      { 0.1, 0.5 },
+      { 0.9, 0.7 }
     }, {
-      { 3, 2 },
-      { 3, 6 }
+      { 0.3, 0.2 },
+      { 0.3, 0.6 }
     }
   };
 
