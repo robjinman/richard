@@ -44,7 +44,12 @@ void ConvolutionalLayer::initialize(const nlohmann::json& obj, const Size3& inpu
   m_kernelData = Vector(m_kernelSize[0] * m_kernelSize[1] * m_inputDepth * m_depth);
   m_biasData = Vector(m_depth);
 
-  m_kernelData.randomize(0.1);
+  Size3 kernelShape{ m_kernelSize[0], m_kernelSize[1], m_inputDepth };
+  size_t kernelSize = calcProduct(kernelShape);
+  for (size_t i = 0; i < m_depth; ++i) {
+    KernelPtr kernel = Kernel::createShallow(m_kernelData.data() + i * kernelSize, kernelShape);
+    kernel->randomize(0.1);
+  }
 
   ASSERT_MSG(m_kernelSize[0] <= m_inputW,
     "Kernel width " << m_kernelSize[0] << " is larger than input width " << m_inputW);
