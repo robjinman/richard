@@ -680,6 +680,8 @@ VkShaderModule Vulkan::createShaderModule(const std::string& source,
 
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
+  options.SetOptimizationLevel(shaderc_optimization_level_performance);
+  options.SetWarningsAsErrors();
 
   if (!includesPath.empty()) {
     options.SetIncluder(std::make_unique<SourceIncluder>(includesPath));
