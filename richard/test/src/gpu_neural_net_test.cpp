@@ -17,7 +17,7 @@ using richard::gpu::GpuPtr;
 using richard::gpu::GpuBuffer;
 using richard::gpu::GpuBufferFlags;
 
-const double FLOAT_TOLERANCE = 0.0001;
+const double FLOAT_TOLERANCE = 0.000001;
 
 const auto quadraticCost = [](const Vector& actual, const Vector& expected) {
   return (expected - actual).squareMagnitude() * 0.5;
@@ -269,7 +269,6 @@ netfloat_t runCpuSimpleConvNetwork(const nlohmann::json& config1, const nlohmann
     layer3.trainForward(layer2.activations());
 
     cost += quadraticCost(layer3.activations(), y);
-    std::cout << layer3.activations();
 
     layer3.updateDeltas(layer2.activations(), y.storage());
     layer2.updateDeltas(layer1.activations(), layer3.inputDelta());
@@ -318,7 +317,7 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
       { 0.8, 0.5, 0.4 },
       { 0.9, 0.1, 0.2 },
       { 0.5, 0.8, 0.6 }
-    }},/*
+    }},
     Array3{{
       { 0.1, 0.8, 0.6 },
       { 0.5, 0.4, 0.1 },
@@ -336,12 +335,12 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
       { 0.9, 0.2, 0.1 },
       { 0.2, 0.3, 0.1 },
       { 0.4, 0.6, 0.5 }
-    }}*/
+    }}
   };
   std::vector<Vector> Y{
     Vector{ 1.0, 0.0 },
-    //Vector{ 0.0, 1.0 },
-    //Vector{ 1.0, 0.0 }
+    Vector{ 0.0, 1.0 },
+    Vector{ 1.0, 0.0 }
   };
 
   Size3 inputShape{ 3, 3, 2 };
@@ -418,8 +417,8 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
   layer1.test_setBiases(biasData.storage());
 
   Matrix W2({
-    { 0.8, 0.3, 0.1 },
-    { 0.9, 0.4, 0.5 }
+    { 0.8, 0.3 },
+    { 0.9, 0.4 }
   });
 
   Vector B2({ 0.4, 0.2 });

@@ -37,17 +37,21 @@ void DenseLayer::initialize(const nlohmann::json& obj, size_t inputSize, bool is
 }
 
 void DenseLayer::allocateGpuBuffers() {
-  m_bufferB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
+  GpuBufferFlags paramBuffersFlags = GpuBufferFlags::large
+                                   | GpuBufferFlags::hostReadAccess
+                                   | GpuBufferFlags::hostWriteAccess;
+
+  m_bufferB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), paramBuffersFlags);
   m_bufferW = m_gpu.allocateBuffer(m_inputSize * m_size * sizeof(netfloat_t),
-    GpuBufferFlags::large);
+    paramBuffersFlags);
   m_bufferZ = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferA = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferD = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferInputDelta = m_gpu.allocateBuffer(m_inputSize * sizeof(netfloat_t),
-    GpuBufferFlags::large);
+    GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
   m_bufferDeltaB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferDeltaW = m_gpu.allocateBuffer(m_inputSize * m_size * sizeof(netfloat_t),
-    GpuBufferFlags::large);
+    GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
 
   m_gpu.submitBufferData(m_bufferB.handle, m_B.data());
   m_gpu.submitBufferData(m_bufferW.handle, m_W.data());
