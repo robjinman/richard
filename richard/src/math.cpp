@@ -9,6 +9,8 @@
 namespace richard {
 namespace {
 
+const size_t FLOAT_PRECISION = 10;
+
 bool arraysEqual(const netfloat_t* A, const netfloat_t* B, size_t size) {
   for (size_t i = 0; i < size; ++i) {
     if (A[i] != B[i]) {
@@ -121,7 +123,7 @@ DataArray DataArray::concat(const std::vector<std::reference_wrapper<DataArray>>
 std::ostream& operator<<(std::ostream& os, const DataArray& v) {
   os << "[ ";
   for (size_t i = 0; i < v.size(); ++i) {
-    os << v[i] << " ";
+    os << std::fixed << std::setprecision(FLOAT_PRECISION) << v[i] << " ";
   }
   os << "]" << std::endl;
 
@@ -417,7 +419,7 @@ ConstVectorPtr Vector::createShallow(const netfloat_t* data, size_t size) {
 std::ostream& operator<<(std::ostream& os, const Vector& v) {
   os << "[ ";
   for (size_t i = 0; i < v.size(); ++i) {
-    os << v[i] << " ";
+    os << std::fixed << std::setprecision(FLOAT_PRECISION) << v[i] << " ";
   }
   os << "]" << std::endl;
 
@@ -757,7 +759,7 @@ std::ostream& operator<<(std::ostream& os, const Matrix& m) {
       os << "  ";
     }
     for (size_t i = 0; i < m.cols(); ++i) {
-      os << m.at(i, j) << " ";
+      os << std::fixed << std::setprecision(FLOAT_PRECISION) << m.at(i, j) << " ";
     }
     if (j + 1 == m.rows()) {
       os << "]";
@@ -1180,7 +1182,7 @@ std::ostream& operator<<(std::ostream& os, const Kernel& k) {
     os << "[ ";
     for (size_t y = 0; y < k.H(); ++y) {
       for (size_t x = 0; x < k.W(); ++x) {
-        os << k.at(x, y, z) << " ";
+        os << std::fixed << std::setprecision(FLOAT_PRECISION) << k.at(x, y, z) << " ";
       }
       if (y + 1 == k.H()) {
         os << "]";

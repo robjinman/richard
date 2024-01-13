@@ -20,4 +20,6 @@ constexpr size_t calcSum(const Size3& s) {
   return s[0] + s[1] + s[2];
 }
 
+std::ostream& operator<<(std::ostream& os, const Size3& size);
+
 }

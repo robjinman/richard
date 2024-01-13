@@ -206,12 +206,13 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
         cost += feedForward(x, y);
         backPropagate(x, y);
 
-        bool lastSample = samplesProcessed + 1 == m_params.batchSize;
-        if (((samplesProcessed + 1) % m_params.miniBatchSize == 0) || lastSample) {
+        ++samplesProcessed;
+
+        bool lastSample = samplesProcessed == m_params.batchSize;
+        if ((samplesProcessed % m_params.miniBatchSize == 0) || lastSample) {
           updateParams(epoch);
         }
 
-        ++samplesProcessed;
         m_logger.info(STR("\r  > " << samplesProcessed << "/" << m_params.batchSize), false);
 
         if (samplesProcessed >= m_params.batchSize) {
@@ -226,7 +227,7 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
       }
     }
 
-    cost = cost / samplesProcessed;
+    cost /= samplesProcessed;
     m_logger.info(STR("\r  > cost = " << cost));
 
     trainingData.seekToBeginning();

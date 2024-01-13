@@ -28,10 +28,7 @@ void main() {
   const uint fmW = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
   const uint fmH = gl_WorkGroupSize.y * gl_NumWorkGroups.y;
 
-  const uint idx =
-    zIdx * fmW * fmH +
-    yIdx * fmW +
-    xIdx;
+  const uint idx = arrayIndex3d(fmW, fmH, xIdx, yIdx, zIdx);
 
   writeD(idx, reluPrime(readZ(idx)) * readDeltaA(idx));
 }
