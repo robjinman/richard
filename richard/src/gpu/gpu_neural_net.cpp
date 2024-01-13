@@ -284,9 +284,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
           layer->updateParams();
         }
 
-        m_logger.info("Submitting work...");
         m_gpu->flushQueue();
-        m_logger.info("Done");
 
         samplesProcessed += miniBatchSize;
         m_logger.info(STR("\r  > " << samplesProcessed << "/" << m_params.batchSize), false);
