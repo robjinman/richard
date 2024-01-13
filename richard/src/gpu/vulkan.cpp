@@ -189,6 +189,7 @@ class Vulkan : public Gpu {
       const std::string& includesPath) const;
     Buffer& getBuffer(GpuBufferHandle handle);
     const Buffer& getBuffer(GpuBufferHandle handle) const;
+    void beginCommandBuffer();
 
 #ifndef NDEBUG
     void setupDebugMessenger();
@@ -209,7 +210,7 @@ class Vulkan : public Gpu {
     std::vector<Buffer> m_buffers;
     std::vector<Pipeline> m_pipelines;
     VkCommandPool m_commandPool;
-    std::vector<VkCommandBuffer> m_commandBuffers;
+    VkCommandBuffer m_commandBuffer;
     VkDescriptorPool m_descriptorPool;
     VkFence m_taskCompleteFence;
     std::set<GpuBufferHandle> m_activeBuffers;
@@ -217,7 +218,8 @@ class Vulkan : public Gpu {
 
 Vulkan::Vulkan(const nlohmann::json& config, Logger& logger)
   : m_logger(logger)
-  , m_maxWorkgroupSize(config.value("maxWorkgroupSize", DEFAULT_MAX_WORKGROUP_SIZE)) {
+  , m_maxWorkgroupSize(config.value("maxWorkgroupSize", DEFAULT_MAX_WORKGROUP_SIZE))
+  , m_commandBuffer(VK_NULL_HANDLE) {
 
   createVulkanInstance();
 #ifndef NDEBUG
@@ -311,7 +313,6 @@ void Vulkan::submitBufferData(GpuBufferHandle bufferHandle, const void* data) {
   vkUnmapMemory(m_device, stagingBufferMemory);
 
   copyBuffer(stagingBuffer, buffer.handle, buffer.size);
-  flushQueue();
 
   vkFreeMemory(m_device, stagingBufferMemory, nullptr);
   vkDestroyBuffer(m_device, stagingBuffer, nullptr);
@@ -426,13 +427,24 @@ ShaderHandle Vulkan::compileShader(const std::string& name, const std::string& s
   return m_pipelines.size() - 1;
 }
 
+void Vulkan::beginCommandBuffer() {
+  if (m_commandBuffer == VK_NULL_HANDLE) {
+    m_commandBuffer = createCommandBuffer();
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;
+    beginInfo.pInheritanceInfo = nullptr;
+
+    VK_CHECK(vkBeginCommandBuffer(m_commandBuffer, &beginInfo),
+      "Failed to begin recording command buffer");
+  }
+}
+
 void Vulkan::queueShader(ShaderHandle shaderHandle) {
   DBG_TRACE
 
   const Pipeline& pipeline = m_pipelines[shaderHandle];
-
-  VkCommandBuffer commandBuffer = createCommandBuffer();
-  m_commandBuffers.push_back(commandBuffer);
 
   std::set<GpuBufferHandle> buffers;
   setUnion(pipeline.reads, pipeline.writes, buffers);
@@ -467,38 +479,34 @@ void Vulkan::queueShader(ShaderHandle shaderHandle) {
   setDifference(m_activeBuffers, mustWait);
   setUnion(m_activeBuffers, pipeline.writes);
 
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags = 0;
-  beginInfo.pInheritanceInfo = nullptr;
-
-  VK_CHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo),
-    "Failed to begin recording command buffer");
-
   const Size3& workgroups = pipeline.numWorkgroups;
 
-  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.handle);
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.layout, 0, 1,
+  if (m_commandBuffer == VK_NULL_HANDLE) {
+    beginCommandBuffer();
+  }
+
+  vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.handle);
+  vkCmdBindDescriptorSets(m_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.layout, 0, 1,
     &pipeline.descriptorSet, 0, 0);
-  vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+  vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr,
     bufferBarriers.size(), bufferBarriers.data(), 0, nullptr);
-  vkCmdDispatch(commandBuffer, workgroups[0], workgroups[1], workgroups[2]);
-
-  VK_CHECK(vkEndCommandBuffer(commandBuffer), "Failed to record command buffer");
+  vkCmdDispatch(m_commandBuffer, workgroups[0], workgroups[1], workgroups[2]);
 }
 
 void Vulkan::flushQueue() {
   DBG_TRACE
 
-  if (m_commandBuffers.empty()) {
+  if (m_commandBuffer == VK_NULL_HANDLE) {
     return;
   }
 
+  VK_CHECK(vkEndCommandBuffer(m_commandBuffer), "Failed to record command buffer");
+
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.commandBufferCount = m_commandBuffers.size();
-  submitInfo.pCommandBuffers = m_commandBuffers.data();
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &m_commandBuffer;
 
   VK_CHECK(vkQueueSubmit(m_computeQueue, 1, &submitInfo, m_taskCompleteFence),
     "Failed to submit compute command buffer");
@@ -508,10 +516,10 @@ void Vulkan::flushQueue() {
 
   VK_CHECK(vkResetFences(m_device, 1, &m_taskCompleteFence), "Error resetting fence");
 
-  vkFreeCommandBuffers(m_device, m_commandPool, m_commandBuffers.size(), m_commandBuffers.data());
-  m_commandBuffers.clear();
-
   m_activeBuffers.clear();
+
+  vkFreeCommandBuffers(m_device, m_commandPool, 1, &m_commandBuffer);
+  m_commandBuffer = VK_NULL_HANDLE;
 }
 
 void Vulkan::retrieveBuffer(GpuBufferHandle bufIdx, void* data) {
@@ -531,7 +539,6 @@ void Vulkan::retrieveBuffer(GpuBufferHandle bufIdx, void* data) {
   createBuffer(buffer.size, stagingUsage, flags, stagingBuffer, stagingBufferMemory);
 
   copyBuffer(buffer.handle, stagingBuffer, buffer.size);
-  flushQueue();
 
   void* stagingBufferMapped = nullptr;
   vkMapMemory(m_device, stagingBufferMemory, 0, buffer.size, 0, &stagingBufferMapped);
@@ -690,23 +697,17 @@ void Vulkan::createLogicalDevice() {
 void Vulkan::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
   DBG_TRACE
 
-  VkCommandBuffer commandBuffer = createCommandBuffer();
+  flushQueue();
 
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-  vkBeginCommandBuffer(commandBuffer, &beginInfo);
+  beginCommandBuffer();
 
   VkBufferCopy copyRegion{};
   copyRegion.srcOffset = 0;
   copyRegion.dstOffset = 0;
   copyRegion.size = size;
-  vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+  vkCmdCopyBuffer(m_commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-  vkEndCommandBuffer(commandBuffer);
-
-  m_commandBuffers.push_back(commandBuffer);
+  flushQueue();
 }
 
 void Vulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
