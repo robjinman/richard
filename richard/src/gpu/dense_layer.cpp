@@ -48,8 +48,9 @@ void DenseLayer::allocateGpuBuffers() {
   m_bufferA = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferD = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferInputDelta = m_gpu.allocateBuffer(m_inputSize * sizeof(netfloat_t),
+    GpuBufferFlags::large);
+  m_bufferDeltaB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t),
     GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
-  m_bufferDeltaB = m_gpu.allocateBuffer(m_size * sizeof(netfloat_t), GpuBufferFlags::large);
   m_bufferDeltaW = m_gpu.allocateBuffer(m_inputSize * m_size * sizeof(netfloat_t),
     GpuBufferFlags::large | GpuBufferFlags::hostWriteAccess);
 

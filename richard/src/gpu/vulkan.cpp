@@ -391,13 +391,19 @@ void Vulkan::flushQueue() {
   VK_CHECK(vkQueueSubmit(m_computeQueue, 1, &submitInfo, m_taskCompleteFence),
     "Failed to submit compute command buffer");
 
+  m_logger.info("Waiting for fences...");
+
   VK_CHECK(vkWaitForFences(m_device, 1, &m_taskCompleteFence, VK_TRUE, UINT64_MAX),
     "Error waiting for fence");
+
+  m_logger.info("Resetting fence");
 
   VK_CHECK(vkResetFences(m_device, 1, &m_taskCompleteFence), "Error resetting fence");
 
   vkFreeCommandBuffers(m_device, m_commandPool, 1, &m_commandBuffer);
   m_commandBuffer = VK_NULL_HANDLE;
+
+  vkResetCommandPool(m_device, m_commandPool, 0);
 }
 
 void Vulkan::retrieveBuffer(GpuBufferHandle bufIdx, void* data) {

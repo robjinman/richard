@@ -30,7 +30,7 @@ size_t lowestDivisor(size_t value) {
 }
 
 void optimumWorkgroups(const Size3& workSize, Size3& workgroupSize, Size3& numWorkgroups) {
-  const size_t maxWorkgroupSize = 1536; // TODO: Query from Gpu class
+  const size_t maxWorkgroupSize = 1024; // TODO: Query from Gpu class
 
   workgroupSize = workSize;
   numWorkgroups = { 1, 1, 1 };
