@@ -26,6 +26,52 @@ namespace gpu {
 
 namespace {
 
+const size_t DEFAULT_MAX_WORKGROUP_SIZE = 64;
+
+size_t maxValue(const Size3& size, size_t& value) {
+  size_t index = 0;
+  value = std::numeric_limits<size_t>::lowest();
+  for (size_t i = 0; i < 3; ++i) {
+    if (size[i] > value) {
+      index = i;
+      value = size[i];
+    }
+  }
+  return index;
+}
+
+size_t lowestDivisor(size_t value) {
+  for (size_t i = 2; i < value; ++i) {
+    if (value % i == 0) {
+      return i;
+    }
+  }
+  return value;
+}
+
+void optimumWorkgroups(const Size3& workSize, size_t maxWorkgroupSize, Size3& workgroupSize,
+  Size3& numWorkgroups) {
+
+  workgroupSize = workSize;
+  numWorkgroups = { 1, 1, 1 };
+
+  while (calcProduct(workgroupSize) > maxWorkgroupSize) {
+    size_t largest = 0;
+    size_t i = maxValue(workgroupSize, largest);
+
+    size_t scale = lowestDivisor(largest);
+
+    workgroupSize[i] /= scale;
+    numWorkgroups[i] *= scale;
+  }
+
+  ASSERT_MSG(workgroupSize[0] * numWorkgroups[0] == workSize[0],
+    "Work size " << workSize[0] << " is not divisible by workgroup size " << workgroupSize[0]);
+
+  ASSERT_MSG(workgroupSize[1] * numWorkgroups[1] == workSize[1],
+    "Work size " << workSize[1] << " is not divisible by workgroup size " << workgroupSize[1]);
+}
+
 class SourceIncluder : public shaderc::CompileOptions::IncluderInterface {
   public:
     SourceIncluder(const std::filesystem::path& sourcesDirectory)
@@ -110,12 +156,11 @@ struct Pipeline {
 
 class Vulkan : public Gpu {
   public:
-    Vulkan(Logger& logger);
+    Vulkan(const nlohmann::json& config, Logger& logger);
 
     ShaderHandle compileShader(const std::string& source,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-      const Size3& workgroupSize, const Size3& numWorkgroups,
-      const std::string& includesPath) override;
+      const Size3& workSize, const std::string& includesPath) override;
     GpuBuffer allocateBuffer(size_t size, GpuBufferFlags flags) override;
     void submitBufferData(GpuBufferHandle buffer, const void* data) override;
     void queueShader(ShaderHandle shaderHandle) override;
@@ -155,6 +200,7 @@ class Vulkan : public Gpu {
 #endif
 
     Logger& m_logger;
+    size_t m_maxWorkgroupSize;
     VkInstance m_instance;
     VkDebugUtilsMessengerEXT m_debugMessenger;
     VkPhysicalDevice m_physicalDevice;
@@ -168,8 +214,9 @@ class Vulkan : public Gpu {
     VkFence m_taskCompleteFence;
 };
 
-Vulkan::Vulkan(Logger& logger)
-  : m_logger(logger) {
+Vulkan::Vulkan(const nlohmann::json& config, Logger& logger)
+  : m_logger(logger)
+  , m_maxWorkgroupSize(config.value("maxWorkgroupSize", DEFAULT_MAX_WORKGROUP_SIZE)) {
 
   createVulkanInstance();
 #ifndef NDEBUG
@@ -271,11 +318,15 @@ void Vulkan::submitBufferData(GpuBufferHandle bufferHandle, const void* data) {
 
 ShaderHandle Vulkan::compileShader(const std::string& source,
   const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-  const Size3& workgroupSize, const Size3& numWorkgroups, const std::string& includesPath) {
+  const Size3& workSize, const std::string& includesPath) {
 
   DBG_TRACE
 
   VkShaderModule shaderModule = createShaderModule(source, includesPath);
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups(workSize, m_maxWorkgroupSize, workgroupSize, numWorkgroups);
 
   std::vector<uint8_t> specializationData;
   std::vector<VkSpecializationMapEntry> entries;
@@ -875,8 +926,8 @@ Vulkan::~Vulkan() {
 
 }
 
-GpuPtr createGpu(Logger& logger) {
-  return std::make_unique<Vulkan>(logger);
+GpuPtr createGpu(Logger& logger, const nlohmann::json& config) {
+  return std::make_unique<Vulkan>(config, logger);
 }
 
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.hpp"
+#include <nlohmann/json.hpp>
 #include <string>
 #include <memory>
 #include <vector>
@@ -61,8 +62,7 @@ class Gpu {
     virtual GpuBuffer allocateBuffer(size_t size, GpuBufferFlags flags) = 0;
     virtual ShaderHandle compileShader(const std::string& source,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-      const Size3& workgroupSize, const Size3& numWorkgroups,
-      const std::string& includesPath = std::string()) = 0;
+      const Size3& workSize, const std::string& includesPath = std::string()) = 0;
     virtual void submitBufferData(GpuBufferHandle buffer, const void* data) = 0;
     virtual void queueShader(ShaderHandle shaderHandle) = 0;
     virtual void retrieveBuffer(GpuBufferHandle buffer, void* data) = 0;
@@ -73,7 +73,7 @@ class Gpu {
 
 using GpuPtr = std::unique_ptr<Gpu>;
 
-GpuPtr createGpu(Logger& logger);
+GpuPtr createGpu(Logger& logger, const nlohmann::json& config = nlohmann::json::object());
 
 }
 }

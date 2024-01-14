@@ -85,7 +85,7 @@ void GpuNeuralNet::initialize(const Size3& inputShape, const nlohmann::json& con
   m_isTrained = false;
   m_inputShape = inputShape;
   m_params = Hyperparams(getOrThrow(config, "hyperparams"));
-  m_gpu = createGpu(m_logger);
+  m_gpu = createGpu(m_logger, config.value("gpu", nlohmann::json::object()));
 
   Size3 prevLayerSize = m_inputShape;
   if (config.contains("hiddenLayers")) {
@@ -212,8 +212,7 @@ void GpuNeuralNet::allocateGpuResources() {
   };
 
   m_computeCostsShader = m_gpu->compileShader(computeCostsSrc, computeCostsBuffers,
-    computeCostsConstants, { static_cast<uint32_t>(m_outputSize), 1, 1 }, { 1, 1, 1 },
-    shaderIncludesDir);
+    computeCostsConstants, { static_cast<uint32_t>(m_outputSize), 1, 1 }, shaderIncludesDir);
 }
 
 void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,

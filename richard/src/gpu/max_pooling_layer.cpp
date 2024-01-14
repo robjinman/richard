@@ -1,5 +1,4 @@
 #include "gpu/max_pooling_layer.hpp"
-#include "gpu/gpu_utils.hpp"
 #include "utils.hpp"
 
 namespace richard {
@@ -34,54 +33,71 @@ void MaxPoolingLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHan
 
   DBG_ASSERT(nextLayer != nullptr);
 
-  GpuBufferBindings evalForwardBuffers{
+  createEvalForwardShader(inputBuffer);
+  createTrainForwardShader(inputBuffer);
+  createBackpropShader(nextLayer);
+}
+
+void MaxPoolingLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
+  GpuBufferBindings buffers{
     inputBuffer,
     m_bufferZ.handle
   };
 
-  GpuBufferBindings trainForwardBuffers{
-    inputBuffer,
-    m_bufferZ.handle,
-    m_bufferMask.handle
-  };
-
-  GpuBufferBindings backpropBuffers{
-    nextLayer->inputDeltaBuffer(),
-    m_bufferMask.handle,
-    m_bufferInputDelta.handle
-  };
-
-  Size3 workgroupSize;
-  Size3 numWorkgroups;
-  optimumWorkgroups(outputSize(), workgroupSize, numWorkgroups);
-
-  SpecializationConstants evalForwardConstants{
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionW) },
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionH) }
-  };
-
-  SpecializationConstants trainForwardConstants{
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionW) },
-    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionH) }
-  };
-
-  SpecializationConstants backpropConstants{
+  SpecializationConstants constants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionW) },
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionH) }
   };
 
   // TODO: Remove hard-coded paths
   const std::string includesDir = "./shaders";
-  const std::string evalForwardSrc = loadFile("./shaders/max_pooling_eval_forward.glsl");
-  const std::string trainForwardSrc = loadFile("./shaders/max_pooling_train_forward.glsl");
-  const std::string backpropSrc = loadFile("./shaders/max_pooling_backprop.glsl");
+  const std::string source = loadFile("./shaders/max_pooling_eval_forward.glsl");
 
-  m_evalForwardShader = m_gpu.compileShader(evalForwardSrc, evalForwardBuffers,
-    evalForwardConstants, workgroupSize, numWorkgroups, includesDir);
-  m_trainForwardShader = m_gpu.compileShader(trainForwardSrc, trainForwardBuffers,
-    trainForwardConstants, workgroupSize, numWorkgroups, includesDir);
-  m_backpropShader = m_gpu.compileShader(backpropSrc, backpropBuffers, backpropConstants,
-    workgroupSize, numWorkgroups, includesDir);
+  Size3 workSize = outputSize();
+
+  m_evalForwardShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
+}
+
+void MaxPoolingLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
+  GpuBufferBindings buffers{
+    inputBuffer,
+    m_bufferZ.handle,
+    m_bufferMask.handle
+  };
+
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionW) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionH) }
+  };
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/max_pooling_train_forward.glsl");
+
+  Size3 workSize = outputSize();
+
+  m_trainForwardShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
+}
+
+void MaxPoolingLayer::createBackpropShader(const Layer* nextLayer) {
+  GpuBufferBindings buffers{
+    nextLayer->inputDeltaBuffer(),
+    m_bufferMask.handle,
+    m_bufferInputDelta.handle
+  };
+
+  SpecializationConstants constants{
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionW) },
+    { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionH) }
+  };
+
+  // TODO: Remove hard-coded paths
+  const std::string includesDir = "./shaders";
+  const std::string source = loadFile("./shaders/max_pooling_backprop.glsl");
+
+  Size3 workSize = outputSize();
+
+  m_backpropShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
 }
 
 size_t MaxPoolingLayer::size() const {

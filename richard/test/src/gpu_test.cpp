@@ -89,7 +89,7 @@ TEST_F(GpuTest, runShader) {
   )";
 
   ShaderHandle shader = gpu->compileShader(shaderSource, { buffer.handle }, {},
-    { bufferSize / 2, 1, 1 }, { 2, 1, 1 });
+    { bufferSize, 1, 1 });
 
   gpu->queueShader(shader);
   gpu->flushQueue();

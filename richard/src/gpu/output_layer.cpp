@@ -1,5 +1,4 @@
 #include "gpu/output_layer.hpp"
-#include "gpu/gpu_utils.hpp"
 #include "utils.hpp"
 
 namespace richard {
@@ -92,12 +91,9 @@ void OutputLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
   const std::string includesDir = "./shaders";
   const std::string source = loadFile("./shaders/output_eval_forward.glsl");
 
-  Size3 workgroupSize;
-  Size3 numWorkgroups;
-  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+  Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
 
-  m_evalForwardShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
-    numWorkgroups, includesDir);
+  m_evalForwardShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
 }
 
 void OutputLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
@@ -117,12 +113,9 @@ void OutputLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
   const std::string includesDir = "./shaders";
   const std::string source = loadFile("./shaders/output_train_forward.glsl");
 
-  Size3 workgroupSize;
-  Size3 numWorkgroups;
-  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+  Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
 
-  m_trainForwardShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
-    numWorkgroups, includesDir);
+  m_trainForwardShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
 }
 
 void OutputLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
@@ -149,12 +142,9 @@ void OutputLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
   const std::string includesDir = "./shaders";
   const std::string source = loadFile("./shaders/output_backprop_delta.glsl");
 
-  Size3 workgroupSize;
-  Size3 numWorkgroups;
-  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+  Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
 
-  m_backpropDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
-    numWorkgroups, includesDir);
+  m_backpropDeltaShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
 }
 
 void OutputLayer::createBackpropInputDeltaShader() {
@@ -173,12 +163,10 @@ void OutputLayer::createBackpropInputDeltaShader() {
   const std::string includesDir = "./shaders";
   const std::string source = loadFile("./shaders/dense_backprop_input_delta.glsl");
 
-  Size3 workgroupSize;
-  Size3 numWorkgroups;
-  optimumWorkgroups({ static_cast<uint32_t>(m_inputSize), 1, 1 }, workgroupSize, numWorkgroups);
+  Size3 workSize{ static_cast<uint32_t>(m_inputSize), 1, 1 };
 
-  m_backpropInputDeltaShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
-    numWorkgroups, includesDir);
+  m_backpropInputDeltaShader = m_gpu.compileShader(source, buffers, constants, workSize,
+    includesDir);
 }
 
 void OutputLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
@@ -200,12 +188,9 @@ void OutputLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
   const std::string includesDir = "./shaders";
   const std::string source = loadFile("./shaders/dense_update_params.glsl");
 
-  Size3 workgroupSize;
-  Size3 numWorkgroups;
-  optimumWorkgroups({ static_cast<uint32_t>(m_size), 1, 1 }, workgroupSize, numWorkgroups);
+  Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
 
-  m_updateParamsShader = m_gpu.compileShader(source, buffers, constants, workgroupSize,
-    numWorkgroups, includesDir);
+  m_updateParamsShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
 }
 
 size_t OutputLayer::size() const {

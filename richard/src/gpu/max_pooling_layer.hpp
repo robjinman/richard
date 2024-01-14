@@ -33,6 +33,10 @@ class MaxPoolingLayer : public Layer {
     GpuBufferHandle test_maskBuffer() const;
 
   private:
+    void createEvalForwardShader(GpuBufferHandle inputBuffer);
+    void createTrainForwardShader(GpuBufferHandle inputBuffer);
+    void createBackpropShader(const Layer* nextLayer);
+
     Gpu& m_gpu;
     size_t m_regionW;
     size_t m_regionH;
