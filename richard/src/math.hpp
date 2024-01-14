@@ -564,4 +564,6 @@ inline void computeFullConvolution(const Array2& image, const Matrix& kernel, Ar
   computeFullCrossCorrelation(image, kernel, result, true);
 }
 
+Matrix outerProduct(const Vector& A, const Vector& B);
+
 }

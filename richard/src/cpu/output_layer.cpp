@@ -77,12 +77,7 @@ void OutputLayer::updateDeltas(const DataArray& inputs, const DataArray& outputs
 
   m_inputDelta = m_W.transposeMultiply(delta);
 
-  for (size_t j = 0; j < m_W.rows(); j++) {
-    for (size_t k = 0; k < m_W.cols(); k++) {
-      m_deltaW.set(k, j, m_deltaW.at(k, j) + inputs[k] * delta[j]);
-    }
-  }
-
+  m_deltaW += outerProduct(delta, inputs);
   m_deltaB += delta;
 }
 

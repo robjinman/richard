@@ -1175,6 +1175,18 @@ void computeFullCrossCorrelation(const Array3& image, const Kernel& kernel, Arra
   }
 }
 
+Matrix outerProduct(const Vector& A, const Vector& B) {
+  Matrix M(B.size(), A.size());
+
+  for (size_t j = 0; j < A.size(); ++j) {
+    for (size_t i = 0; i < B.size(); ++i) {
+      M.set(i, j, A[j] * B[i]);
+    }
+  }
+
+  return M;
+}
+
 std::ostream& operator<<(std::ostream& os, const Kernel& k) {
   os << "[" << std::endl;
 
