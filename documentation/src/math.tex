@@ -1,0 +1,352 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[left=15mm,top=10mm,right=16mm,bottom=15mm]{geometry}
+\usepackage{multicol}
+\usepackage{bm}
+\usepackage[fleqn]{amsmath}
+\usepackage{mathtools}
+\usepackage{empheq}
+
+\title{Richard Mathematical Implementation}
+\author{Rob Jinman}
+
+\newcommand{\matr}[1]{\bm{#1}}
+\let\vec\bm{}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
+\begin{document}
+  \maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section*{Dense Layers}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%===================================================================================================
+  \subsection*{Forward pass}
+%===================================================================================================
+  The weighted sums \( z^l_i \) for layer \( l \) are given by 
+%
+  \begin{empheq}[box=\fbox]{align}
+    z^l_i = \sum_j w^l_{i,j}a^{l-1}_j + b^l_i
+  \end{empheq}
+%
+  and we obtain the activations by applying the sigmoid function
+%
+  \begin{empheq}[box=\fbox]{align}
+    a^l_i = \sigma(z^l_i)
+  \end{empheq}
+%
+  where
+%
+  \begin{empheq}[box=\fbox]{align}
+    \sigma(x) = \frac{1}{1+e^{-1}}
+  \end{empheq}
+%
+  In vectorized form, the forward pass can be written as
+%
+  \begin{empheq}[box=\fbox]{align}
+    \vec{z}^l = \matr{W}^l \vec{a}^{l-1} + \vec{b}^l \\
+    \vec{a}^l = \sigma(\vec{z}^l)
+  \end{empheq}
+%===================================================================================================
+  \subsection*{Backward pass}
+%===================================================================================================
+  Given \( \partial{}C/\partial{}a^{l}_{i} \) back-propagated from layer \( l+1 \), we calculate the layer delta
+%
+  \begin{empheq}[box=\fbox]{align}
+    \delta^l_i:= \frac{\partial{}C}{\partial{}z^{l}_{i}}
+  \end{empheq}
+%
+  Applying the chain rule gives
+%
+  \[ \frac{\partial C}{\partial z^l_i}
+    = \frac{\partial C}{\partial a^l_i} \frac{\partial a^l_i}{\partial z^l_i} \]
+%
+  where \( \partial{}a^l_i/\partial{}z^l_i \) is the derivative of the sigmoid function, so
+%
+  \begin{empheq}[box=\fbox]{align}
+    \delta^l_i= \frac{\partial{}C}{\partial{}a^l_i}\sigma'{(z^l_i)}\label{eq:componentDelta}
+  \end{empheq}
+%
+  which in vectorized form is the hadamard product
+%
+  \begin{empheq}[box=\fbox]{align}
+    \vec{\delta}^l = \nabla_{a^l}C \odot{}\sigma'{(\vec{z}^l)}\label{eq:vectorDelta}
+  \end{empheq}
+%
+  We use this value to compute the cost gradient both with respect to the layer parameters and the layer inputs.
+%---------------------------------------------------------------------------------------------------
+  \subsubsection*{Cost gradient with respect to parameters}
+%---------------------------------------------------------------------------------------------------
+  For the weights \( w^l_{i,j} \), applying the chain-rule gives
+%
+  \[ \frac{\partial C}{\partial w^l_{i,j}}
+    = \frac{\partial C}{\partial z^l_i} \frac{\partial z^l_i}{\partial w^l_{i,j}}
+    = \delta^l_i \frac{\partial z^l_i}{\partial w^l_{i,j}}
+    = \delta^l_i \frac{\partial \sum_k w^l_{i,k}a^{l-1}_k + b^l_i}{\partial w^l_{i,j}}
+    = \delta^l_i a^{l-1}_j \]
+%
+  which in vectorized form is the outer product between \( \vec{\delta}^l \) and \( \vec{a}^{l-1} \)
+%
+  \begin{empheq}[box=\fbox]{align}
+    \nabla_{W^l}C = \vec{\delta}^l \otimes{}\vec{a}^{l-1}
+  \end{empheq}
+%
+  For the bias \( b^l_i \) we again use the chain rule
+%
+  \[ \frac{\partial C}{\partial b^l_i}
+    = \frac{\partial C}{\partial z^l_i} \frac{\partial z^l_i}{\partial b^l_i}
+    = \delta^l_i \frac{\partial z^l_i}{\partial b^l_i}
+    = \delta^l_i \frac{\partial \sum_k w^l_{i,k}a^{l-1}_k + b^l_i}{\partial b^l_i}
+    = \delta^l_i \]
+%
+  which in vectorized form is
+%
+  \begin{empheq}[box=\fbox]{align}
+    \nabla_{b^l}C = \vec{\delta}^l
+  \end{empheq}
+%
+  Then, given a learning rate \( \lambda \), we update the weights and biases
+%
+  \begin{empheq}[box=\fbox]{align}
+    \matr{W}^l \leftarrow{} \matr{W}^l-\lambda\nabla_{W^l}C\\
+    \vec{b}^l \leftarrow{} \vec{b}^l-\lambda\nabla_{b^l}C
+  \end{empheq}
+
+%---------------------------------------------------------------------------------------------------
+  \subsubsection*{Cost gradient with respect to layer inputs}
+%---------------------------------------------------------------------------------------------------
+  The multi-variable chain rule gives us
+%
+  \[ \frac{\partial{}C}{\partial{}a^{l-1}_i}
+    = \sum_j\frac{\partial{}C}{\partial{}z^l_j}\frac{\partial{}z^l_j}{\partial{}a^{l-1}_i}
+    = \sum_j\delta^l_j\frac{\partial{z^l_j}}{\partial{a^{l-1}_i}}
+    = \sum_j\delta^l_j\frac{\partial{}\sum_k w^l_{j,k}a^{l-1}_k + b^l_j}{\partial{}a^{l-1}_i}
+    = \sum_j\delta^l_j w^l_{j,i} \]
+%
+  which is the layer delta multiplied by the transposed weight matrix
+%
+\begin{empheq}[box=\fbox]{align}
+  \nabla_{a^{l-1}}C = (\matr{W}^l)^T\vec{\delta}^l
+\end{empheq}
+%
+This value is propagated back to layer \( l-1 \).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section*{Output Layer}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%===================================================================================================
+  \subsection*{Forward pass}
+%===================================================================================================
+  The forward pass is the same as for ordinary dense layers (see above).
+%===================================================================================================
+  \subsection*{Backward pass}
+%===================================================================================================
+  It's at this final layer \( L \) where backpropagation begins. As in equation~\eqref{eq:vectorDelta}, we have
+%
+  \begin{empheq}[box=\fbox]{align}
+    \vec{\delta}^L = \nabla_{a^L}C \odot{}\sigma'{(\vec{z}^L)}\label{eq:vectorOutputLayerCostDelta}
+  \end{empheq}
+%
+  But rather than receive \( \nabla_{a^L}C \) from the next layer (there is no next layer), we compute it directly.
+%
+  The cost function \( C(\vec{a}^L, \vec{y}) \) computes the squared error between the network output \( \vec{a}^L \) and the expected network output \( \vec{y} \) for the current sample.
+%
+  \begin{empheq}[box=\fbox]{align}
+    C (\vec{a}^L,\vec{y}) = \frac{1}{2}\|\vec{y}-\vec{a}^L\|^2
+  \end{empheq}
+%
+  which in component form is
+%
+  \[ \frac{1}{2}\sum_i{(a^L_i-y_i)}^2=\frac{1}{2}\sum_i\left({{(a^L_i)}^2 - 2a^L_i y_i + {(y_i)}^2}\right) \]
+%
+  Differentiating with respect to \( a^L_i \) we get
+%
+  \begin{empheq}[box=\fbox]{align}
+    \frac{\partial{}C}{\partial{}a^L_i} = a^L_i-y_i
+  \end{empheq}
+%
+  which in vectorized form is
+%
+  \begin{empheq}[box=\fbox]{align}
+    \nabla_{a^L}C = \vec{a}^L-\vec{y}
+  \end{empheq}
+%
+  which we plug into equation~\eqref{eq:vectorOutputLayerCostDelta} to obtain \( \vec{\delta}^L \). Using this value we calculate the gradients for the layer parameters and inputs in the same way as for the dense layers.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section*{Convolutional Layers}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  The convolution between functions \( f \) and \( g \) is
+%
+  \begin{empheq}[box=\fbox]{align}
+    (f\ast{}g){(t)}:= \int_{-\infty}^{\infty} f{(\tau)} g{(t-\tau)} d\tau{}
+  \end{empheq}
+%
+  The discrete form in 2 dimensions is
+%
+  \begin{empheq}[box=\fbox]{align}
+    (f\ast{}g){(x, y)}:= \sum_i\sum_j f{(i, j)}g{(x-i, y-j)}
+  \end{empheq}
+%
+  which is equivalent to cross-correlation with a horizontally and vertically flipped kernel. The cross-correlation is defined as
+%
+  \begin{empheq}[box=\fbox]{align}
+    (f\star{}g){(x, y)}:= \sum_i\sum_j f{(i, j)}g{(x+i, y+j)}
+  \end{empheq}
+
+%===================================================================================================
+  \subsection*{Forward pass}
+%===================================================================================================
+  A layer of depth \( D \) generates \( D \) feature maps using \( D \) kernels and biases. During the forward pass we compute the elements of the feature map \( z^{l,d}_{x,y} \) by cross-correlating the 3-dimensional block of input activations \( \matr{A}^{l-1} \) with the 3-dimensional kernel \( \matr{W}^{l,d} \) and adding the bias \( b^{l,d} \). We then obtain the activations by applying the ReLU function.
+%
+  \begin{empheq}[box=\fbox]{align}
+    \matr{Z}^{l,d} = (\matr{A}^{l-1}\star\matr{W}^{l,d})+b^{l,d}\\
+    \matr{A}^{l,d} = R{(\matr{Z}^{l,d})}
+  \end{empheq}
+%
+  where ReLU is defined as
+%
+\begin{empheq}[box=\fbox]{align}
+  R{(z)} = max{(0,z)}
+\end{empheq}
+%
+  In component form, the forward pass looks like
+%
+  \begin{empheq}[box=\fbox]{align}
+    z^{l,d}_{x,y} = \sum_i\sum_j\sum_k w^{l,d}_{i,j,k}a^{l-1}_{x+i,y+j,k} + b^{l,d}\\
+    a^{l,d}_{x,y} = R{(z^{l,d}_{x,y})}
+  \end{empheq}
+%
+
+%===================================================================================================
+  \subsection*{Backward pass}
+%===================================================================================================
+  As before, we calculate the layer delta
+%
+  \[ \delta^{l,d}_{x,y} := \frac{\partial C}{\partial z^{l,d}_{x,y}} \]
+%
+  Applying the chain rule, we get
+ % 
+  \[ \delta^{l,d}_{x,y} = \frac{\partial{}C}{\partial{}a^{l,d}_{x,y}} R'(z^{l,d}_{x,y}) \]
+%
+  where \( \partial{}C/\partial{}a^{l,d}_{x,y} \) is propagated back from layer \( l+1 \), and \(R'\) is the ReLU derivative.
+%
+  \begin{empheq}[box=\fbox]{align}
+    R'{(z)}=
+    \begin{cases}
+      0 & \text{if } z\leq{}0\\
+      1 & \text{if } z>0\\
+    \end{cases}
+  \end{empheq}
+
+%---------------------------------------------------------------------------------------------------
+  \subsubsection*{Cost gradient with respect to layer inputs}
+%---------------------------------------------------------------------------------------------------
+  From the chain rule, we have
+%
+  \[ \frac{\partial C}{\partial a^{l-1}_{x,y,z}} = \sum_d\left(\sum_{x'}\sum_{y'}\frac{\partial C}{\partial z^{l,d}_{x',y'}}\frac{\partial z^{l,d}_{x',y'}}{\partial a^{l-1}_{x,y,z}}\right) \]
+%
+  which is
+% 
+  \[ \frac{\partial C}{\partial a^{l-1}_{x,y,z}} = \sum_d\left(\sum_{x'}\sum_{y'}\delta^{l,d}_{x',y'}\frac{\partial z^{l,d}_{x',y'}}{\partial a^{l-1}_{x,y,z}}\right) \]
+%
+  Expanding the \( z^{l,d}_{x',y'} \) term
+%  
+  \[ \frac{\partial C}{\partial a^{l-1}_{x,y,z}} = \sum_d\left(\sum_{x'}\sum_{y'}\delta^{l,d}_{x',y'}\frac{\partial \sum_i\sum_j\sum_k w^{l,d}_{i,j,k}a^{l-1}_{x'+i,y'+j,k} + b^{l,d}}{\partial a^{l-1}_{x,y,z}}\right) \]
+% 
+  All terms of the differential vanish except where \( x=x'+i \), \( y=y'+j \), and \( z=k \), or equivalently \( i=x-x' \), \( j=y-y' \), and \( k=z \), therefore
+%
+  \[ \frac{\partial C}{\partial a^{l-1}_{x,y,z}}
+    =  \sum_d\left(\sum_{x'}\sum_{y'}\delta^{l,d}_{x',y'}w^{l,d}_{x-x',y-y',z}\right) \]
+%   
+  which amounts to a \textit{full} 2-dimensional convolution between each 2-dimensional kernel slice \( \matr{W}^{l,d}_z \) and feature map delta \( \matr{\delta}^{l,d} \), all added together.
+%
+  \begin{empheq}[box=\fbox]{align}
+    \nabla_{\matr{a}^{l-1}_z}C = \sum_d (\matr{W}^{l,d}_z\ast\matr{\delta}^{l,d})
+  \end{empheq}
+
+%---------------------------------------------------------------------------------------------------
+  \subsubsection*{Cost gradient with respect to layer parameters}
+%---------------------------------------------------------------------------------------------------
+  From the chain rule, we have
+%
+  \[ \frac{\partial C}{\partial w^{l,d}_{i,j,k}}
+    = \sum_x\sum_y \frac{\partial C}{\partial z^{l,d}_{x,y}}\frac{\partial z^{l,d}_{x,y}}{\partial w^{l,d}_{i,j,k}}
+    = \sum_x\sum_y \delta^{l,d}_{x,y}\frac{\partial z^{l,d}_{x,y}}{\partial w^{l,d}_{i,j,k}} \]
+%
+  Expanding \( z^{l,d}_{x,y} \), we get
+%   
+  \[ \frac{\partial C}{\partial w^{l,d}_{i,j,k}}
+    = \sum_x\sum_y \delta^{l,d}_{x,y}\frac{\partial \sum_{i'}\sum_{j'}\sum_{k'}w^{l,d}_{i',j',k'}a^{l-1}_{x+i',y+j',k'}+b^{l,d}}{\partial w^{l,d}_{i,j,k}} \]
+%   
+  All terms in the differential vanish except where \( i=i' \), \( j=j' \), and \( k=k' \), so finally
+% 
+  \[ \frac{\partial C}{\partial w^{l,d}_{i,j,k}}
+    = \sum_x\sum_y \delta^{l,d}_{x,y}a^{l-1}_{x+i,y+j,k} \]
+%
+  which is the cross-correlation of 2-dimensional input slice \( \matr{A}^{l-1}_k \) with 2-dimensional feature map delta \( \matr{\delta}^{l,d} \)
+%
+  \begin{empheq}[box=\fbox]{align}
+    \nabla_{\matr{W}^{l,d}_k}C = \matr{A}^{l-1}_k\star\matr{\delta}^{l,d}
+  \end{empheq}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section*{Max Pooling Layers}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  Max pooling layers perform a downscale by allowing through only the largest values within each \( M\times{}N \) window.
+
+%===================================================================================================
+  \subsection*{Forward pass}
+%===================================================================================================
+  For \( 0 \leq i < M \) and \( 0 \leq j < N \), the elements of the max pooling layer are given by
+%
+  \begin{empheq}[box=\fbox]{align}
+    z^l_{x,y,z}=\max_{i,j}(a^{l-1}_{x+i,y+j,z})\\
+    a^l_{x,y,z}=z^l_{x,y,z}
+  \end{empheq}
+%
+  and we don't apply an activation function---or you could say the activation function is just the identity function \( f(z)=z \).
+
+%===================================================================================================
+\subsection*{Backward pass}
+%===================================================================================================
+  As usual, the layer delta is
+%
+  \[ \delta^l_{x,y,z}:= \frac{\partial{}C}{\partial{}z^l_{x,y,z}} = \frac{\partial{}C}{\partial{}a^l_{x,y,z}}\frac{\partial{}a^l_{x,y,z}}{\partial{}z^l_{x,y,z}} \]
+%
+  There's no activation function, so \( z^l_{x,y,z} \) and \( a^l_{x,y,z} \) are identical, therefore
+%
+  \begin{empheq}[box=\fbox]{align}
+    \delta^l_{x,y,z} = \frac{\partial{}C}{\partial{}a^l_{x,y,z}}
+  \end{empheq}
+%
+  Or in vectorized form
+%
+  \begin{empheq}[box=\fbox]{align}
+    \matr{\delta^l}=\nabla_{A^l}C
+  \end{empheq}
+%
+  which is the value we receive from layer \( l+1 \).
+
+%---------------------------------------------------------------------------------------------------
+\subsubsection*{Cost gradient with respect to layer inputs}
+%---------------------------------------------------------------------------------------------------
+  Each element \( a^{l-1}_{x,y,z} \) only contributes to a single element \( z^l_{\floor{x/M},\floor{y/N},z} \) so there's no need for a summation.
+%
+  \[ \frac{\partial{}C}{\partial{}a^{l-1}_{x,y,z}}
+    = \frac{\partial{}C}{\partial{}z^l_{\floor{x/M},\floor{y/N},z}}\frac{\partial{}z^l_{\floor{x/M},\floor{y/N},z}}{\partial{}a^{l-1}_{x,y,z}}
+    = \delta^l_{\floor{x/M},\floor{y/N},z}\frac{\partial{}z^l_{\floor{x/M},\floor{y/N},z}}{\partial{}a^{l-1}_{x,y,z}} \]
+%
+  \[ \frac{\partial{}C}{\partial{}a^{l-1}_{x,y,z}}
+    = \delta^l_{\floor{x/M},\floor{y/N},z}\frac{\partial\max_{i,j}(a^{l-1}_{\floor{x/M}+i,\floor{y/N}+j,z})}{\partial{}a^{l-1}_{x,y,z}} \]
+%
+  \begin{empheq}[box=\fbox]{align}
+    \frac{\partial{}C}{\partial{}a^{l-1}_{x,y,z}}=
+    \begin{cases}
+      \delta^l_{\floor{x/M},\floor{y/N},z} & \text{if } a^{l-1}_{x,y,z}=\max_{i,j}(a^{l-1}_{\floor{x/M}+i,\floor{y/N}+j,z})\\
+      0 & \text{otherwise}\\
+    \end{cases}
+  \end{empheq}
+%
+  So each element \( \partial{}C/\partial{}a^{l-1}_{x,y,z} \) is equal to \( \delta^l_{\floor{x/M},\floor{y/N},z} \), but only if its corresponding value in \( \matr{A}^{l-1} \) was the largest within its window during the forward pass.
+\end{document}
