@@ -879,6 +879,28 @@ void Vulkan::dispatchWorkgroups(VkCommandBuffer commandBuffer, size_t pipelineId
 
   const Pipeline& pipeline = m_pipelines[pipelineIdx];
 
+  std::vector<VkBufferMemoryBarrier> bufferBarriers;
+  for (const auto& buffer : m_buffers) {
+    VkAccessFlags srcAccess = VK_ACCESS_SHADER_WRITE_BIT;
+    VkAccessFlags dstAccess = VK_ACCESS_SHADER_READ_BIT;
+    if (buffer.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+      dstAccess = VK_ACCESS_UNIFORM_READ_BIT;
+    }
+
+    VkBufferMemoryBarrier barrier;
+    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barrier.pNext = nullptr;
+    barrier.srcAccessMask = srcAccess;
+    barrier.dstAccessMask = dstAccess;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.buffer = buffer.handle;
+    barrier.offset = 0;
+    barrier.size = buffer.size;
+
+    bufferBarriers.push_back(barrier);
+  }
+
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = 0;
@@ -890,6 +912,9 @@ void Vulkan::dispatchWorkgroups(VkCommandBuffer commandBuffer, size_t pipelineId
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.handle);
   vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.layout, 0, 1,
     &pipeline.descriptorSet, 0, 0);
+  vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr,
+    bufferBarriers.size(), bufferBarriers.data(), 0, nullptr);
   vkCmdDispatch(commandBuffer, numWorkgroups[0], numWorkgroups[1], numWorkgroups[2]);
 
   VK_CHECK(vkEndCommandBuffer(commandBuffer), "Failed to record command buffer");
