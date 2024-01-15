@@ -9,11 +9,11 @@ class FileSystemImpl : public FileSystem {
 };
 
 std::unique_ptr<std::ostream> FileSystemImpl::openFileForWriting(const std::string& path) {
-  return std::make_unique<std::ofstream>(path);
+  return std::make_unique<std::ofstream>(path, std::ios::binary);
 }
 
 std::unique_ptr<std::istream> FileSystemImpl::openFileForReading(const std::string& path) {
-  return std::make_unique<std::ifstream>(path);
+  return std::make_unique<std::ifstream>(path, std::ios::binary);
 }
 
 FileSystemPtr createFileSystem() {

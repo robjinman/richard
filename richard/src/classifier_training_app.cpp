@@ -46,6 +46,7 @@ void ClassifierTrainingApp::saveStateToFile() const {
   stream->write(configString.c_str(), configSize);
 
   m_classifier->writeToStream(*stream);
+  stream->flush();
 }
 
 const nlohmann::json& ClassifierTrainingApp::exampleConfig() {
