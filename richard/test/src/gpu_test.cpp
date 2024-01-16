@@ -88,7 +88,7 @@ TEST_F(GpuTest, runShader) {
     }
   )";
 
-  ShaderHandle shader = gpu->compileShader(shaderSource, { buffer.handle }, {},
+  ShaderHandle shader = gpu->compileShader("simple_shader", shaderSource, { buffer.handle }, {},
     { bufferSize, 1, 1 });
 
   gpu->queueShader(shader);
@@ -148,8 +148,8 @@ TEST_F(GpuTest, structuredBuffer) {
     }
   )";
 
-  ShaderHandle shader = gpu->compileShader(shaderSource, { statusBuffer.handle }, {}, { 16, 1, 1 },
-    { 1, 1, 1 });
+  ShaderHandle shader = gpu->compileShader("structured_buffer", shaderSource,
+    { statusBuffer.handle }, {}, { 16, 1, 1 });
 
   gpu->queueShader(shader);
   gpu->flushQueue();
@@ -230,10 +230,10 @@ TEST_F(GpuTest, matrixMultiply) {
     }
   )";
 
-  ShaderHandle shader = gpu->compileShader(shaderSource,
+  ShaderHandle shader = gpu->compileShader("matrix_multiply", shaderSource,
     { bufferM.handle, bufferV.handle, bufferR.handle },
     {{ SpecializationConstant::Type::uint_type, static_cast<uint32_t>(V.size()) }},
-    { static_cast<uint32_t>(M.rows()), 1, 1 }, { 1, 1, 1 });
+    { static_cast<uint32_t>(M.rows()), 1, 1 });
 
   gpu->queueShader(shader);
   gpu->flushQueue();
@@ -364,8 +364,8 @@ TEST_F(GpuTest, convolution) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(K.D()) }
   };
 
-  ShaderHandle shader = gpu->compileShader(shaderSource,
-    { bufferX.handle, bufferK.handle, bufferR.handle }, constants, workgroupSize, { 1, 1, 1 });
+  ShaderHandle shader = gpu->compileShader("convolution", shaderSource,
+    { bufferX.handle, bufferK.handle, bufferR.handle }, constants, workgroupSize);
 
   gpu->queueShader(shader);
   gpu->flushQueue();
@@ -514,8 +514,8 @@ TEST_F(GpuTest, fullConvolution) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(K.D()) }
   };
 
-  ShaderHandle shader = gpu->compileShader(shaderSource,
-    { bufferX.handle, bufferK.handle, bufferR.handle }, constants, workgroupSize, { 1, 1, 1 });
+  ShaderHandle shader = gpu->compileShader("full_convolution", shaderSource,
+    { bufferX.handle, bufferK.handle, bufferR.handle }, constants, workgroupSize);
 
   gpu->queueShader(shader);
   gpu->flushQueue();

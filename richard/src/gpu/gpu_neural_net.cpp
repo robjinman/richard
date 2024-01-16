@@ -1,14 +1,16 @@
-#include "neural_net.hpp"
-#include "utils.hpp"
-#include "exception.hpp"
-#include "labelled_data_set.hpp"
-#include "logger.hpp"
 #include "gpu/gpu.hpp"
 #include "gpu/gpu_neural_net.hpp"
 #include "gpu/dense_layer.hpp"
 #include "gpu/output_layer.hpp"
 #include "gpu/convolutional_layer.hpp"
 #include "gpu/max_pooling_layer.hpp"
+#include "neural_net.hpp"
+#include "utils.hpp"
+#include "exception.hpp"
+#include "labelled_data_set.hpp"
+#include "logger.hpp"
+#include "file_system.hpp"
+#include "platform_paths.hpp"
 #include <atomic>
 
 namespace richard {
@@ -29,9 +31,10 @@ class GpuNeuralNet : public NeuralNet {
   public:
     using CostFn = std::function<netfloat_t(const Vector&, const Vector&)>;
 
-    GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config, Logger& logger);
+    GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config, FileSystem& fileSystem,
+      const PlatformPaths& platformPaths, Logger& logger);
     GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config, std::istream& stream,
-      Logger& logger);
+      FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger);
 
     CostFn costFn() const override;
     Size3 inputSize() const override;
@@ -51,6 +54,8 @@ class GpuNeuralNet : public NeuralNet {
     OutputLayer& outputLayer();
 
     Logger& m_logger;
+    FileSystem& m_fileSystem;
+    const PlatformPaths& m_platformPaths;
     bool m_isTrained;
     Size3 m_inputShape;
     size_t m_outputSize;
@@ -65,15 +70,20 @@ class GpuNeuralNet : public NeuralNet {
     ShaderHandle m_computeCostsShader;
 };
 
-GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config, Logger& logger)
-  : m_logger(logger) {
+GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config,
+  FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger)
+  : m_logger(logger)
+  , m_fileSystem(fileSystem)
+  , m_platformPaths(platformPaths) {
 
   initialize(inputShape, config, nullptr);
 }
 
 GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const nlohmann::json& config,
-  std::istream& stream, Logger& logger)
-  : m_logger(logger) {
+  std::istream& stream, FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger)
+  : m_logger(logger)
+  , m_fileSystem(fileSystem)
+  , m_platformPaths(platformPaths) {
 
   initialize(inputShape, config, &stream);
   m_isTrained = true;
@@ -115,21 +125,28 @@ LayerPtr GpuNeuralNet::constructLayer(const nlohmann::json& obj, const Size3& pr
 
   if (type == "dense") {
     return stream ?
-      std::make_unique<DenseLayer>(*m_gpu, obj, *stream, calcProduct(prevLayerSize), isFirstLayer) :
-      std::make_unique<DenseLayer>(*m_gpu, obj, calcProduct(prevLayerSize), isFirstLayer);
+      std::make_unique<DenseLayer>(*m_gpu, m_fileSystem, m_platformPaths, obj, *stream,
+        calcProduct(prevLayerSize), isFirstLayer) :
+      std::make_unique<DenseLayer>(*m_gpu, m_fileSystem, m_platformPaths, obj,
+        calcProduct(prevLayerSize), isFirstLayer);
   }
   else if (type == "convolutional") {
     return stream ?
-      std::make_unique<ConvolutionalLayer>(*m_gpu, obj, *stream, prevLayerSize, isFirstLayer) :
-      std::make_unique<ConvolutionalLayer>(*m_gpu, obj, prevLayerSize, isFirstLayer);
+      std::make_unique<ConvolutionalLayer>(*m_gpu, m_fileSystem, m_platformPaths, obj, *stream,
+        prevLayerSize, isFirstLayer) :
+      std::make_unique<ConvolutionalLayer>(*m_gpu, m_fileSystem, m_platformPaths, obj,
+        prevLayerSize, isFirstLayer);
   }
   else if (type == "maxPooling") {
-    return std::make_unique<MaxPoolingLayer>(*m_gpu, obj, prevLayerSize);
+    return std::make_unique<MaxPoolingLayer>(*m_gpu, m_fileSystem, m_platformPaths, obj,
+      prevLayerSize);
   }
   else if (type == "output") {
     return stream ?
-      std::make_unique<OutputLayer>(*m_gpu, obj, *stream, calcProduct(prevLayerSize)) :
-      std::make_unique<OutputLayer>(*m_gpu, obj, calcProduct(prevLayerSize));
+      std::make_unique<OutputLayer>(*m_gpu, m_fileSystem, m_platformPaths, obj, *stream,
+        calcProduct(prevLayerSize)) :
+      std::make_unique<OutputLayer>(*m_gpu, m_fileSystem, m_platformPaths, obj,
+        calcProduct(prevLayerSize));
   }
   else {
     EXCEPTION("Don't know how to construct layer of type '" << type << "'");
@@ -189,10 +206,6 @@ void GpuNeuralNet::allocateGpuResources() {
     X = layer.outputBuffer();
   }
 
-  // TODO: Remove hard-coded paths
-  const std::string shaderIncludesDir = "./shaders";
-  const std::string computeCostsSrc = loadFile("./shaders/compute_costs.glsl");
-
   GpuBufferFlags costsBufferFlags = GpuBufferFlags::frequentHostAccess
                                   | GpuBufferFlags::large
                                   | GpuBufferFlags::hostReadAccess;
@@ -211,8 +224,13 @@ void GpuNeuralNet::allocateGpuResources() {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_params.miniBatchSize) }
   };
 
-  m_computeCostsShader = m_gpu->compileShader(computeCostsSrc, computeCostsBuffers,
-    computeCostsConstants, { static_cast<uint32_t>(m_outputSize), 1, 1 }, shaderIncludesDir);
+  const std::string computeCostsSrcName = "compute_costs.glsl";
+  const std::string computeCostsSrc = m_fileSystem.loadTextFile(m_platformPaths.get("shaders",
+    computeCostsSrcName));
+
+  m_computeCostsShader = m_gpu->compileShader(computeCostsSrcName, computeCostsSrc,
+    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(m_outputSize), 1, 1 },
+    m_platformPaths.get("shaders"));
 }
 
 void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,
@@ -326,15 +344,17 @@ VectorPtr GpuNeuralNet::evaluate(const Array3&) const {
 }
 
 NeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
-  Logger& logger) {
+  FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger) {
 
-  return std::make_unique<GpuNeuralNet>(inputShape, config, logger);
+  return std::make_unique<GpuNeuralNet>(inputShape, config, fileSystem, platformPaths, logger);
 }
 
 NeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
-  std::istream& stream, Logger& logger) {
+  std::istream& stream, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+  Logger& logger) {
 
-  return std::make_unique<GpuNeuralNet>(inputShape, config, stream, logger);
+  return std::make_unique<GpuNeuralNet>(inputShape, config, stream, fileSystem, platformPaths,
+    logger);
 }
 
 }

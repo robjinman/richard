@@ -6,11 +6,16 @@
 #include <nlohmann/json.hpp>
 
 namespace richard {
+
+class FileSystem;
+class PlatformPaths;
+
 namespace gpu {
 
 class MaxPoolingLayer : public Layer {
   public:
-    MaxPoolingLayer(Gpu& gpu, const nlohmann::json& obj, const Size3& inputShape);
+    MaxPoolingLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+      const nlohmann::json& obj, const Size3& inputShape);
 
     void allocateGpuBuffers() override;
     void createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
@@ -38,6 +43,8 @@ class MaxPoolingLayer : public Layer {
     void createBackpropShader(const Layer* nextLayer);
 
     Gpu& m_gpu;
+    FileSystem& m_fileSystem;
+    const PlatformPaths& m_platformPaths;
     size_t m_regionW;
     size_t m_regionH;
     size_t m_inputW;

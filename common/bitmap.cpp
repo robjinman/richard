@@ -10,7 +10,7 @@ Bitmap loadBitmap(const std::string& path) {
 
   size_t headerSize = sizeof(BmpHeader);
 
-  std::ifstream fin(path);
+  std::ifstream fin(path, std::ios::binary);
   if (!fin.good()) {
     EXCEPTION("Error loading bitmap from " << path);
   }
@@ -44,7 +44,7 @@ Bitmap loadBitmap(const std::string& path) {
 }
 
 void saveBitmap(const Bitmap& bitmap, const std::string& path) {
-  std::ofstream fout(path);
+  std::ofstream fout(path, std::ios::binary);
   if (!fout.good()) {
     EXCEPTION("Error saving bitmap at " << path);
   }

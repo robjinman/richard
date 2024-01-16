@@ -4,6 +4,8 @@
 #include <cpu/max_pooling_layer.hpp>
 #include <gpu/max_pooling_layer.hpp>
 #include <gpu/gpu.hpp>
+#include <file_system.hpp>
+#include <platform_paths.hpp>
 #include <gtest/gtest.h>
 
 using namespace richard;
@@ -75,7 +77,10 @@ TEST_F(GpuMaxPoolingLayerTest, trainForward) {
   nlohmann::json config;
   config["regionSize"] = { 2, 2 };
 
-  gpu::MaxPoolingLayer layer(*gpu, config, { 4, 4, 2 });
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
+  gpu::MaxPoolingLayer layer(*gpu, *fileSystem, *platformPaths, config, { 4, 4, 2 });
 
   testing::NiceMock<MockGpuLayer> nextLayer;
   ON_CALL(nextLayer, deltaBuffer).WillByDefault(testing::Return(0));
@@ -164,7 +169,10 @@ TEST_F(GpuMaxPoolingLayerTest, backprop) {
   nlohmann::json config;
   config["regionSize"] = { 2, 2 };
 
-  gpu::MaxPoolingLayer layer(*gpu, config, { 4, 4, 2 });
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
+  gpu::MaxPoolingLayer layer(*gpu, *fileSystem, *platformPaths, config, { 4, 4, 2 });
 
   testing::NiceMock<MockGpuLayer> nextLayer;
   ON_CALL(nextLayer, inputDeltaBuffer).WillByDefault(testing::Return(deltaABuffer.handle));

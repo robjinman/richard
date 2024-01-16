@@ -8,6 +8,8 @@ namespace richard {
 class LabelledDataSet;
 class DataDetails;
 class Logger;
+class FileSystem;
+class PlatformPaths;
 
 class Classifier {
   public:
@@ -17,10 +19,11 @@ class Classifier {
       netfloat_t cost = 0.0;
     };
 
-    Classifier(const DataDetails& dataDetails, const nlohmann::json& config, Logger& logger,
-      bool gpuAccelerated);
+    Classifier(const DataDetails& dataDetails, const nlohmann::json& config, FileSystem& fileSystem,
+      const PlatformPaths& platformPaths, Logger& logger, bool gpuAccelerated);
     Classifier(const DataDetails& dataDetails, const nlohmann::json& config, std::istream& fin,
-      Logger& logger, bool gpuAccelerated);
+      FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger,
+      bool gpuAccelerated);
 
     void writeToStream(std::ostream& fout) const;
     void train(LabelledDataSet& trainingData);

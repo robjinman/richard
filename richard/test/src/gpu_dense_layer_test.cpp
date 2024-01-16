@@ -4,6 +4,8 @@
 #include <cpu/dense_layer.hpp>
 #include <gpu/dense_layer.hpp>
 #include <gpu/gpu.hpp>
+#include <file_system.hpp>
+#include <platform_paths.hpp>
 #include <gtest/gtest.h>
 
 using namespace richard;
@@ -70,7 +72,10 @@ TEST_F(GpuDenseLayerTest, trainForward) {
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::DenseLayer layer(*gpu, config, layerInputSize, true);
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
+  gpu::DenseLayer layer(*gpu, *fileSystem, *platformPaths, config, layerInputSize, true);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },
@@ -165,7 +170,10 @@ TEST_F(GpuDenseLayerTest, backprop) {
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::DenseLayer layer(*gpu, config, layerInputSize, true);
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
+  gpu::DenseLayer layer(*gpu, *fileSystem, *platformPaths, config, layerInputSize, true);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },
@@ -246,7 +254,10 @@ TEST_F(GpuDenseLayerTest, updateParams) {
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::DenseLayer layer(*gpu, config, layerInputSize, true);
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
+  gpu::DenseLayer layer(*gpu, *fileSystem, *platformPaths, config, layerInputSize, true);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },

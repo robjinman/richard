@@ -5,12 +5,15 @@
 namespace richard {
 
 class Logger;
+class FileSystem;
+class PlatformPaths;
 
 namespace gpu {
 
-NeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config, Logger& logger);
 NeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
-  std::istream& stream, Logger& logger);
+  FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger);
+NeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
+  std::istream& stream, FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger);
 
 }
 }

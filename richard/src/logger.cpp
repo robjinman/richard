@@ -5,6 +5,7 @@ namespace richard {
 
 class StdoutLogger : public Logger {
   public:
+    void debug(const std::string& msg, bool newline = true) override;
     void info(const std::string& msg, bool newline = true) override;
     void warn(const std::string& msg, bool newline = true) override;
     void error(const std::string& msg, bool newline = true) override;
@@ -20,6 +21,11 @@ void StdoutLogger::endMessage(bool newline) const {
   else {
     std::cout << std::flush;
   }
+}
+
+void StdoutLogger::debug(const std::string& msg, bool newline) {
+  std::cout << "[ DEBUG ] " << msg;
+  endMessage(newline);
 }
 
 void StdoutLogger::info(const std::string& msg, bool newline) {

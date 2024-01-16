@@ -65,11 +65,10 @@ void optimumWorkgroups(const Size3& workSize, size_t maxWorkgroupSize, Size3& wo
     numWorkgroups[i] *= scale;
   }
 
-  ASSERT_MSG(workgroupSize[0] * numWorkgroups[0] == workSize[0],
-    "Work size " << workSize[0] << " is not divisible by workgroup size " << workgroupSize[0]);
-
-  ASSERT_MSG(workgroupSize[1] * numWorkgroups[1] == workSize[1],
-    "Work size " << workSize[1] << " is not divisible by workgroup size " << workgroupSize[1]);
+  for (size_t i = 0; i < 3; ++i) {
+    ASSERT_MSG(workgroupSize[i] * numWorkgroups[i] == workSize[i],
+      "Work size " << workSize[i] << " is not divisible by workgroup size " << workgroupSize[i]);
+  }
 }
 
 class SourceIncluder : public shaderc::CompileOptions::IncluderInterface {
@@ -158,9 +157,9 @@ class Vulkan : public Gpu {
   public:
     Vulkan(const nlohmann::json& config, Logger& logger);
 
-    ShaderHandle compileShader(const std::string& source,
+    ShaderHandle compileShader(const std::string& name, const std::string& source,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-      const Size3& workSize, const std::string& includesPath) override;
+      const Size3& workSize, const std::filesystem::path& includesPath) override;
     GpuBuffer allocateBuffer(size_t size, GpuBufferFlags flags) override;
     void submitBufferData(GpuBufferHandle buffer, const void* data) override;
     void queueShader(ShaderHandle shaderHandle) override;
@@ -187,7 +186,7 @@ class Vulkan : public Gpu {
     void dispatchWorkgroups(VkCommandBuffer commandBuffer, size_t pipelineIdx,
       const Size3& numWorkgroups);
     void createSyncObjects();
-    VkShaderModule createShaderModule(const std::string& sourcePath,
+    VkShaderModule createShaderModule(const std::string& name, const std::string& sourcePath,
       const std::string& includesPath) const;
 
 #ifndef NDEBUG
@@ -316,17 +315,23 @@ void Vulkan::submitBufferData(GpuBufferHandle bufferHandle, const void* data) {
   vkDestroyBuffer(m_device, stagingBuffer, nullptr);
 }
 
-ShaderHandle Vulkan::compileShader(const std::string& source,
+ShaderHandle Vulkan::compileShader(const std::string& name, const std::string& source,
   const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-  const Size3& workSize, const std::string& includesPath) {
+  const Size3& workSize, const std::filesystem::path& includesPath) {
 
   DBG_TRACE
 
-  VkShaderModule shaderModule = createShaderModule(source, includesPath);
+  VkShaderModule shaderModule = createShaderModule(name, source, includesPath.string());
 
   Size3 workgroupSize;
   Size3 numWorkgroups;
   optimumWorkgroups(workSize, m_maxWorkgroupSize, workgroupSize, numWorkgroups);
+
+  DBG_LOG(m_logger, STR("Compiling '" << name << "' shader"));
+  DBG_LOG(m_logger, STR("  Total threads: " << calcProduct(workSize)));
+  //DBG_LOG(m_logger, STR("  Work size: " << workSize));
+  //DBG_LOG(m_logger, STR("  Workgroup size: " << workgroupSize));
+  //DBG_LOG(m_logger, STR("  Num workgroups: " << numWorkgroups));
 
   std::vector<uint8_t> specializationData;
   std::vector<VkSpecializationMapEntry> entries;
@@ -724,7 +729,7 @@ VkCommandBuffer Vulkan::createCommandBuffer() {
   return commandBuffer;
 }
 
-VkShaderModule Vulkan::createShaderModule(const std::string& source,
+VkShaderModule Vulkan::createShaderModule(const std::string& name, const std::string& source,
   const std::string& includesPath) const {
 
   DBG_TRACE
@@ -739,7 +744,7 @@ VkShaderModule Vulkan::createShaderModule(const std::string& source,
   }
 
   auto result = compiler.CompileGlslToSpv(source, shaderc_shader_kind::shaderc_glsl_compute_shader,
-    "shader", options);
+    name.c_str(), options);
 
   if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
     EXCEPTION("Error compiling shader: " << result.GetErrorMessage());

@@ -6,12 +6,18 @@
 #include <nlohmann/json.hpp>
 
 namespace richard {
+
+class FileSystem;
+class PlatformPaths;
+
 namespace gpu {
 
 class OutputLayer : public Layer {
   public:
-    OutputLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize);
-    OutputLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream, size_t inputSize);
+    OutputLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+      const nlohmann::json& obj, size_t inputSize);
+    OutputLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+      const nlohmann::json& obj, std::istream& stream, size_t inputSize);
 
     void allocateGpuBuffers() override;
     void createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
@@ -49,6 +55,8 @@ class OutputLayer : public Layer {
     void createUpdateParamsShader(GpuBufferHandle statusBuffer);
 
     Gpu& m_gpu;
+    FileSystem& m_fileSystem;
+    const PlatformPaths& m_platformPaths;
     netfloat_t m_learnRate;
     netfloat_t m_learnRateDecay;
     size_t m_inputSize;

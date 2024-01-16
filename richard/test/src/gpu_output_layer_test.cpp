@@ -2,6 +2,8 @@
 #include <cpu/output_layer.hpp>
 #include <gpu/output_layer.hpp>
 #include <gpu/gpu.hpp>
+#include <file_system.hpp>
+#include <platform_paths.hpp>
 #include <gtest/gtest.h>
 
 using namespace richard;
@@ -76,7 +78,10 @@ TEST_F(GpuOutputLayerTest, trainForward) {
   config["learnRate"] = 0.1;
   config["learnRateDecay"] = 1.0;
 
-  gpu::OutputLayer layer(*gpu, config, layerInputSize);
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
+  gpu::OutputLayer layer(*gpu, *fileSystem, *platformPaths, config, layerInputSize);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },
@@ -161,7 +166,10 @@ TEST_F(GpuOutputLayerTest, backprop) {
   config["learnRate"] = 0.1;
   config["learnRateDecay"] = 1.0;
 
-  gpu::OutputLayer layer(*gpu, config, layerInputSize);
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
+  gpu::OutputLayer layer(*gpu, *fileSystem, *platformPaths, config, layerInputSize);
 
   Matrix W({
     { 0.1, 0.2, 0.3, 0.4 },

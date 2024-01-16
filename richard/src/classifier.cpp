@@ -29,13 +29,14 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 }
 
 Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config,
-  std::istream& fin, Logger& logger, bool gpuAccelerated)
+  std::istream& fin, FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger,
+  bool gpuAccelerated)
   : m_logger(logger)
   , m_isTrained(false) {
 
   if (gpuAccelerated) {
     m_neuralNet = gpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin,
-      m_logger);
+      fileSystem, platformPaths, m_logger);
   }
   else {
     m_neuralNet = cpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin,
@@ -45,14 +46,15 @@ Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& con
   m_isTrained = true;
 }
 
-Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config, Logger& logger,
-  bool gpuAccelerated)
+Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config,
+  FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger, bool gpuAccelerated)
   : m_logger(logger)
   , m_neuralNet(nullptr)
   , m_isTrained(false) {
 
   if (gpuAccelerated) {
-    m_neuralNet = gpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), m_logger);
+    m_neuralNet = gpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"),
+      fileSystem, platformPaths, m_logger);
   }
   else {
     m_neuralNet = cpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), m_logger);

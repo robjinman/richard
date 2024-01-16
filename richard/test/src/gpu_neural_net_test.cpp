@@ -1,5 +1,7 @@
 #include "mock_logger.hpp"
 #include <utils.hpp>
+#include <file_system.hpp>
+#include <platform_paths.hpp>
 #include <cpu/dense_layer.hpp>
 #include <cpu/convolutional_layer.hpp>
 #include <cpu/max_pooling_layer.hpp>
@@ -75,6 +77,9 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
 
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
   GpuBufferFlags statusBufferFlags = GpuBufferFlags::frequentHostAccess
                                    | GpuBufferFlags::hostReadAccess
                                    | GpuBufferFlags::hostWriteAccess;
@@ -124,8 +129,8 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
   layer2Config["learnRate"] = 0.1;
   layer2Config["learnRateDecay"] = 1.0;
 
-  gpu::DenseLayer layer1(*gpu, layer1Config, inputSize, true);
-  gpu::OutputLayer layer2(*gpu, layer2Config, layer1Size);
+  gpu::DenseLayer layer1(*gpu, *fileSystem, *platformPaths, layer1Config, inputSize, true);
+  gpu::OutputLayer layer2(*gpu, *fileSystem, *platformPaths, layer2Config, layer1Size);
 
   Matrix W1({
     { 0.7, 0.3, 0.1, 0.4 },
@@ -154,9 +159,6 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
   layer1.createGpuShaders(bufferX.handle, statusBuffer.handle, &layer2, bufferY.handle);
   layer2.createGpuShaders(layer1.outputBuffer(), statusBuffer.handle, nullptr, bufferY.handle);
 
-  const std::string shaderIncludesDir = "./shaders";
-  const std::string computeCostsSrc = loadFile("./shaders/compute_costs.glsl");
-
   GpuBufferFlags costsBufferFlags = GpuBufferFlags::frequentHostAccess
                                   | GpuBufferFlags::large
                                   | GpuBufferFlags::hostReadAccess;
@@ -174,8 +176,12 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
     { gpu::SpecializationConstant::Type::uint_type, static_cast<uint32_t>(miniBatchSize) }
   };
 
-  gpu::ShaderHandle computeCostsShader = gpu->compileShader(computeCostsSrc, computeCostsBuffers,
-    computeCostsConstants, { static_cast<uint32_t>(layer2Size), 1, 1 }, shaderIncludesDir);
+  auto computeCostsSrcPath = platformPaths->get("shaders", "compute_costs.glsl");
+  std::string computeCostsSrc = fileSystem->loadTextFile(computeCostsSrcPath);
+
+  gpu::ShaderHandle computeCostsShader = gpu->compileShader("compute_costs.glsl", computeCostsSrc,
+    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(layer2Size), 1, 1 },
+    platformPaths->get("shaders"));
 
   for (size_t i = 0; i < X.size(); ++i) {
     memcpy(bufferX.data, X[i].data(), inputSize * sizeof(netfloat_t));
@@ -299,6 +305,9 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
   testing::NiceMock<MockLogger> logger;
   GpuPtr gpu = gpu::createGpu(logger);
 
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
   GpuBufferFlags statusBufferFlags = GpuBufferFlags::frequentHostAccess
                                    | GpuBufferFlags::hostReadAccess
                                    | GpuBufferFlags::hostWriteAccess;
@@ -379,9 +388,10 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
   layer3Config["learnRate"] = 0.1;
   layer3Config["learnRateDecay"] = 1.0;
 
-  gpu::ConvolutionalLayer layer1(*gpu, layer1Config, { 3, 3, 2 }, true);
-  gpu::MaxPoolingLayer layer2(*gpu, layer2Config, { 2, 2, 2 });
-  gpu::OutputLayer layer3(*gpu, layer3Config, 2);
+  gpu::ConvolutionalLayer layer1(*gpu, *fileSystem, *platformPaths, layer1Config, { 3, 3, 2 },
+    true);
+  gpu::MaxPoolingLayer layer2(*gpu, *fileSystem, *platformPaths, layer2Config, { 2, 2, 2 });
+  gpu::OutputLayer layer3(*gpu, *fileSystem, *platformPaths, layer3Config, 2);
 
   cpu::ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({
@@ -433,9 +443,6 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
   layer2.createGpuShaders(layer1.outputBuffer(), statusBuffer.handle, &layer3, bufferY.handle);
   layer3.createGpuShaders(layer2.outputBuffer(), statusBuffer.handle, nullptr, bufferY.handle);
 
-  const std::string shaderIncludesDir = "./shaders";
-  const std::string computeCostsSrc = loadFile("./shaders/compute_costs.glsl");
-
   GpuBufferFlags costsBufferFlags = GpuBufferFlags::frequentHostAccess
                                   | GpuBufferFlags::large
                                   | GpuBufferFlags::hostReadAccess;
@@ -454,8 +461,12 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
     { gpu::SpecializationConstant::Type::uint_type, static_cast<uint32_t>(miniBatchSize) }
   };
 
-  gpu::ShaderHandle computeCostsShader = gpu->compileShader(computeCostsSrc, computeCostsBuffers,
-    computeCostsConstants, { static_cast<uint32_t>(outputLayerSize), 1, 1 }, shaderIncludesDir);
+  auto computeCostsSrcPath = platformPaths->get("shaders", "compute_costs.glsl");
+  std::string computeCostsSrc = fileSystem->loadTextFile(computeCostsSrcPath);
+
+  gpu::ShaderHandle computeCostsShader = gpu->compileShader("compute_costs.glsl", computeCostsSrc,
+    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(outputLayerSize), 1, 1 },
+    platformPaths->get("shaders"));
 
   for (size_t i = 0; i < X.size(); ++i) {
     memcpy(bufferX.data, X[i].data(), inputSize * sizeof(netfloat_t));

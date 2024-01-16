@@ -6,14 +6,18 @@
 #include <nlohmann/json.hpp>
 
 namespace richard {
+
+class FileSystem;
+class PlatformPaths;
+
 namespace gpu {
 
 class ConvolutionalLayer : public Layer {
   public:
-    ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj, const Size3& inputShape,
-      bool isFirstLayer);
-    ConvolutionalLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream,
-      const Size3& inputShape, bool isFirstLayer);
+    ConvolutionalLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+      const nlohmann::json& obj, const Size3& inputShape, bool isFirstLayer);
+    ConvolutionalLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+      const nlohmann::json& obj, std::istream& stream, const Size3& inputShape, bool isFirstLayer);
 
     void allocateGpuBuffers() override;
     void createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
@@ -50,6 +54,8 @@ class ConvolutionalLayer : public Layer {
     void createUpdateParamsShader(GpuBufferHandle statusBuffer);
 
     Gpu& m_gpu;
+    FileSystem& m_fileSystem;
+    const PlatformPaths& m_platformPaths;
     size_t m_inputW;
     size_t m_inputH;
     size_t m_inputDepth;

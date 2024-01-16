@@ -1,12 +1,16 @@
 #include "gpu/output_layer.hpp"
 #include "utils.hpp"
+#include "file_system.hpp"
+#include "platform_paths.hpp"
 
 namespace richard {
 namespace gpu {
 
-OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stream,
-  size_t inputSize)
-  : m_gpu(gpu) {
+OutputLayer::OutputLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+  const nlohmann::json& obj, std::istream& stream, size_t inputSize)
+  : m_gpu(gpu)
+  , m_fileSystem(fileSystem)
+  , m_platformPaths(platformPaths) {
 
   initialize(obj, inputSize);
 
@@ -14,8 +18,11 @@ OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, std::istream& stre
   stream.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
-OutputLayer::OutputLayer(Gpu& gpu, const nlohmann::json& obj, size_t inputSize)
-  : m_gpu(gpu) {
+OutputLayer::OutputLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+  const nlohmann::json& obj, size_t inputSize)
+  : m_gpu(gpu)
+  , m_fileSystem(fileSystem)
+  , m_platformPaths(platformPaths) {
 
   initialize(obj, inputSize);
 
@@ -87,13 +94,13 @@ void OutputLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
   };
 
-  // TODO: Remove hard-coded paths
-  const std::string includesDir = "./shaders";
-  const std::string source = loadFile("./shaders/output_eval_forward.glsl");
+  const std::string sourceName = "output_eval_forward.glsl";
+  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
   Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
 
-  m_evalForwardShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
+  m_evalForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
+    m_platformPaths.get("shaders"));
 }
 
 void OutputLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
@@ -109,13 +116,13 @@ void OutputLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
   };
 
-  // TODO: Remove hard-coded paths
-  const std::string includesDir = "./shaders";
-  const std::string source = loadFile("./shaders/output_train_forward.glsl");
+  const std::string sourceName = "output_train_forward.glsl";
+  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
   Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
 
-  m_trainForwardShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
+  m_trainForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
+    m_platformPaths.get("shaders"));
 }
 
 void OutputLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
@@ -138,13 +145,13 @@ void OutputLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
   };
 
-  // TODO: Remove hard-coded paths
-  const std::string includesDir = "./shaders";
-  const std::string source = loadFile("./shaders/output_backprop_delta.glsl");
+  const std::string sourceName = "output_backprop_delta.glsl";
+  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
   Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
 
-  m_backpropDeltaShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
+  m_backpropDeltaShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
+    m_platformPaths.get("shaders"));
 }
 
 void OutputLayer::createBackpropInputDeltaShader() {
@@ -159,14 +166,13 @@ void OutputLayer::createBackpropInputDeltaShader() {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
   };
 
-  // TODO: Remove hard-coded paths
-  const std::string includesDir = "./shaders";
-  const std::string source = loadFile("./shaders/dense_backprop_input_delta.glsl");
+  const std::string sourceName = "dense_backprop_input_delta.glsl";
+  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
   Size3 workSize{ static_cast<uint32_t>(m_inputSize), 1, 1 };
 
-  m_backpropInputDeltaShader = m_gpu.compileShader(source, buffers, constants, workSize,
-    includesDir);
+  m_backpropInputDeltaShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
+    m_platformPaths.get("shaders"));
 }
 
 void OutputLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
@@ -184,13 +190,13 @@ void OutputLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
     { SpecializationConstant::Type::float_type, m_learnRateDecay },
   };
 
-  // TODO: Remove hard-coded paths
-  const std::string includesDir = "./shaders";
-  const std::string source = loadFile("./shaders/dense_update_params.glsl");
+  const std::string sourceName = "dense_update_params.glsl";
+  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
   Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
 
-  m_updateParamsShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
+  m_updateParamsShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
+    m_platformPaths.get("shaders"));
 }
 
 size_t OutputLayer::size() const {

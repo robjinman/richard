@@ -8,6 +8,7 @@
 namespace richard {
 
 class FileSystem;
+class PlatformPaths;
 class Logger;
 
 class ClassifierEvalApp : public Application {
@@ -18,7 +19,8 @@ class ClassifierEvalApp : public Application {
       bool gpuAccelerated;
     };
 
-    ClassifierEvalApp(FileSystem& fileSystem, const Options& options, Logger& logger);
+    ClassifierEvalApp(FileSystem& fileSystem, const PlatformPaths& platformPaths,
+      const Options& options, Logger& logger);
 
     void start() override;
 

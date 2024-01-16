@@ -1,11 +1,16 @@
 #include "gpu/max_pooling_layer.hpp"
 #include "utils.hpp"
+#include "file_system.hpp"
+#include "platform_paths.hpp"
 
 namespace richard {
 namespace gpu {
 
-MaxPoolingLayer::MaxPoolingLayer(Gpu& gpu, const nlohmann::json& obj, const Size3& inputShape)
+MaxPoolingLayer::MaxPoolingLayer(Gpu& gpu, FileSystem& fileSystem,
+  const PlatformPaths& platformPaths, const nlohmann::json& obj, const Size3& inputShape)
   : m_gpu(gpu)
+  , m_fileSystem(fileSystem)
+  , m_platformPaths(platformPaths)
   , m_inputW(inputShape[0])
   , m_inputH(inputShape[1])
   , m_inputDepth(inputShape[2]) {
@@ -49,13 +54,13 @@ void MaxPoolingLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionH) }
   };
 
-  // TODO: Remove hard-coded paths
-  const std::string includesDir = "./shaders";
-  const std::string source = loadFile("./shaders/max_pooling_eval_forward.glsl");
+  const std::string sourceName = "max_pooling_eval_forward.glsl";
+  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
   Size3 workSize = outputSize();
 
-  m_evalForwardShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
+  m_evalForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
+    m_platformPaths.get("shaders"));
 }
 
 void MaxPoolingLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
@@ -70,13 +75,13 @@ void MaxPoolingLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionH) }
   };
 
-  // TODO: Remove hard-coded paths
-  const std::string includesDir = "./shaders";
-  const std::string source = loadFile("./shaders/max_pooling_train_forward.glsl");
+  const std::string sourceName = "max_pooling_train_forward.glsl";
+  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
   Size3 workSize = outputSize();
 
-  m_trainForwardShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
+  m_trainForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
+    m_platformPaths.get("shaders"));
 }
 
 void MaxPoolingLayer::createBackpropShader(const Layer* nextLayer) {
@@ -91,13 +96,13 @@ void MaxPoolingLayer::createBackpropShader(const Layer* nextLayer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionH) }
   };
 
-  // TODO: Remove hard-coded paths
-  const std::string includesDir = "./shaders";
-  const std::string source = loadFile("./shaders/max_pooling_backprop.glsl");
+  const std::string sourceName = "max_pooling_backprop.glsl";
+  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
   Size3 workSize = outputSize();
 
-  m_backpropShader = m_gpu.compileShader(source, buffers, constants, workSize, includesDir);
+  m_backpropShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
+    m_platformPaths.get("shaders"));
 }
 
 size_t MaxPoolingLayer::size() const {

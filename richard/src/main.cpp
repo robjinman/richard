@@ -3,6 +3,7 @@
 #include "classifier_training_app.hpp"
 #include "classifier_eval_app.hpp"
 #include "file_system.hpp"
+#include "platform_paths.hpp"
 #include "logger.hpp"
 #include <boost/program_options.hpp>
 #include <chrono>
@@ -45,7 +46,9 @@ po::variable_value getOpt(po::variables_map& vm, const std::string& option, bool
   return value;
 };
 
-ApplicationPtr constructApp(Logger& logger, FileSystem& fileSystem, po::variables_map& vm) {
+ApplicationPtr constructApp(Logger& logger, FileSystem& fileSystem,
+  const PlatformPaths& platformPaths, po::variables_map& vm) {
+
   ApplicationPtr app = nullptr;
 
   if (vm.count("train")) {
@@ -60,7 +63,7 @@ ApplicationPtr constructApp(Logger& logger, FileSystem& fileSystem, po::variable
 
     vm.erase("gpu");
 
-    app = std::make_unique<ClassifierTrainingApp>(fileSystem, opts, logger);
+    app = std::make_unique<ClassifierTrainingApp>(fileSystem, platformPaths, opts, logger);
   }
   else if (vm.count("eval")) {
     ClassifierEvalApp::Options opts;
@@ -73,7 +76,7 @@ ApplicationPtr constructApp(Logger& logger, FileSystem& fileSystem, po::variable
 
     vm.erase("gpu");
 
-    app = std::make_unique<ClassifierEvalApp>(fileSystem, opts, logger);
+    app = std::make_unique<ClassifierEvalApp>(fileSystem, platformPaths, opts, logger);
   }
   else {
     EXCEPTION("Missing required argument: train or eval");
@@ -137,7 +140,8 @@ int main(int argc, char** argv) {
     }
 
     FileSystemPtr fileSystem = createFileSystem();
-    ApplicationPtr app = constructApp(*logger, *fileSystem, vm);
+    PlatformPathsPtr platformPaths = createPlatformPaths();
+    ApplicationPtr app = constructApp(*logger, *fileSystem, *platformPaths, vm);
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -154,4 +158,3 @@ int main(int argc, char** argv) {
 
   return EXIT_SUCCESS;
 }
-

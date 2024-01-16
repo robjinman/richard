@@ -6,7 +6,8 @@
 
 namespace richard {
 
-ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const Options& options, Logger& logger)
+ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const PlatformPaths& platformPaths,
+  const Options& options, Logger& logger)
   : m_logger(logger)
   , m_fileSystem(fileSystem)
   , m_opts(options) {
@@ -22,7 +23,7 @@ ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const Options& opti
 
   m_dataDetails = std::make_unique<DataDetails>(getOrThrow(config, "data"));
   m_classifier = std::make_unique<Classifier>(*m_dataDetails, getOrThrow(config, "classifier"),
-    *stream, m_logger, m_opts.gpuAccelerated);
+    *stream, fileSystem, platformPaths, m_logger, m_opts.gpuAccelerated);
 
   auto loader = createDataLoader(m_fileSystem, getOrThrow(config, "dataLoader"),
     m_opts.samplesPath, *m_dataDetails);

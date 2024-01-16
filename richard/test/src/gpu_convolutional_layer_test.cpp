@@ -4,6 +4,8 @@
 #include <cpu/convolutional_layer.hpp>
 #include <gpu/convolutional_layer.hpp>
 #include <gpu/gpu.hpp>
+#include <file_system.hpp>
+#include <platform_paths.hpp>
 #include <gtest/gtest.h>
 
 using namespace richard;
@@ -78,7 +80,10 @@ TEST_F(GpuConvolutionalLayerTest, trainForward) {
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::ConvolutionalLayer layer(*gpu, config, { 3, 3, 2 }, true);
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
+  gpu::ConvolutionalLayer layer(*gpu, *fileSystem, *platformPaths, config, { 3, 3, 2 }, true);
 
   cpu::ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({
@@ -213,7 +218,10 @@ TEST_F(GpuConvolutionalLayerTest, backprop) {
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::ConvolutionalLayer layer(*gpu, config, { 3, 3, 2 }, true);
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
+  gpu::ConvolutionalLayer layer(*gpu, *fileSystem, *platformPaths, config, { 3, 3, 2 }, true);
 
   cpu::ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({
@@ -309,7 +317,10 @@ TEST_F(GpuConvolutionalLayerTest, updateParams) {
   config["learnRateDecay"] = 1.0;
   config["dropoutRate"] = 0.0;
 
-  gpu::ConvolutionalLayer layer(*gpu, config, { 3, 3, 2 }, true);
+  FileSystemPtr fileSystem = createFileSystem();
+  PlatformPathsPtr platformPaths = createPlatformPaths();
+
+  gpu::ConvolutionalLayer layer(*gpu, *fileSystem, *platformPaths, config, { 3, 3, 2 }, true);
 
   Kernel K1{
     {

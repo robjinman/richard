@@ -20,7 +20,8 @@ class ClassifierTrainingApp : public Application {
       bool gpuAccelerated;
     };
 
-    ClassifierTrainingApp(FileSystem& fileSystem, const Options& options, Logger& logger);
+    ClassifierTrainingApp(FileSystem& fileSystem, const PlatformPaths& platformPaths,
+      const Options& options, Logger& logger);
 
     void start() override;
 
