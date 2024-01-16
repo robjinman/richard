@@ -24,5 +24,5 @@ LoggerPtr createStdoutLogger();
 #ifndef NDEBUG
   #define DBG_LOG(logger, msg) logger.debug(msg);
 #else
-  #define DBG_LOG
+  #define DBG_LOG(logger, msg)
 #endif

@@ -329,9 +329,9 @@ ShaderHandle Vulkan::compileShader(const std::string& name, const std::string& s
 
   DBG_LOG(m_logger, STR("Compiling '" << name << "' shader"));
   DBG_LOG(m_logger, STR("  Total threads: " << calcProduct(workSize)));
-  //DBG_LOG(m_logger, STR("  Work size: " << workSize));
-  //DBG_LOG(m_logger, STR("  Workgroup size: " << workgroupSize));
-  //DBG_LOG(m_logger, STR("  Num workgroups: " << numWorkgroups));
+  DBG_LOG(m_logger, STR("  Work size: " << workSize));
+  DBG_LOG(m_logger, STR("  Workgroup size: " << workgroupSize));
+  DBG_LOG(m_logger, STR("  Num workgroups: " << numWorkgroups));
 
   std::vector<uint8_t> specializationData;
   std::vector<VkSpecializationMapEntry> entries;

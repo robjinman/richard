@@ -7,7 +7,11 @@
 
 namespace richard {
 
-#define STR(x) (std::stringstream("") << x).str()
+#define STR(x) [&]() {\
+  std::stringstream ss; \
+  ss << x; \
+  return ss.str(); \
+}()
 
 nlohmann::json getOrThrow(const nlohmann::json& obj, const std::string& key);
 
