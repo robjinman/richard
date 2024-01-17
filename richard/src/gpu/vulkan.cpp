@@ -15,6 +15,7 @@
 
 namespace richard {
 namespace gpu {
+namespace {
 
 #define VK_CHECK(fnCall, msg) \
   { \
@@ -23,8 +24,6 @@ namespace gpu {
       EXCEPTION(msg << " (result: " << code << ")"); \
     } \
   }
-
-namespace {
 
 const size_t DEFAULT_MAX_WORKGROUP_SIZE = 64;
 
@@ -315,26 +314,9 @@ void Vulkan::submitBufferData(GpuBufferHandle bufferHandle, const void* data) {
   vkDestroyBuffer(m_device, stagingBuffer, nullptr);
 }
 
-ShaderHandle Vulkan::compileShader(const std::string& name, const std::string& source,
-  const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-  const Size3& workSize, const std::filesystem::path& includesPath) {
-
-  DBG_TRACE
-
-  VkShaderModule shaderModule = createShaderModule(name, source, includesPath.string());
-
-  Size3 workgroupSize;
-  Size3 numWorkgroups;
-  optimumWorkgroups(workSize, m_maxWorkgroupSize, workgroupSize, numWorkgroups);
-
-  DBG_LOG(m_logger, STR("Compiling '" << name << "' shader"));
-  DBG_LOG(m_logger, STR("  Total threads: " << calcProduct(workSize)));
-  DBG_LOG(m_logger, STR("  Work size: " << workSize));
-  DBG_LOG(m_logger, STR("  Workgroup size: " << workgroupSize));
-  DBG_LOG(m_logger, STR("  Num workgroups: " << numWorkgroups));
-
-  std::vector<uint8_t> specializationData;
-  std::vector<VkSpecializationMapEntry> entries;
+VkSpecializationInfo createSpecializationInfo(const SpecializationConstants& constants,
+  const Size3& workgroupSize, std::vector<uint8_t>& specializationData,
+  std::vector<VkSpecializationMapEntry>& entries) {
 
   specializationData.reserve((3 + constants.size()) * sizeof(uint32_t));
 
@@ -370,12 +352,36 @@ ShaderHandle Vulkan::compileShader(const std::string& name, const std::string& s
     entries.push_back({ constantId, static_cast<uint32_t>(offset), typeSize });
   }
 
-  const VkSpecializationInfo specializationInfo = {
+  return {
     static_cast<uint32_t>(entries.size()),
     entries.data(),
     specializationData.size(),
     specializationData.data()
   };
+}
+
+ShaderHandle Vulkan::compileShader(const std::string& name, const std::string& source,
+  const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
+  const Size3& workSize, const std::filesystem::path& includesPath) {
+
+  DBG_TRACE
+
+  VkShaderModule shaderModule = createShaderModule(name, source, includesPath.string());
+
+  Size3 workgroupSize;
+  Size3 numWorkgroups;
+  optimumWorkgroups(workSize, m_maxWorkgroupSize, workgroupSize, numWorkgroups);
+
+  DBG_LOG(m_logger, STR("Compiling '" << name << "' shader"));
+  DBG_LOG(m_logger, STR("  Total threads: " << calcProduct(workSize)));
+  DBG_LOG(m_logger, STR("  Work size: " << workSize));
+  DBG_LOG(m_logger, STR("  Workgroup size: " << workgroupSize));
+  DBG_LOG(m_logger, STR("  Num workgroups: " << numWorkgroups));
+
+  std::vector<uint8_t> specializationData;
+  std::vector<VkSpecializationMapEntry> entries;
+  VkSpecializationInfo specializationInfo = createSpecializationInfo(constants, workgroupSize,
+    specializationData, entries);
 
   Pipeline pipeline;
   pipeline.numWorkgroups = numWorkgroups;
