@@ -97,7 +97,7 @@ void OutputLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
   const std::string sourceName = "output_eval_forward.glsl";
   const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
-  Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
+  Size3 workSize{ m_size, 1, 1 };
 
   m_evalForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
     m_platformPaths.get("shaders"));
@@ -119,7 +119,7 @@ void OutputLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
   const std::string sourceName = "output_train_forward.glsl";
   const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
-  Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
+  Size3 workSize{ m_size, 1, 1 };
 
   m_trainForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
     m_platformPaths.get("shaders"));
@@ -148,7 +148,7 @@ void OutputLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
   const std::string sourceName = "output_backprop_delta.glsl";
   const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
-  Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
+  Size3 workSize{ m_size, 1, 1 };
 
   m_backpropDeltaShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
     m_platformPaths.get("shaders"));
@@ -169,7 +169,7 @@ void OutputLayer::createBackpropInputDeltaShader() {
   const std::string sourceName = "dense_backprop_input_delta.glsl";
   const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
-  Size3 workSize{ static_cast<uint32_t>(m_inputSize), 1, 1 };
+  Size3 workSize{ m_inputSize, 1, 1 };
 
   m_backpropInputDeltaShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
     m_platformPaths.get("shaders"));
@@ -193,7 +193,7 @@ void OutputLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
   const std::string sourceName = "dense_update_params.glsl";
   const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
 
-  Size3 workSize{ static_cast<uint32_t>(m_size), 1, 1 };
+  Size3 workSize{ m_inputSize, m_size, 1 };
 
   m_updateParamsShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
     m_platformPaths.get("shaders"));

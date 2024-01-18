@@ -39,21 +39,18 @@ FN_READ(DeltaW)
 FN_WRITE(DeltaW)
 
 void main() {
-  const uint index = gl_GlobalInvocationID.x;
+  const uint xIdx = gl_GlobalInvocationID.x;
+  const uint yIdx = gl_GlobalInvocationID.y;
+
   const float learnRate = LEARN_RATE * pow(LEARN_RATE_DECAY, Status.epoch);
 
-  // TODO: Use a second workgroup dimension and remove loop
-  for (uint i = 0; i < LAYER_NUM_INPUTS; ++i) {
-    uint wIdx = index * LAYER_NUM_INPUTS + i;
-    float w = readW(wIdx);
-    float dw = readDeltaW(wIdx);
-    writeW(wIdx, w - dw * learnRate);
+  const uint wIdx = yIdx * LAYER_NUM_INPUTS + xIdx;
 
-    writeDeltaW(wIdx, 0);
+  writeW(wIdx, readW(wIdx) - readDeltaW(wIdx) * learnRate);
+  writeDeltaW(wIdx, 0);
+
+  if (xIdx == 0) {
+    writeB(yIdx, readB(yIdx) - readDeltaB(yIdx) * learnRate);
+    writeDeltaB(yIdx, 0);
   }
-
-  writeB(index, readB(index) - readDeltaB(index) * learnRate);
-
-  writeDeltaB(index, 0);
 }
-
