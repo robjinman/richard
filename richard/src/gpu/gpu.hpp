@@ -16,7 +16,18 @@ namespace gpu {
 
 using ShaderHandle = uint32_t;
 using GpuBufferHandle = uint32_t;
-using GpuBufferBindings = std::vector<GpuBufferHandle>;
+
+enum class BufferAccessMode {
+  read,
+  write
+};
+
+struct BufferBinding {
+  GpuBufferHandle buffer;
+  BufferAccessMode mode;
+};
+
+using GpuBufferBindings = std::vector<BufferBinding>;
 
 struct SpecializationConstant {
   enum class Type {

@@ -84,10 +84,10 @@ void DenseLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle s
 
 void DenseLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
   GpuBufferBindings buffers{
-    inputBuffer,
-    m_bufferB.handle,
-    m_bufferW.handle,
-    m_bufferA.handle
+    { inputBuffer, BufferAccessMode::read },
+    { m_bufferB.handle, BufferAccessMode::read },
+    { m_bufferW.handle, BufferAccessMode::read },
+    { m_bufferA.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{
@@ -107,12 +107,12 @@ void DenseLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
   GpuBufferHandle inputBuffer) {
 
   GpuBufferBindings buffers{
-    statusBuffer,
-    inputBuffer,
-    m_bufferB.handle,
-    m_bufferW.handle,
-    m_bufferZ.handle,
-    m_bufferA.handle
+    { statusBuffer, BufferAccessMode::read },
+    { inputBuffer, BufferAccessMode::read },
+    { m_bufferB.handle, BufferAccessMode::read },
+    { m_bufferW.handle, BufferAccessMode::read },
+    { m_bufferZ.handle, BufferAccessMode::write },
+    { m_bufferA.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{
@@ -134,17 +134,17 @@ void DenseLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
   GpuBufferHandle inputBuffer, const Layer* nextLayer) {
 
   GpuBufferBindings buffers{
-    statusBuffer,
-    inputBuffer,
-    m_bufferB.handle,
-    m_bufferW.handle,
-    m_bufferZ.handle,
-    m_bufferA.handle,
-    m_bufferD.handle,
-    nextLayer->weightsBuffer(),
-    nextLayer->deltaBuffer(),
-    m_bufferDeltaB.handle,
-    m_bufferDeltaW.handle
+    { statusBuffer, BufferAccessMode::read },
+    { inputBuffer, BufferAccessMode::read },
+    { m_bufferB.handle, BufferAccessMode::read },
+    { m_bufferW.handle, BufferAccessMode::read },
+    { m_bufferZ.handle, BufferAccessMode::read },
+    { m_bufferA.handle, BufferAccessMode::read },
+    { m_bufferD.handle, BufferAccessMode::write },
+    { nextLayer->weightsBuffer(), BufferAccessMode::read },
+    { nextLayer->deltaBuffer(), BufferAccessMode::read },
+    { m_bufferDeltaB.handle, BufferAccessMode::write },
+    { m_bufferDeltaW.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{
@@ -164,9 +164,9 @@ void DenseLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
 
 void DenseLayer::createBackpropInputDeltaShader() {
   GpuBufferBindings buffers{
-    m_bufferW.handle,
-    m_bufferD.handle,
-    m_bufferInputDelta.handle
+    { m_bufferW.handle, BufferAccessMode::read },
+    { m_bufferD.handle, BufferAccessMode::read },
+    { m_bufferInputDelta.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{
@@ -185,11 +185,11 @@ void DenseLayer::createBackpropInputDeltaShader() {
 
 void DenseLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
   GpuBufferBindings buffers{
-    statusBuffer,
-    m_bufferB.handle,
-    m_bufferW.handle,
-    m_bufferDeltaB.handle,
-    m_bufferDeltaW.handle
+    { statusBuffer, BufferAccessMode::read },
+    { m_bufferB.handle, BufferAccessMode::write },
+    { m_bufferW.handle, BufferAccessMode::write },
+    { m_bufferDeltaB.handle, BufferAccessMode::write },
+    { m_bufferDeltaW.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{

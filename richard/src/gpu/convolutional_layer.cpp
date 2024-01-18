@@ -110,10 +110,10 @@ void ConvolutionalLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBuffer
 
 void ConvolutionalLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
   GpuBufferBindings buffers{
-    inputBuffer,
-    m_bufferK.handle,
-    m_bufferB.handle,
-    m_bufferA.handle
+    { inputBuffer, BufferAccessMode::read },
+    { m_bufferK.handle, BufferAccessMode::read },
+    { m_bufferB.handle, BufferAccessMode::read },
+    { m_bufferA.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{
@@ -135,12 +135,12 @@ void ConvolutionalLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
   GpuBufferHandle inputBuffer) {
 
   GpuBufferBindings buffers{
-    statusBuffer,
-    inputBuffer,
-    m_bufferK.handle,
-    m_bufferB.handle,
-    m_bufferZ.handle,
-    m_bufferA.handle
+    { statusBuffer, BufferAccessMode::read },
+    { inputBuffer, BufferAccessMode::read },
+    { m_bufferK.handle, BufferAccessMode::read },
+    { m_bufferB.handle, BufferAccessMode::read },
+    { m_bufferZ.handle, BufferAccessMode::write },
+    { m_bufferA.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{
@@ -162,9 +162,9 @@ void ConvolutionalLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
 
 void ConvolutionalLayer::createBackpropDeltaShader(const Layer* nextLayer) {
   GpuBufferBindings buffers{
-    m_bufferZ.handle,
-    m_bufferD.handle,
-    nextLayer->inputDeltaBuffer()
+    { m_bufferZ.handle, BufferAccessMode::read },
+    { m_bufferD.handle, BufferAccessMode::write },
+    { nextLayer->inputDeltaBuffer(), BufferAccessMode::read }
   };
 
   const std::string sourceName = "convolutional_backprop_delta.glsl";
@@ -178,9 +178,9 @@ void ConvolutionalLayer::createBackpropDeltaShader(const Layer* nextLayer) {
 
 void ConvolutionalLayer::createBackpropInputDeltaShader() {
   GpuBufferBindings buffers{
-    m_bufferK.handle,
-    m_bufferD.handle,
-    m_bufferInputDelta.handle
+    { m_bufferK.handle, BufferAccessMode::read },
+    { m_bufferD.handle, BufferAccessMode::read },
+    { m_bufferInputDelta.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{
@@ -203,11 +203,11 @@ void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusB
   GpuBufferHandle inputBuffer) {
 
   GpuBufferBindings buffers{
-    statusBuffer,
-    inputBuffer,
-    m_bufferD.handle,
-    m_bufferDeltaK.handle,
-    m_bufferDeltaB.handle
+    { statusBuffer, BufferAccessMode::read },
+    { inputBuffer, BufferAccessMode::read },
+    { m_bufferD.handle, BufferAccessMode::read },
+    { m_bufferDeltaK.handle, BufferAccessMode::write },
+    { m_bufferDeltaB.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{
@@ -230,11 +230,11 @@ void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusB
 
 void ConvolutionalLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
   GpuBufferBindings buffers{
-    statusBuffer,
-    m_bufferK.handle,
-    m_bufferB.handle,
-    m_bufferDeltaK.handle,
-    m_bufferDeltaB.handle
+    { statusBuffer, BufferAccessMode::read },
+    { m_bufferK.handle, BufferAccessMode::write },
+    { m_bufferB.handle, BufferAccessMode::write },
+    { m_bufferDeltaK.handle, BufferAccessMode::write },
+    { m_bufferDeltaB.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{

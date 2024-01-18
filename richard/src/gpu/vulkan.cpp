@@ -150,6 +150,8 @@ struct Pipeline {
   VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
   VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
   Size3 numWorkgroups = { 1, 1, 1 };
+  std::set<GpuBufferHandle> writes;
+  std::set<GpuBufferHandle> reads;
 };
 
 class Vulkan : public Gpu {
@@ -182,11 +184,11 @@ class Vulkan : public Gpu {
     VkDescriptorSet createDescriptorSet(const GpuBufferBindings& buffers,
       VkDescriptorSetLayout layout);
     VkCommandBuffer createCommandBuffer();
-    void dispatchWorkgroups(VkCommandBuffer commandBuffer, size_t pipelineIdx,
-      const Size3& numWorkgroups);
     void createSyncObjects();
     VkShaderModule createShaderModule(const std::string& name, const std::string& sourcePath,
       const std::string& includesPath) const;
+    Buffer& getBuffer(GpuBufferHandle handle);
+    const Buffer& getBuffer(GpuBufferHandle handle) const;
 
 #ifndef NDEBUG
     void setupDebugMessenger();
@@ -210,6 +212,7 @@ class Vulkan : public Gpu {
     std::vector<VkCommandBuffer> m_commandBuffers;
     VkDescriptorPool m_descriptorPool;
     VkFence m_taskCompleteFence;
+    std::set<GpuBufferHandle> m_activeBuffers;
 };
 
 Vulkan::Vulkan(const nlohmann::json& config, Logger& logger)
@@ -292,7 +295,7 @@ void Vulkan::submitBufferData(GpuBufferHandle bufferHandle, const void* data) {
   VkBuffer stagingBuffer;
   VkDeviceMemory stagingBufferMemory;
 
-  Buffer& buffer = m_buffers[bufferHandle];
+  Buffer& buffer = getBuffer(bufferHandle);
 
   VkMemoryPropertyFlags flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                               | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
@@ -388,6 +391,17 @@ ShaderHandle Vulkan::compileShader(const std::string& name, const std::string& s
   pipeline.descriptorSetLayout = createDescriptorSetLayout(bufferBindings);
   pipeline.layout = createPipelineLayout(pipeline.descriptorSetLayout);
 
+  for (const auto& binding : bufferBindings) {
+    switch (binding.mode) {
+      case BufferAccessMode::read:
+        pipeline.reads.insert(binding.buffer);
+        break;
+      case BufferAccessMode::write:
+        pipeline.writes.insert(binding.buffer);
+        break;
+    }
+  }
+
   VkPipelineShaderStageCreateInfo shaderStageInfo{};
   shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -413,12 +427,65 @@ ShaderHandle Vulkan::compileShader(const std::string& name, const std::string& s
 }
 
 void Vulkan::queueShader(ShaderHandle shaderHandle) {
+  DBG_TRACE
+
   const Pipeline& pipeline = m_pipelines[shaderHandle];
 
   VkCommandBuffer commandBuffer = createCommandBuffer();
   m_commandBuffers.push_back(commandBuffer);
 
-  dispatchWorkgroups(commandBuffer, shaderHandle, pipeline.numWorkgroups);
+  std::set<GpuBufferHandle> buffers;
+  setUnion(pipeline.reads, pipeline.writes, buffers);
+
+  std::set<GpuBufferHandle> mustWait;
+  setIntersection(m_activeBuffers, buffers, mustWait);
+
+  std::vector<VkBufferMemoryBarrier> bufferBarriers;
+  for (auto bufferHandle : mustWait) {
+    const Buffer& buffer = getBuffer(bufferHandle);
+
+    VkAccessFlags srcAccess = VK_ACCESS_SHADER_WRITE_BIT;
+    VkAccessFlags dstAccess = VK_ACCESS_SHADER_READ_BIT;
+    if (buffer.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+      dstAccess = VK_ACCESS_UNIFORM_READ_BIT;
+    }
+
+    VkBufferMemoryBarrier barrier;
+    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barrier.pNext = nullptr;
+    barrier.srcAccessMask = srcAccess;
+    barrier.dstAccessMask = dstAccess;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.buffer = buffer.handle;
+    barrier.offset = 0;
+    barrier.size = buffer.size;
+
+    bufferBarriers.push_back(barrier);
+  }
+
+  setDifference(m_activeBuffers, mustWait);
+  setUnion(m_activeBuffers, pipeline.writes);
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = 0;
+  beginInfo.pInheritanceInfo = nullptr;
+
+  VK_CHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo),
+    "Failed to begin recording command buffer");
+
+  const Size3& workgroups = pipeline.numWorkgroups;
+
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.handle);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.layout, 0, 1,
+    &pipeline.descriptorSet, 0, 0);
+  vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr,
+    bufferBarriers.size(), bufferBarriers.data(), 0, nullptr);
+  vkCmdDispatch(commandBuffer, workgroups[0], workgroups[1], workgroups[2]);
+
+  VK_CHECK(vkEndCommandBuffer(commandBuffer), "Failed to record command buffer");
 }
 
 void Vulkan::flushQueue() {
@@ -443,12 +510,14 @@ void Vulkan::flushQueue() {
 
   vkFreeCommandBuffers(m_device, m_commandPool, m_commandBuffers.size(), m_commandBuffers.data());
   m_commandBuffers.clear();
+
+  m_activeBuffers.clear();
 }
 
 void Vulkan::retrieveBuffer(GpuBufferHandle bufIdx, void* data) {
   DBG_TRACE
 
-  Buffer& buffer = m_buffers[bufIdx];
+  Buffer& buffer = getBuffer(bufIdx);
 
   VkBuffer stagingBuffer;
   VkDeviceMemory stagingBufferMemory;
@@ -471,6 +540,14 @@ void Vulkan::retrieveBuffer(GpuBufferHandle bufIdx, void* data) {
 
   vkFreeMemory(m_device, stagingBufferMemory, nullptr);
   vkDestroyBuffer(m_device, stagingBuffer, nullptr);
+}
+
+Buffer& Vulkan::getBuffer(GpuBufferHandle handle) {
+  return m_buffers[handle];
+}
+
+const Buffer& Vulkan::getBuffer(GpuBufferHandle handle) const {
+  return getBuffer(handle);
 }
 
 #ifndef NDEBUG
@@ -777,8 +854,8 @@ VkDescriptorSetLayout Vulkan::createDescriptorSetLayout(const GpuBufferBindings&
   std::vector<VkDescriptorSetLayoutBinding> bindings;
 
   for (uint32_t slot = 0; slot < buffers.size(); ++slot) {
-    GpuBufferHandle index = buffers[slot];
-    const Buffer& buffer = m_buffers[index];
+    GpuBufferHandle index = buffers[slot].buffer;
+    const Buffer& buffer = getBuffer(index);
 
     VkDescriptorSetLayoutBinding binding{};
     binding.binding = slot;
@@ -841,8 +918,8 @@ VkDescriptorSet Vulkan::createDescriptorSet(const GpuBufferBindings& buffers,
   std::vector<VkWriteDescriptorSet> descriptorWrites(buffers.size());
 
   for (size_t slot = 0; slot < buffers.size(); ++slot) {
-    GpuBufferHandle bufIdx = buffers[slot];
-    const Buffer& buffer = m_buffers[bufIdx];
+    GpuBufferHandle bufIdx = buffers[slot].buffer;
+    const Buffer& buffer = getBuffer(bufIdx);
 
     auto& bufferInfo = bufferInfos[slot];
     bufferInfo.buffer = buffer.handle;
@@ -881,54 +958,6 @@ VkPipelineLayout Vulkan::createPipelineLayout(VkDescriptorSetLayout descriptorSe
     "Failed to create pipeline layout");
 
   return pipelineLayout;
-}
-
-void Vulkan::dispatchWorkgroups(VkCommandBuffer commandBuffer, size_t pipelineIdx,
-  const Size3& numWorkgroups) {
-
-  DBG_TRACE
-
-  const Pipeline& pipeline = m_pipelines[pipelineIdx];
-
-  std::vector<VkBufferMemoryBarrier> bufferBarriers;
-  for (const auto& buffer : m_buffers) {
-    VkAccessFlags srcAccess = VK_ACCESS_SHADER_WRITE_BIT;
-    VkAccessFlags dstAccess = VK_ACCESS_SHADER_READ_BIT;
-    if (buffer.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
-      dstAccess = VK_ACCESS_UNIFORM_READ_BIT;
-    }
-
-    VkBufferMemoryBarrier barrier;
-    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    barrier.pNext = nullptr;
-    barrier.srcAccessMask = srcAccess;
-    barrier.dstAccessMask = dstAccess;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.buffer = buffer.handle;
-    barrier.offset = 0;
-    barrier.size = buffer.size;
-
-    bufferBarriers.push_back(barrier);
-  }
-
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags = 0;
-  beginInfo.pInheritanceInfo = nullptr;
-
-  VK_CHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo),
-    "Failed to begin recording command buffer");
-
-  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.handle);
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.layout, 0, 1,
-    &pipeline.descriptorSet, 0, 0);
-  vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr,
-    bufferBarriers.size(), bufferBarriers.data(), 0, nullptr);
-  vkCmdDispatch(commandBuffer, numWorkgroups[0], numWorkgroups[1], numWorkgroups[2]);
-
-  VK_CHECK(vkEndCommandBuffer(commandBuffer), "Failed to record command buffer");
 }
 
 void Vulkan::createSyncObjects() {

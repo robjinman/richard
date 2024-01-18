@@ -166,10 +166,10 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
   GpuBuffer costsBuffer = gpu->allocateBuffer(layer2Size * sizeof(netfloat_t), costsBufferFlags);
 
   gpu::GpuBufferBindings computeCostsBuffers{
-    statusBuffer.handle,
-    layer2.outputBuffer(),
-    bufferY.handle,
-    costsBuffer.handle
+    { statusBuffer.handle, gpu::BufferAccessMode::write },
+    { layer2.outputBuffer(), gpu::BufferAccessMode::read },
+    { bufferY.handle, gpu::BufferAccessMode::read },
+    { costsBuffer.handle, gpu::BufferAccessMode::write }
   };
 
   gpu::SpecializationConstants computeCostsConstants{
@@ -451,10 +451,10 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
     costsBufferFlags);
 
   gpu::GpuBufferBindings computeCostsBuffers{
-    statusBuffer.handle,
-    layer3.outputBuffer(),
-    bufferY.handle,
-    costsBuffer.handle
+    { statusBuffer.handle, gpu::BufferAccessMode::write },
+    { layer3.outputBuffer(), gpu::BufferAccessMode::read },
+    { bufferY.handle, gpu::BufferAccessMode::read },
+    { costsBuffer.handle, gpu::BufferAccessMode::write }
   };
 
   gpu::SpecializationConstants computeCostsConstants{

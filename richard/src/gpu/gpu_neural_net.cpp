@@ -214,10 +214,10 @@ void GpuNeuralNet::allocateGpuResources() {
   ASSERT_MSG(m_costsBuffer.data != nullptr, "Expected costs buffer to be memory mapped");
 
   GpuBufferBindings computeCostsBuffers{
-    m_statusBuffer.handle,
-    outputLayer().outputBuffer(),
-    m_bufferY.handle,
-    m_costsBuffer.handle
+    { m_statusBuffer.handle, BufferAccessMode::write },
+    { outputLayer().outputBuffer(), BufferAccessMode::read },
+    { m_bufferY.handle, BufferAccessMode::read },
+    { m_costsBuffer.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants computeCostsConstants{

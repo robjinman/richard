@@ -45,8 +45,8 @@ void MaxPoolingLayer::createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHan
 
 void MaxPoolingLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
   GpuBufferBindings buffers{
-    inputBuffer,
-    m_bufferZ.handle
+    { inputBuffer, BufferAccessMode::read },
+    { m_bufferZ.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{
@@ -65,9 +65,9 @@ void MaxPoolingLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
 
 void MaxPoolingLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
   GpuBufferBindings buffers{
-    inputBuffer,
-    m_bufferZ.handle,
-    m_bufferMask.handle
+    { inputBuffer, BufferAccessMode::read },
+    { m_bufferZ.handle, BufferAccessMode::write },
+    { m_bufferMask.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{
@@ -86,9 +86,9 @@ void MaxPoolingLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
 
 void MaxPoolingLayer::createBackpropShader(const Layer* nextLayer) {
   GpuBufferBindings buffers{
-    nextLayer->inputDeltaBuffer(),
-    m_bufferMask.handle,
-    m_bufferInputDelta.handle
+    { nextLayer->inputDeltaBuffer(), BufferAccessMode::read },
+    { m_bufferMask.handle, BufferAccessMode::read },
+    { m_bufferInputDelta.handle, BufferAccessMode::write }
   };
 
   SpecializationConstants constants{

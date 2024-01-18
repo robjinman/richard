@@ -88,7 +88,11 @@ TEST_F(GpuTest, runShader) {
     }
   )";
 
-  ShaderHandle shader = gpu->compileShader("simple_shader", shaderSource, { buffer.handle }, {},
+  GpuBufferBindings buffers{
+    { buffer.handle, BufferAccessMode::write }
+  };
+
+  ShaderHandle shader = gpu->compileShader("simple_shader", shaderSource, buffers, {},
     { bufferSize, 1, 1 });
 
   gpu->queueShader(shader);
@@ -148,8 +152,12 @@ TEST_F(GpuTest, structuredBuffer) {
     }
   )";
 
-  ShaderHandle shader = gpu->compileShader("structured_buffer", shaderSource,
-    { statusBuffer.handle }, {}, { 16, 1, 1 });
+  GpuBufferBindings buffers{
+    { statusBuffer.handle, BufferAccessMode::write }
+  };
+
+  ShaderHandle shader = gpu->compileShader("structured_buffer", shaderSource, buffers, {},
+    { 16, 1, 1 });
 
   gpu->queueShader(shader);
   gpu->flushQueue();
@@ -230,8 +238,13 @@ TEST_F(GpuTest, matrixMultiply) {
     }
   )";
 
-  ShaderHandle shader = gpu->compileShader("matrix_multiply", shaderSource,
-    { bufferM.handle, bufferV.handle, bufferR.handle },
+  GpuBufferBindings buffers{
+    { bufferM.handle, BufferAccessMode::read },
+    { bufferV.handle, BufferAccessMode::read },
+    { bufferR.handle, BufferAccessMode::write }
+  };
+
+  ShaderHandle shader = gpu->compileShader("matrix_multiply", shaderSource, buffers,
     {{ SpecializationConstant::Type::uint_type, static_cast<uint32_t>(V.size()) }},
     { static_cast<uint32_t>(M.rows()), 1, 1 });
 
@@ -364,8 +377,14 @@ TEST_F(GpuTest, convolution) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(K.D()) }
   };
 
-  ShaderHandle shader = gpu->compileShader("convolution", shaderSource,
-    { bufferX.handle, bufferK.handle, bufferR.handle }, constants, workgroupSize);
+  GpuBufferBindings buffers{
+    { bufferX.handle, BufferAccessMode::read },
+    { bufferK.handle, BufferAccessMode::read },
+    { bufferR.handle, BufferAccessMode::write }
+  };
+
+  ShaderHandle shader = gpu->compileShader("convolution", shaderSource, buffers, constants,
+    workgroupSize);
 
   gpu->queueShader(shader);
   gpu->flushQueue();
@@ -514,8 +533,14 @@ TEST_F(GpuTest, fullConvolution) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(K.D()) }
   };
 
-  ShaderHandle shader = gpu->compileShader("full_convolution", shaderSource,
-    { bufferX.handle, bufferK.handle, bufferR.handle }, constants, workgroupSize);
+  GpuBufferBindings buffers{
+    { bufferX.handle, BufferAccessMode::read },
+    { bufferK.handle, BufferAccessMode::read },
+    { bufferR.handle, BufferAccessMode::write }
+  };
+
+  ShaderHandle shader = gpu->compileShader("full_convolution", shaderSource, buffers, constants,
+    workgroupSize);
 
   gpu->queueShader(shader);
   gpu->flushQueue();
