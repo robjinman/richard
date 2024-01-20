@@ -1,29 +1,30 @@
 #include "cpu/output_layer.hpp"
 #include "utils.hpp"
+#include "config.hpp"
 
 namespace richard {
 namespace cpu {
 
-OutputLayer::OutputLayer(const nlohmann::json& obj, size_t inputSize) {
-  initialize(obj, inputSize);
+OutputLayer::OutputLayer(const Config& config, size_t inputSize) {
+  initialize(config, inputSize);
 
   m_W.randomize(0.1);
 }
 
-OutputLayer::OutputLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize) {
-  initialize(obj, inputSize);
+OutputLayer::OutputLayer(const Config& config, std::istream& stream, size_t inputSize) {
+  initialize(config, inputSize);
 
   stream.read(reinterpret_cast<char*>(m_B.data()), m_B.size() * sizeof(netfloat_t));
   stream.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
-void OutputLayer::initialize(const nlohmann::json& obj, size_t inputSize) {
+void OutputLayer::initialize(const Config& config, size_t inputSize) {
   m_activationFn = sigmoid;
   m_activationFnPrime = sigmoidPrime;
 
-  size_t size = getOrThrow(obj, "size").get<size_t>();
-  m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
-  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
+  size_t size = config.getValue<size_t>("size");
+  m_learnRate = config.getValue<netfloat_t>("learnRate");
+  m_learnRateDecay = config.getValue<netfloat_t>("learnRateDecay");
 
   m_B = Vector(size);
   m_W = Matrix(inputSize, size);

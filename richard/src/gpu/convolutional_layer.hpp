@@ -3,21 +3,21 @@
 #include "math.hpp"
 #include "gpu/layer.hpp"
 #include "gpu/gpu.hpp"
-#include <nlohmann/json.hpp>
 
 namespace richard {
 
 class FileSystem;
 class PlatformPaths;
+class Config;
 
 namespace gpu {
 
 class ConvolutionalLayer : public Layer {
   public:
     ConvolutionalLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
-      const nlohmann::json& obj, const Size3& inputShape, bool isFirstLayer);
+      const Config& config, const Size3& inputShape, bool isFirstLayer);
     ConvolutionalLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
-      const nlohmann::json& obj, std::istream& stream, const Size3& inputShape, bool isFirstLayer);
+      const Config& config, std::istream& stream, const Size3& inputShape, bool isFirstLayer);
 
     void allocateGpuBuffers() override;
     void createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
@@ -45,7 +45,7 @@ class ConvolutionalLayer : public Layer {
     const Vector& test_biases() const;
 
   private:
-    void initialize(const nlohmann::json& obj, const Size3& inputShape, bool isFirstLayer);
+    void initialize(const Config& config, const Size3& inputShape, bool isFirstLayer);
     void createEvalForwardShader(GpuBufferHandle inputBuffer);
     void createTrainForwardShader(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer);
     void createBackpropDeltaShader(const Layer* nextLayer);

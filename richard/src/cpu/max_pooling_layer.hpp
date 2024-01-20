@@ -2,14 +2,16 @@
 
 #include "cpu/layer.hpp"
 #include "cpu/convolutional_layer.hpp"
-#include <nlohmann/json.hpp>
 
 namespace richard {
+
+class Config;
+
 namespace cpu {
 
 class MaxPoolingLayer : public Layer {
   public:
-    MaxPoolingLayer(const nlohmann::json& obj, const Size3& inputShape);
+    MaxPoolingLayer(const Config& config, const Size3& inputShape);
 
     Size3 outputSize() const override;
     const DataArray& activations() const override;

@@ -1,4 +1,5 @@
 #include "mock_cpu_layer.hpp"
+#include <config.hpp>
 #include <cpu/dense_layer.hpp>
 #include <gtest/gtest.h>
 
@@ -12,11 +13,11 @@ class CpuDenseLayerTest : public testing::Test {
 };
 
 TEST_F(CpuDenseLayerTest, evalForward) {
-  nlohmann::json json;
-  json["size"] = 2;
-  json["learnRate"] = 0.5;
-  json["learnRateDecay"] = 1.0;
-  json["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("size", 2);
+  config.setValue("learnRate", 0.5);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
     return x * 2.0;
@@ -33,7 +34,7 @@ TEST_F(CpuDenseLayerTest, evalForward) {
 
   Vector B({ 5, 7 });
 
-  DenseLayer layer(json, 3);
+  DenseLayer layer(config, 3);
   layer.test_setWeights(W.storage());
   layer.test_setBiases(B.storage());
   layer.test_setActivationFn(activationFn, activationFnPrime);
@@ -45,11 +46,11 @@ TEST_F(CpuDenseLayerTest, evalForward) {
 }
 
 TEST_F(CpuDenseLayerTest, trainForward) {
-  nlohmann::json json;
-  json["size"] = 2;
-  json["learnRate"] = 0.5;
-  json["learnRateDecay"] = 1.0;
-  json["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("size", 2);
+  config.setValue("learnRate", 0.5);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
     return x * 2.0;
@@ -66,7 +67,7 @@ TEST_F(CpuDenseLayerTest, trainForward) {
 
   Vector B({ 5, 7 });
 
-  DenseLayer layer(json, 3);
+  DenseLayer layer(config, 3);
   layer.test_setWeights(W.storage());
   layer.test_setBiases(B.storage());
   layer.test_setActivationFn(activationFn, activationFnPrime);
@@ -85,11 +86,11 @@ TEST_F(CpuDenseLayerTest, trainForward) {
 }
 
 TEST_F(CpuDenseLayerTest, updateDelta) {
-  nlohmann::json json;
-  json["size"] = 2;
-  json["learnRate"] = 0.5;
-  json["learnRateDecay"] = 1.0;
-  json["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("size", 2);
+  config.setValue("learnRate", 0.5);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
     return 0.5 * x * x;
@@ -106,7 +107,7 @@ TEST_F(CpuDenseLayerTest, updateDelta) {
 
   Vector B({ 5, 7 });
 
-  DenseLayer layer(json, 3);
+  DenseLayer layer(config, 3);
   layer.test_setWeights(W.storage());
   layer.test_setBiases(B.storage());
   layer.test_setActivationFn(activationFn, activationFnPrime);

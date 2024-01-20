@@ -2,6 +2,7 @@
 #include "exception.hpp"
 #include "utils.hpp"
 #include <ostream>
+#include <iomanip>
 #include <cstring>
 #include <random>
 #include <algorithm>

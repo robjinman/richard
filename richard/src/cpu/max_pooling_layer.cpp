@@ -1,18 +1,19 @@
 #include "cpu/max_pooling_layer.hpp"
 #include "exception.hpp"
 #include "utils.hpp"
+#include "config.hpp"
 
 namespace richard {
 namespace cpu {
 
-MaxPoolingLayer::MaxPoolingLayer(const nlohmann::json& obj, const Size3& inputShape)
+MaxPoolingLayer::MaxPoolingLayer(const Config& config, const Size3& inputShape)
   : m_inputDelta(inputShape[0], inputShape[1], inputShape[2])
   , m_inputW(inputShape[0])
   , m_inputH(inputShape[1])
   , m_inputDepth(inputShape[2])
   , m_mask(m_inputW, m_inputH, m_inputDepth) {
 
-  std::array<size_t, 2> regionSize = getOrThrow(obj, "regionSize").get<std::array<size_t, 2>>();
+  auto regionSize = config.getArray<size_t, 2>("regionSize");
   m_regionW = regionSize[0];
   m_regionH = regionSize[1];
 

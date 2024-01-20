@@ -14,7 +14,7 @@ class ClassifierTrainingAppTest : public testing::Test {
 };
 
 TEST_F(ClassifierTrainingAppTest, exampleConfig) {
-  nlohmann::json config = ClassifierTrainingApp::exampleConfig();
+  Config config = ClassifierTrainingApp::exampleConfig();
 
   NiceMock<MockFileSystem> fileSystem;
   NiceMock<MockPlatformPaths> platformPaths;

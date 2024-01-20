@@ -2,12 +2,13 @@
 #include "utils.hpp"
 #include "file_system.hpp"
 #include "platform_paths.hpp"
+#include "config.hpp"
 
 namespace richard {
 namespace gpu {
 
 MaxPoolingLayer::MaxPoolingLayer(Gpu& gpu, FileSystem& fileSystem,
-  const PlatformPaths& platformPaths, const nlohmann::json& obj, const Size3& inputShape)
+  const PlatformPaths& platformPaths, const Config& config, const Size3& inputShape)
   : m_gpu(gpu)
   , m_fileSystem(fileSystem)
   , m_platformPaths(platformPaths)
@@ -15,7 +16,7 @@ MaxPoolingLayer::MaxPoolingLayer(Gpu& gpu, FileSystem& fileSystem,
   , m_inputH(inputShape[1])
   , m_inputDepth(inputShape[2]) {
 
-  std::array<size_t, 2> regionSize = getOrThrow(obj, "regionSize").get<std::array<size_t, 2>>();
+  auto regionSize = config.getArray<size_t, 2>("regionSize");
   m_regionW = regionSize[0];
   m_regionH = regionSize[1];
 

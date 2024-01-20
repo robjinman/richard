@@ -9,12 +9,12 @@ namespace richard {
 DataLoader::DataLoader(size_t fetchSize)
   : m_fetchSize(fetchSize) {}
 
-const nlohmann::json& DataLoader::exampleConfig() {
-  static nlohmann::json obj;
+const Config& DataLoader::exampleConfig() {
+  static Config obj;
   static bool done = false;
   
   if (!done) {
-    obj["fetchSize"] = 500;
+    obj.setValue("fetchSize", 500);
 
     done = true;
   }
@@ -22,23 +22,20 @@ const nlohmann::json& DataLoader::exampleConfig() {
   return obj;
 }
 
-DataLoaderPtr createDataLoader(FileSystem& fileSystem, const nlohmann::json& config,
+DataLoaderPtr createDataLoader(FileSystem& fileSystem, const Config& config,
   const std::string& samplesPath, const DataDetails& dataDetails) {
 
-  size_t fetchSize = getOrThrow(config, "fetchSize").get<size_t>();
+  size_t fetchSize = config.getValue<size_t>("fetchSize");
 
   if (std::filesystem::is_directory(samplesPath)) {
     return std::make_unique<ImageDataLoader>(samplesPath, dataDetails.classLabels,
       dataDetails.normalization, fetchSize);
   }
   else {
-    const Size3& shape = dataDetails.shape;
-    size_t inputSize = shape[0] * shape[1] * shape[2];
+    auto stream = fileSystem.openFileForReading(samplesPath);
 
-    auto fin = fileSystem.openFileForReading(samplesPath);
-
-    return std::make_unique<CsvDataLoader>(std::move(fin), inputSize, dataDetails.normalization,
-      fetchSize);
+    return std::make_unique<CsvDataLoader>(std::move(stream), calcProduct(dataDetails.shape),
+      dataDetails.normalization, fetchSize);
   }
 }
 

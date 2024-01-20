@@ -2,19 +2,20 @@
 #include "cpu/max_pooling_layer.hpp"
 #include "exception.hpp"
 #include "utils.hpp"
+#include "config.hpp"
 #include <random>
 
 namespace richard {
 namespace cpu {
 
-ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, const Size3& inputShape) {
-  initialize(obj, inputShape);
+ConvolutionalLayer::ConvolutionalLayer(const Config& config, const Size3& inputShape) {
+  initialize(config, inputShape);
 }
 
-ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& stream,
+ConvolutionalLayer::ConvolutionalLayer(const Config& config, std::istream& stream,
   const Size3& inputShape) {
 
-  initialize(obj, inputShape);
+  initialize(config, inputShape);
 
   for (Filter& filter : m_filters) {
     stream.read(reinterpret_cast<char*>(&filter.b), sizeof(netfloat_t));
@@ -23,16 +24,16 @@ ConvolutionalLayer::ConvolutionalLayer(const nlohmann::json& obj, std::istream& 
   }
 }
 
-void ConvolutionalLayer::initialize(const nlohmann::json& obj, const Size3& inputShape) {
+void ConvolutionalLayer::initialize(const Config& config, const Size3& inputShape) {
   m_inputW = inputShape[0];
   m_inputH = inputShape[1];
   m_inputDepth = inputShape[2];
 
-  std::array<size_t, 2> kernelSize = getOrThrow(obj, "kernelSize").get<std::array<size_t, 2>>();
-  m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
-  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
-  size_t depth = getOrThrow(obj, "depth").get<size_t>();
-  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
+  auto kernelSize = config.getArray<size_t, 2>("kernelSize");
+  m_learnRate = config.getValue<netfloat_t>("learnRate");
+  m_learnRateDecay = config.getValue<netfloat_t>("learnRateDecay");
+  size_t depth = config.getValue<size_t>("depth");
+  m_dropoutRate = config.getValue<netfloat_t>("dropoutRate");
 
   ASSERT_MSG(kernelSize[0] <= m_inputW,
     "Kernel width " << kernelSize[0] << " is larger than input width " << m_inputW);

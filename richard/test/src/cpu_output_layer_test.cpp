@@ -1,4 +1,5 @@
 #include <cpu/output_layer.hpp>
+#include <config.hpp>
 #include <gtest/gtest.h>
 
 using namespace richard;
@@ -11,10 +12,10 @@ class CpuOutputLayerTest : public testing::Test {
 };
 
 TEST_F(CpuOutputLayerTest, evalForward) {
-  nlohmann::json json;
-  json["size"] = 2;
-  json["learnRate"] = 0.5;
-  json["learnRateDecay"] = 1.0;
+  Config config;
+  config.setValue("size", 2);
+  config.setValue("learnRate", 0.5);
+  config.setValue("learnRateDecay", 1.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
     return x * 2.0;
@@ -31,7 +32,7 @@ TEST_F(CpuOutputLayerTest, evalForward) {
 
   Vector B({ 5, 7 });
 
-  OutputLayer layer(json, 3);
+  OutputLayer layer(config, 3);
   layer.test_setWeights(W.storage());
   layer.test_setBiases(B.storage());
   layer.test_setActivationFn(activationFn, activationFnPrime);

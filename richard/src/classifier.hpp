@@ -1,7 +1,6 @@
 #pragma once
 
 #include "neural_net.hpp"
-#include <nlohmann/json.hpp>
 
 namespace richard {
 
@@ -19,9 +18,9 @@ class Classifier {
       netfloat_t cost = 0.0;
     };
 
-    Classifier(const DataDetails& dataDetails, const nlohmann::json& config, FileSystem& fileSystem,
+    Classifier(const DataDetails& dataDetails, const Config& config, FileSystem& fileSystem,
       const PlatformPaths& platformPaths, Logger& logger, bool gpuAccelerated);
-    Classifier(const DataDetails& dataDetails, const nlohmann::json& config, std::istream& fin,
+    Classifier(const DataDetails& dataDetails, const Config& config, std::istream& stream,
       FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger,
       bool gpuAccelerated);
 
@@ -32,7 +31,7 @@ class Classifier {
     // Called from another thread
     void abort();
 
-    static const nlohmann::json& exampleConfig();
+    static const Config& exampleConfig();
 
   private:
     Logger& m_logger;

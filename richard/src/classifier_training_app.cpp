@@ -13,15 +13,15 @@ ClassifierTrainingApp::ClassifierTrainingApp(FileSystem& fileSystem,
   , m_fileSystem(fileSystem)
   , m_opts(options) {
 
-  auto fin = m_fileSystem.openFileForReading(m_opts.configFile);
-  m_config = nlohmann::json::parse(*fin);
+  auto stream = m_fileSystem.openFileForReading(m_opts.configFile);
+  m_config = Config::fromJson(*stream);
 
-  m_dataDetails = std::make_unique<DataDetails>(getOrThrow(m_config, "data"));
-  m_classifier = std::make_unique<Classifier>(*m_dataDetails, getOrThrow(m_config, "classifier"),
+  m_dataDetails = std::make_unique<DataDetails>(m_config.getObject("data"));
+  m_classifier = std::make_unique<Classifier>(*m_dataDetails, m_config.getObject("classifier"),
     fileSystem, platformPaths, m_logger, m_opts.gpuAccelerated);
 
-  auto loader = createDataLoader(m_fileSystem, getOrThrow(m_config, "dataLoader"),
-    m_opts.samplesPath, *m_dataDetails);
+  auto loader = createDataLoader(m_fileSystem, m_config.getObject("dataLoader"), m_opts.samplesPath,
+    *m_dataDetails);
 
   m_dataSet = std::make_unique<LabelledDataSet>(std::move(loader), m_dataDetails->classLabels);
 }
@@ -49,14 +49,14 @@ void ClassifierTrainingApp::saveStateToFile() const {
   stream->flush();
 }
 
-const nlohmann::json& ClassifierTrainingApp::exampleConfig() {
-  static nlohmann::json obj;
+const Config& ClassifierTrainingApp::exampleConfig() {
+  static Config obj;
   static bool done = false;
 
   if (!done) {
-    obj["data"] = DataDetails::exampleConfig();
-    obj["dataLoader"] = DataLoader::exampleConfig();
-    obj["classifier"] = Classifier::exampleConfig();
+    obj.setObject("data", DataDetails::exampleConfig());
+    obj.setObject("dataLoader", DataLoader::exampleConfig());
+    obj.setObject("classifier", Classifier::exampleConfig());
 
     done = true;
   }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.hpp"
-#include <nlohmann/json.hpp>
+#include "config.hpp"
 #include <vector>
 #include <array>
 
@@ -10,12 +10,12 @@ namespace richard {
 class NormalizationParams {
   public:
     NormalizationParams();
-    explicit NormalizationParams(const nlohmann::json& json);
+    explicit NormalizationParams(const Config& config);
 
     netfloat_t min;
     netfloat_t max;
   
-    static const nlohmann::json& exampleConfig();
+    static const Config& exampleConfig();
 };
 
 inline netfloat_t normalize(const NormalizationParams& params, netfloat_t x) {
@@ -25,9 +25,9 @@ inline netfloat_t normalize(const NormalizationParams& params, netfloat_t x) {
 class DataDetails {
   public:
     DataDetails();
-    explicit DataDetails(const nlohmann::json& json);
+    explicit DataDetails(const Config& config);
 
-    static const nlohmann::json& exampleConfig();
+    static const Config& exampleConfig();
 
     NormalizationParams normalization;
     std::vector<std::string> classLabels;

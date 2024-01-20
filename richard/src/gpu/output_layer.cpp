@@ -2,39 +2,41 @@
 #include "utils.hpp"
 #include "file_system.hpp"
 #include "platform_paths.hpp"
+#include "config.hpp"
+#include <cstring>
 
 namespace richard {
 namespace gpu {
 
 OutputLayer::OutputLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
-  const nlohmann::json& obj, std::istream& stream, size_t inputSize)
+  const Config& config, std::istream& stream, size_t inputSize)
   : m_gpu(gpu)
   , m_fileSystem(fileSystem)
   , m_platformPaths(platformPaths) {
 
-  initialize(obj, inputSize);
+  initialize(config, inputSize);
 
   stream.read(reinterpret_cast<char*>(m_B.data()), m_size * sizeof(netfloat_t));
   stream.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
 OutputLayer::OutputLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
-  const nlohmann::json& obj, size_t inputSize)
+  const Config& config, size_t inputSize)
   : m_gpu(gpu)
   , m_fileSystem(fileSystem)
   , m_platformPaths(platformPaths) {
 
-  initialize(obj, inputSize);
+  initialize(config, inputSize);
 
   m_W.randomize(0.1);
 }
 
-void OutputLayer::initialize(const nlohmann::json& obj, size_t inputSize) {
+void OutputLayer::initialize(const Config& config, size_t inputSize) {
   m_inputSize = inputSize;
 
-  m_size = getOrThrow(obj, "size").get<size_t>();
-  m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
-  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
+  m_size = config.getValue<size_t>("size");
+  m_learnRate = config.getValue<netfloat_t>("learnRate");
+  m_learnRateDecay = config.getValue<netfloat_t>("learnRateDecay");
 
   m_B = Vector(m_size);
   m_W = Matrix(m_inputSize, m_size);

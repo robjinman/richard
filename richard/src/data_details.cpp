@@ -1,5 +1,4 @@
 #include "data_details.hpp"
-#include "utils.hpp"
 
 namespace richard {
 
@@ -7,39 +6,39 @@ NormalizationParams::NormalizationParams()
   : min(0)
   , max(0) {}
 
-NormalizationParams::NormalizationParams(const nlohmann::json& json)
-  : min(getOrThrow(json, "min").get<netfloat_t>())
-  , max(getOrThrow(json, "max").get<netfloat_t>()) {}
+NormalizationParams::NormalizationParams(const Config& config)
+  : min(config.getValue<netfloat_t>("min"))
+  , max(config.getValue<netfloat_t>("max")) {}
 
-const nlohmann::json& NormalizationParams::exampleConfig() {
-  static nlohmann::json obj;
+const Config& NormalizationParams::exampleConfig() {
+  static Config obj;
   static bool done = false;
 
   if (!done) {
-    obj["min"] = 0;
-    obj["max"] = 255;
-    
+    obj.setValue("min", 0);
+    obj.setValue("max", 255);
+
     done = true;
   }
 
   return obj;
 }
 
-DataDetails::DataDetails(const nlohmann::json& json)
-  : normalization(getOrThrow(json, "normalization"))
-  , classLabels(getOrThrow(json, "classes").get<std::vector<std::string>>())
-  , shape(getOrThrow(json, "shape").get<Size3>()) {}
+DataDetails::DataDetails(const Config& config)
+  : normalization(config.getObject("normalization"))
+  , classLabels(config.getArray<std::string>("classes"))
+  , shape(config.getArray<size_t, 3>("shape")) {}
 
-const nlohmann::json& DataDetails::exampleConfig() {
-  static nlohmann::json obj;
+const Config& DataDetails::exampleConfig() {
+  static Config obj;
   static bool done = false;
 
   if (!done) {
-    obj["normalization"] = NormalizationParams::exampleConfig();
-    obj["classes"] = std::vector<std::string>({
+    obj.setObject("normalization", NormalizationParams::exampleConfig());
+    obj.setArray<std::string>("classes", {
       "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
     });
-    obj["shape"] = Size3({ 28, 28, 1 });
+    obj.setArray<size_t>("shape", { 28, 28, 1 });
 
     done = true;
   }

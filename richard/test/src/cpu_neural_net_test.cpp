@@ -53,7 +53,7 @@ TEST_F(CpuNeuralNetTest, evaluate) {
 
   Size3 inputShape({ 3, 1, 1 });
 
-  nlohmann::json config = nlohmann::json::parse(configString);
+  Config config = Config::fromJson(configString);
   CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);
 
   Sample sample("a", Array3({{{ 0.5, 0.3, 0.7 }}}));
@@ -166,10 +166,10 @@ TEST_F(CpuNeuralNetTest, evaluateTrivialConvVsFullyConnected) {
 
   Size3 inputShape({ 2, 2, 1 });
 
-  CpuNeuralNetPtr convNet = createNeuralNet(inputShape,
-    nlohmann::json::parse(convNetConfigString), logger);
-  CpuNeuralNetPtr denseNet = createNeuralNet(inputShape,
-    nlohmann::json::parse(denseNetConfigString), logger);
+  CpuNeuralNetPtr convNet = createNeuralNet(inputShape, Config::fromJson(convNetConfigString),
+    logger);
+  CpuNeuralNetPtr denseNet = createNeuralNet(inputShape, Config::fromJson(denseNetConfigString),
+    logger);
 
   Sample sample("a", Array3({{
     { 0.5, 0.4 },
@@ -256,7 +256,7 @@ TEST_F(CpuNeuralNetTest, evaluateConv) {
 
   Size3 inputShape({ 5, 5, 1 });
 
-  nlohmann::json config = nlohmann::json::parse(configString);
+  Config config = Config::fromJson(configString);
   CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);
 
   Sample sample("a", Array3({{

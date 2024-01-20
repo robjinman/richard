@@ -27,7 +27,7 @@ class GpuDenseLayerTest : public testing::Test {
     virtual void TearDown() override {}
 };
 
-Vector cpuDenseLayerTrainForward(const nlohmann::json& config, const Matrix& W, const Vector& B,
+Vector cpuDenseLayerTrainForward(const Config& config, const Matrix& W, const Vector& B,
   const Vector& inputs) {
 
   cpu::DenseLayer layer(config, inputs.size());
@@ -66,11 +66,11 @@ TEST_F(GpuDenseLayerTest, trainForward) {
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  nlohmann::json config;
-  config["size"] = layerSize;
-  config["learnRate"] = 0.1;
-  config["learnRateDecay"] = 1.0;
-  config["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("size", layerSize);
+  config.setValue("learnRate", 0.1);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -107,7 +107,7 @@ TEST_F(GpuDenseLayerTest, trainForward) {
   }
 }
 
-void cpuDenseLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
+void cpuDenseLayerBackprop(const Config& config, const Matrix& W, const Vector& B,
   const Vector& inputs, const Vector& dA, Matrix& deltaW, Vector& deltaB) {
 
   cpu::DenseLayer layer(config, inputs.size());
@@ -164,11 +164,11 @@ TEST_F(GpuDenseLayerTest, backprop) {
   gpu->submitBufferData(nextBufferW.handle, nextW.data());
   gpu->submitBufferData(nextBufferD.handle, nextDelta.data());
 
-  nlohmann::json config;
-  config["size"] = layerSize;
-  config["learnRate"] = 0.1;
-  config["learnRateDecay"] = 1.0;
-  config["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("size", layerSize);
+  config.setValue("learnRate", 0.1);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -248,11 +248,11 @@ TEST_F(GpuDenseLayerTest, updateParams) {
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  nlohmann::json config;
-  config["size"] = layerSize;
-  config["learnRate"] = 0.1;
-  config["learnRateDecay"] = 1.0;
-  config["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("size", layerSize);
+  config.setValue("learnRate", 0.1);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();

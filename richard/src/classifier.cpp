@@ -6,6 +6,7 @@
 #include "logger.hpp"
 #include "cpu/cpu_neural_net.hpp"
 #include "gpu/gpu_neural_net.hpp"
+#include <limits>
 
 namespace richard {
 namespace {
@@ -28,36 +29,35 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 
 }
 
-Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config,
-  std::istream& fin, FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger,
-  bool gpuAccelerated)
+Classifier::Classifier(const DataDetails& dataDetails, const Config& config, std::istream& stream,
+  FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger, bool gpuAccelerated)
   : m_logger(logger)
   , m_isTrained(false) {
 
   if (gpuAccelerated) {
-    m_neuralNet = gpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin,
+    m_neuralNet = gpu::createNeuralNet(dataDetails.shape, config.getObject("network"), stream,
       fileSystem, platformPaths, m_logger);
   }
   else {
-    m_neuralNet = cpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), fin,
+    m_neuralNet = cpu::createNeuralNet(dataDetails.shape, config.getObject("network"), stream,
       m_logger);
   }
 
   m_isTrained = true;
 }
 
-Classifier::Classifier(const DataDetails& dataDetails, const nlohmann::json& config,
+Classifier::Classifier(const DataDetails& dataDetails, const Config& config,
   FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger, bool gpuAccelerated)
   : m_logger(logger)
   , m_neuralNet(nullptr)
   , m_isTrained(false) {
 
   if (gpuAccelerated) {
-    m_neuralNet = gpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"),
-      fileSystem, platformPaths, m_logger);
+    m_neuralNet = gpu::createNeuralNet(dataDetails.shape, config.getObject("network"), fileSystem,
+      platformPaths, m_logger);
   }
   else {
-    m_neuralNet = cpu::createNeuralNet(dataDetails.shape, getOrThrow(config, "network"), m_logger);
+    m_neuralNet = cpu::createNeuralNet(dataDetails.shape, config.getObject("network"), m_logger);
   }
 }
 
@@ -118,12 +118,13 @@ void Classifier::abort() {
   m_neuralNet->abort();
 }
 
-const nlohmann::json& Classifier::exampleConfig() {
-  static nlohmann::json obj;
+const Config& Classifier::exampleConfig() {
+  static Config obj;
   static bool done = false;
 
   if (!done) {
-    obj["network"] = NeuralNet::exampleConfig();
+    obj.setObject("network", NeuralNet::exampleConfig());
+
     done = true;
   }
   

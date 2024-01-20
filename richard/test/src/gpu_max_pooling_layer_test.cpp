@@ -27,7 +27,7 @@ class GpuMaxPoolingLayerTest : public testing::Test {
     virtual void TearDown() override {}
 };
 
-void cpuMaxPoolingLayerTrainForward(const nlohmann::json& config, const Array3& inputs,
+void cpuMaxPoolingLayerTrainForward(const Config& config, const Array3& inputs,
   Array3& activations, Array3& mask) {
 
   cpu::MaxPoolingLayer layer(config, inputs.shape());
@@ -74,8 +74,8 @@ TEST_F(GpuMaxPoolingLayerTest, trainForward) {
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  nlohmann::json config;
-  config["regionSize"] = { 2, 2 };
+  Config config;
+  config.setArray<size_t>("regionSize", { 2, 2 });
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -122,7 +122,7 @@ TEST_F(GpuMaxPoolingLayerTest, trainForward) {
   }
 }
 
-void cpuMaxPoolingLayerBackprop(const nlohmann::json& config, const Array3& mask,
+void cpuMaxPoolingLayerBackprop(const Config& config, const Array3& mask,
   const Array3& outputDelta, Array3& inputDelta) {
 
   cpu::MaxPoolingLayer layer(config, { 4, 4, 2 });
@@ -166,8 +166,8 @@ TEST_F(GpuMaxPoolingLayerTest, backprop) {
 
   gpu->submitBufferData(deltaABuffer.handle, deltaA.data());
 
-  nlohmann::json config;
-  config["regionSize"] = { 2, 2 };
+  Config config;
+  config.setArray<size_t>("regionSize", { 2, 2 });
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();

@@ -1,4 +1,5 @@
 #include "mock_cpu_layer.hpp"
+#include <config.hpp>
 #include <cpu/convolutional_layer.hpp>
 #include <gtest/gtest.h>
 
@@ -12,14 +13,14 @@ class CpuConvolutionalLayerTest : public testing::Test {
 };
 
 TEST_F(CpuConvolutionalLayerTest, forwardPass_depth1) {
-  nlohmann::json json;
-  json["depth"] = 1;
-  json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
-  json["learnRate"] = 1.0;
-  json["learnRateDecay"] = 1.0;
-  json["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("depth", 1);
+  config.setArray<size_t>("kernelSize", { 2, 2 });
+  config.setValue("learnRate", 1.0);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
-  ConvolutionalLayer layer(json, { 3, 3, 1 });
+  ConvolutionalLayer layer(config, { 3, 3, 1 });
 
   ConvolutionalLayer::Filter filter;
   filter.K = Kernel({{
@@ -47,14 +48,14 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth1) {
 }
 
 TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
-  nlohmann::json json;
-  json["depth"] = 2;
-  json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
-  json["learnRate"] = 1.0;
-  json["learnRateDecay"] = 1.0;
-  json["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("depth", 2);
+  config.setArray<size_t>("kernelSize", { 2, 2 });
+  config.setValue("learnRate", 1.0);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
-  ConvolutionalLayer layer(json, { 3, 3, 1 });
+  ConvolutionalLayer layer(config, { 3, 3, 1 });
 
   ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({{
@@ -92,14 +93,14 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
 }
 
 TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
-  nlohmann::json json;
-  json["depth"] = 2;
-  json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
-  json["learnRate"] = 1.0;
-  json["learnRateDecay"] = 1.0;
-  json["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("depth", 2);
+  config.setArray<size_t>("kernelSize", { 2, 2 });
+  config.setValue("learnRate", 1.0);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
-  ConvolutionalLayer layer(json, { 3, 3, 2 });
+  ConvolutionalLayer layer(config, { 3, 3, 2 });
 
   ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({
@@ -153,14 +154,14 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
 }
 
 TEST_F(CpuConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
-  nlohmann::json json;
-  json["depth"] = 2;
-  json["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
-  json["learnRate"] = 1.0;
-  json["learnRateDecay"] = 1.0;
-  json["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("depth", 2);
+  config.setArray<size_t>("kernelSize", { 2, 2 });
+  config.setValue("learnRate", 1.0);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
-  ConvolutionalLayer layer(json, { 3, 3, 1 });
+  ConvolutionalLayer layer(config, { 3, 3, 1 });
 
   ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({{

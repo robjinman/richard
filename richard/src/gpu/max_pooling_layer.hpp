@@ -3,19 +3,19 @@
 #include "math.hpp"
 #include "gpu/layer.hpp"
 #include "gpu/gpu.hpp"
-#include <nlohmann/json.hpp>
 
 namespace richard {
 
 class FileSystem;
 class PlatformPaths;
+class Config;
 
 namespace gpu {
 
 class MaxPoolingLayer : public Layer {
   public:
     MaxPoolingLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
-      const nlohmann::json& obj, const Size3& inputShape);
+      const Config& config, const Size3& inputShape);
 
     void allocateGpuBuffers() override;
     void createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,

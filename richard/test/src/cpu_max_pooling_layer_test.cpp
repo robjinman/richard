@@ -1,4 +1,5 @@
 #include <cpu/max_pooling_layer.hpp>
+#include <config.hpp>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
@@ -16,10 +17,10 @@ TEST_F(CpuMaxPoolingLayerTest, evalForward_depth1) {
   size_t inputH = 4;
   size_t inputDepth = 1;
 
-  nlohmann::json json;
-  json["regionSize"] = std::array<size_t, 2>{ 2, 2 };
+  Config config;
+  config.setArray<size_t>("regionSize", { 2, 2 });
 
-  MaxPoolingLayer layer(json, { inputW, inputH, inputDepth });
+  MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
   Array2 inputs({
     { 0, 1, 2, 3 },
@@ -41,10 +42,10 @@ TEST_F(CpuMaxPoolingLayerTest, evalForward_depth2) {
   size_t inputH = 4;
   size_t inputDepth = 2;
 
-  nlohmann::json json;
-  json["regionSize"] = std::array<size_t, 2>{ 2, 2 };
+  Config config;
+  config.setArray<size_t>("regionSize", { 2, 2 });
 
-  MaxPoolingLayer layer(json, { inputW, inputH, inputDepth });
+  MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
   Array3 inputs({
     {
@@ -78,10 +79,10 @@ TEST_F(CpuMaxPoolingLayerTest, trainForward_1x1_depth1) {
   size_t inputH = 4;
   size_t inputDepth = 1;
 
-  nlohmann::json json;
-  json["regionSize"] = std::array<size_t, 2>{ 1, 1 };
+  Config config;
+  config.setArray<size_t>("regionSize", { 1, 1 });
 
-  MaxPoolingLayer layer(json, { inputW, inputH, inputDepth });
+  MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
   Array2 inputs({
     { 0, 1, 2, 3 },
@@ -118,10 +119,10 @@ TEST_F(CpuMaxPoolingLayerTest, trainForward_depth1) {
   size_t inputH = 4;
   size_t inputDepth = 1;
 
-  nlohmann::json json;
-  json["regionSize"] = std::array<size_t, 2>{ 2, 2 };
+  Config config;
+  config.setArray<size_t>("regionSize", { 2, 2 });
 
-  MaxPoolingLayer layer(json, { inputW, inputH, inputDepth });
+  MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
   Array2 inputs({
     { 0, 1, 2, 3 },
@@ -156,10 +157,10 @@ TEST_F(CpuMaxPoolingLayerTest, trainForward_depth2) {
   size_t inputH = 4;
   size_t inputDepth = 2;
 
-  nlohmann::json json;
-  json["regionSize"] = std::array<size_t, 2>{ 2, 2 };
+  Config config;
+  config.setArray<size_t>("regionSize", { 2, 2 });
 
-  MaxPoolingLayer layer(json, { inputW, inputH, inputDepth });
+  MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
   Array3 inputs({
     {
@@ -211,10 +212,10 @@ TEST_F(CpuMaxPoolingLayerTest, updateDeltas_depth1) {
   size_t inputH = 4;
   size_t inputDepth = 1;
 
-  nlohmann::json json;
-  json["regionSize"] = std::array<size_t, 2>{ 2, 2 };
+  Config config;
+  config.setArray<size_t>("regionSize", { 2, 2 });
 
-  MaxPoolingLayer layer(json, { inputW, inputH, inputDepth });
+  MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
   Array3 delta({{
     { 9, 8 },
@@ -248,10 +249,10 @@ TEST_F(CpuMaxPoolingLayerTest, updateDeltas_depth2) {
   size_t inputH = 4;
   size_t inputDepth = 2;
 
-  nlohmann::json json;
-  json["regionSize"] = std::array<size_t, 2>{ 2, 2 };
+  Config config;
+  config.setArray<size_t>("regionSize", { 2, 2 });
 
-  MaxPoolingLayer layer(json, { inputW, inputH, inputDepth });
+  MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
   Array3 delta({
     {

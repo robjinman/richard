@@ -1,10 +1,10 @@
 #pragma once
 
 #include "types.hpp"
-#include <nlohmann/json.hpp>
 #include <string>
 #include <sstream>
 #include <set>
+#include <algorithm>
 
 namespace richard {
 
@@ -13,8 +13,6 @@ namespace richard {
   ss << x; \
   return ss.str(); \
 }()
-
-nlohmann::json getOrThrow(const nlohmann::json& obj, const std::string& key);
 
 constexpr size_t calcProduct(const Size3& s) {
   return s[0] * s[1] * s[2];

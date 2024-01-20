@@ -2,7 +2,6 @@
 #include "utils.hpp"
 #include "file_system.hpp"
 #include "logger.hpp"
-#include <iostream>
 
 namespace richard {
 
@@ -19,13 +18,13 @@ ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const PlatformPaths
 
   std::string configString(configSize, '_');
   stream->read(reinterpret_cast<char*>(configString.data()), configSize);
-  nlohmann::json config = nlohmann::json::parse(configString);
+  Config config = Config::fromJson(configString);
 
-  m_dataDetails = std::make_unique<DataDetails>(getOrThrow(config, "data"));
-  m_classifier = std::make_unique<Classifier>(*m_dataDetails, getOrThrow(config, "classifier"),
+  m_dataDetails = std::make_unique<DataDetails>(config.getObject("data"));
+  m_classifier = std::make_unique<Classifier>(*m_dataDetails, config.getObject("classifier"),
     *stream, fileSystem, platformPaths, m_logger, m_opts.gpuAccelerated);
 
-  auto loader = createDataLoader(m_fileSystem, getOrThrow(config, "dataLoader"),
+  auto loader = createDataLoader(m_fileSystem, config.getObject("dataLoader"),
     m_opts.samplesPath, *m_dataDetails);
 
   m_dataSet = std::make_unique<LabelledDataSet>(std::move(loader), m_dataDetails->classLabels);

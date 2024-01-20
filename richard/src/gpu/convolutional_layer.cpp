@@ -3,28 +3,29 @@
 #include "math.hpp"
 #include "file_system.hpp"
 #include "platform_paths.hpp"
+#include "config.hpp"
 
 namespace richard {
 namespace gpu {
 
 ConvolutionalLayer::ConvolutionalLayer(Gpu& gpu, FileSystem& fileSystem,
-  const PlatformPaths& platformPaths, const nlohmann::json& obj, const Size3& inputShape,
+  const PlatformPaths& platformPaths, const Config& config, const Size3& inputShape,
   bool isFirstLayer)
   : m_gpu(gpu)
   , m_fileSystem(fileSystem)
   , m_platformPaths(platformPaths) {
 
-  initialize(obj, inputShape, isFirstLayer);
+  initialize(config, inputShape, isFirstLayer);
 }
 
 ConvolutionalLayer::ConvolutionalLayer(Gpu& gpu, FileSystem& fileSystem,
-  const PlatformPaths& platformPaths, const nlohmann::json& obj, std::istream& stream,
+  const PlatformPaths& platformPaths, const Config& config, std::istream& stream,
   const Size3& inputShape, bool isFirstLayer)
   : m_gpu(gpu)
   , m_fileSystem(fileSystem)
   , m_platformPaths(platformPaths) {
 
-  initialize(obj, inputShape, isFirstLayer);
+  initialize(config, inputShape, isFirstLayer);
 
   size_t kernelSize = m_kernelSize[0] * m_kernelSize[1] * m_inputDepth;
 
@@ -35,17 +36,17 @@ ConvolutionalLayer::ConvolutionalLayer(Gpu& gpu, FileSystem& fileSystem,
   }
 }
 
-void ConvolutionalLayer::initialize(const nlohmann::json& obj, const Size3& inputShape,
+void ConvolutionalLayer::initialize(const Config& config, const Size3& inputShape,
   bool isFirstLayer) {
 
   m_inputW = inputShape[0];
   m_inputH = inputShape[1];
   m_inputDepth = inputShape[2];
-  m_kernelSize = getOrThrow(obj, "kernelSize").get<std::array<size_t, 2>>();
-  m_depth = getOrThrow(obj, "depth").get<size_t>();
-  m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
-  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
-  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
+  m_kernelSize = config.getArray<size_t, 2>("kernelSize");
+  m_depth = config.getValue<size_t>("depth");
+  m_learnRate = config.getValue<netfloat_t>("learnRate");
+  m_learnRateDecay = config.getValue<netfloat_t>("learnRateDecay");
+  m_dropoutRate = config.getValue<netfloat_t>("dropoutRate");
   m_isFirstLayer = isFirstLayer;
   m_kernelData = Vector(m_kernelSize[0] * m_kernelSize[1] * m_inputDepth * m_depth);
   m_biasData = Vector(m_depth);

@@ -27,7 +27,7 @@ class GpuConvolutionalLayerTest : public testing::Test {
     virtual void TearDown() override {}
 };
 
-DataArray cpuConvolutionalLayerTrainForward(const nlohmann::json& config,
+DataArray cpuConvolutionalLayerTrainForward(const Config& config,
   const std::vector<cpu::ConvolutionalLayer::Filter>& filters, const Array3& inputs) {
 
   cpu::ConvolutionalLayer layer(config, inputs.shape());
@@ -73,12 +73,12 @@ TEST_F(GpuConvolutionalLayerTest, trainForward) {
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  nlohmann::json config;
-  config["depth"] = 2;
-  config["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
-  config["learnRate"] = 1.0;
-  config["learnRateDecay"] = 1.0;
-  config["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("depth", 2);
+  config.setArray<size_t>("kernelSize", { 2, 2 });
+  config.setValue("learnRate", 1.0);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -139,7 +139,7 @@ TEST_F(GpuConvolutionalLayerTest, trainForward) {
   }
 }
 
-void cpuConvolutionalLayerBackprop(const nlohmann::json& config,
+void cpuConvolutionalLayerBackprop(const Config& config,
   const std::vector<cpu::ConvolutionalLayer::Filter>& filters, const Array3& inputs,
   const Vector& dA, std::vector<Kernel>& deltaK, Vector& deltaB) {
 
@@ -211,12 +211,12 @@ TEST_F(GpuConvolutionalLayerTest, backprop) {
 
   size_t layerDepth = 2;
 
-  nlohmann::json config;
-  config["depth"] = layerDepth;
-  config["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
-  config["learnRate"] = 1.0;
-  config["learnRateDecay"] = 1.0;
-  config["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("depth", layerDepth);
+  config.setArray<size_t>("kernelSize", { 2, 2 });
+  config.setValue("learnRate", 1.0);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -310,12 +310,12 @@ TEST_F(GpuConvolutionalLayerTest, updateParams) {
   size_t layerDepth = 2;
   netfloat_t learnRate = 0.47;
 
-  nlohmann::json config;
-  config["depth"] = layerDepth;
-  config["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
-  config["learnRate"] = learnRate;
-  config["learnRateDecay"] = 1.0;
-  config["dropoutRate"] = 0.0;
+  Config config;
+  config.setValue("depth", layerDepth);
+  config.setArray<size_t>("kernelSize", { 2, 2 });
+  config.setValue("learnRate", learnRate);
+  config.setValue("learnRateDecay", 1.0);
+  config.setValue("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();

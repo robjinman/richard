@@ -5,6 +5,7 @@
 namespace richard {
 
 class Logger;
+class Config;
 
 namespace cpu {
 
@@ -20,9 +21,9 @@ class CpuNeuralNet : public NeuralNet {
 
 using CpuNeuralNetPtr = std::unique_ptr<CpuNeuralNet>;
 
-CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
+CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const Config& config,
   Logger& logger);
-CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const nlohmann::json& config,
+CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const Config& config,
   std::istream& stream, Logger& logger);
 
 }

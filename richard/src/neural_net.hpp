@@ -2,21 +2,21 @@
 
 #include "math.hpp"
 #include "types.hpp"
-#include <nlohmann/json.hpp>
 
 namespace richard {
 
+class Config;
 class LabelledDataSet;
 
 struct Hyperparams {
   Hyperparams();
-  explicit Hyperparams(const nlohmann::json& obj);
+  explicit Hyperparams(const Config& obj);
 
   size_t epochs;
   size_t batchSize;
   size_t miniBatchSize;
 
-  static const nlohmann::json& exampleConfig();
+  static const Config& exampleConfig();
 };
 
 class NeuralNet {
@@ -32,7 +32,7 @@ class NeuralNet {
     // Called from another thread
     virtual void abort() = 0;
 
-    static const nlohmann::json& exampleConfig();
+    static const Config& exampleConfig();
 
     virtual ~NeuralNet() {}
 };

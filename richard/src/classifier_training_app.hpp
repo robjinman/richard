@@ -4,7 +4,7 @@
 #include "data_details.hpp"
 #include "classifier.hpp"
 #include "labelled_data_set.hpp"
-#include <nlohmann/json.hpp>
+#include "config.hpp"
 
 namespace richard {
 
@@ -25,7 +25,7 @@ class ClassifierTrainingApp : public Application {
 
     void start() override;
 
-    static const nlohmann::json& exampleConfig();
+    static const Config& exampleConfig();
 
   private:
     void saveStateToFile() const;
@@ -33,7 +33,7 @@ class ClassifierTrainingApp : public Application {
     Logger& m_logger;
     FileSystem& m_fileSystem;
     Options m_opts;
-    nlohmann::json m_config;
+    Config m_config;
     std::unique_ptr<Classifier> m_classifier;
     std::unique_ptr<DataDetails> m_dataDetails;
     std::unique_ptr<LabelledDataSet> m_dataSet;

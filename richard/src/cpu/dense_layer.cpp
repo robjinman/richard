@@ -1,30 +1,31 @@
 #include "cpu/dense_layer.hpp"
 #include "utils.hpp"
+#include "config.hpp"
 
 namespace richard {
 namespace cpu {
 
-DenseLayer::DenseLayer(const nlohmann::json& obj, size_t inputSize) {
-  initialize(obj, inputSize);
+DenseLayer::DenseLayer(const Config& config, size_t inputSize) {
+  initialize(config, inputSize);
 
   m_W.randomize(0.1);
 }
 
-DenseLayer::DenseLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize) {
-  initialize(obj, inputSize);
+DenseLayer::DenseLayer(const Config& config, std::istream& stream, size_t inputSize) {
+  initialize(config, inputSize);
 
   stream.read(reinterpret_cast<char*>(m_B.data()), m_B.size() * sizeof(netfloat_t));
   stream.read(reinterpret_cast<char*>(m_W.data()), m_W.rows() * m_W.cols() * sizeof(netfloat_t));
 }
 
-void DenseLayer::initialize(const nlohmann::json& obj, size_t inputSize) {
+void DenseLayer::initialize(const Config& config, size_t inputSize) {
   m_activationFn = sigmoid;
   m_activationFnPrime = sigmoidPrime;
 
-  size_t size = getOrThrow(obj, "size").get<size_t>();
-  m_learnRate = getOrThrow(obj, "learnRate").get<netfloat_t>();
-  m_learnRateDecay = getOrThrow(obj, "learnRateDecay").get<netfloat_t>();
-  m_dropoutRate = getOrThrow(obj, "dropoutRate").get<netfloat_t>();
+  size_t size = config.getValue<size_t>("size");
+  m_learnRate = config.getValue<netfloat_t>("learnRate");
+  m_learnRateDecay = config.getValue<netfloat_t>("learnRateDecay");
+  m_dropoutRate = config.getValue<netfloat_t>("dropoutRate");
 
   m_B = Vector(size);
   m_W = Matrix(inputSize, size);

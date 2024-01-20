@@ -1,15 +1,17 @@
 #pragma once
 
 #include "cpu/layer.hpp"
-#include <nlohmann/json.hpp>
 
 namespace richard {
+
+class Config;
+
 namespace cpu {
 
 class OutputLayer : public Layer {
   public:
-    OutputLayer(const nlohmann::json& obj, size_t inputSize);
-    OutputLayer(const nlohmann::json& obj, std::istream& stream, size_t inputSize);
+    OutputLayer(const Config& config, size_t inputSize);
+    OutputLayer(const Config& config, std::istream& stream, size_t inputSize);
 
     Size3 outputSize() const override;
     const DataArray& activations() const override;
@@ -31,7 +33,7 @@ class OutputLayer : public Layer {
     const Vector& test_B() const;
 
   private:
-    void initialize(const nlohmann::json& obj, size_t inputSize);
+    void initialize(const Config& config, size_t inputSize);
 
     Matrix m_W;
     Vector m_B;

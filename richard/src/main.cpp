@@ -90,16 +90,16 @@ ApplicationPtr constructApp(Logger& logger, FileSystem& fileSystem,
 }
 
 void printExampleConfig(Logger& logger, const std::string& appType) {
-  nlohmann::json obj;
+  Config config;
 
   if (appType == "train") {
-    obj = ClassifierTrainingApp::exampleConfig();
+    config = ClassifierTrainingApp::exampleConfig();
   }
   else {
     EXCEPTION("Expected app type to be one of ['train'], got '" << appType << "'");
   }
 
-  logger.info(obj.dump(4));
+  logger.info(config.dump(4));
 }
 
 }

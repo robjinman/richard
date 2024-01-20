@@ -25,7 +25,7 @@ class GpuOutputLayerTest : public testing::Test {
     virtual void TearDown() override {}
 };
 
-Vector cpuOutputLayerTrainForward(const nlohmann::json& config, const Matrix& W, const Vector& B,
+Vector cpuOutputLayerTrainForward(const Config& config, const Matrix& W, const Vector& B,
   const Vector& inputs) {
 
   cpu::OutputLayer layer(config, inputs.size());
@@ -73,10 +73,10 @@ TEST_F(GpuOutputLayerTest, trainForward) {
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  nlohmann::json config;
-  config["size"] = outputSize;
-  config["learnRate"] = 0.1;
-  config["learnRateDecay"] = 1.0;
+  Config config;
+  config.setValue("size", outputSize);
+  config.setValue("learnRate", 0.1);
+  config.setValue("learnRateDecay", 1.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -109,7 +109,7 @@ TEST_F(GpuOutputLayerTest, trainForward) {
   }
 }
 
-void cpuOutputLayerBackprop(const nlohmann::json& config, const Matrix& W, const Vector& B,
+void cpuOutputLayerBackprop(const Config& config, const Matrix& W, const Vector& B,
   const Vector& inputs, const Vector& Y, Matrix& deltaW, Vector& deltaB) {
 
   cpu::OutputLayer layer(config, inputs.size());
@@ -161,10 +161,10 @@ TEST_F(GpuOutputLayerTest, backprop) {
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  nlohmann::json config;
-  config["size"] = outputSize;
-  config["learnRate"] = 0.1;
-  config["learnRateDecay"] = 1.0;
+  Config config;
+  config.setValue("size", outputSize);
+  config.setValue("learnRate", 0.1);
+  config.setValue("learnRateDecay", 1.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();

@@ -36,7 +36,7 @@ class GpuNeuralNetTest : public testing::Test {
     virtual void TearDown() override {}
 };
 
-void runCpuSimpleDenseNetwork(const nlohmann::json& denseConfig, const nlohmann::json& outputConfig,
+void runCpuSimpleDenseNetwork(const Config& denseConfig, const Config& outputConfig,
   const Matrix& W1, const Vector& B1, const Matrix& W2, const Vector& B2,
   const std::vector<Vector>& X, const std::vector<Vector>& Y, Matrix& finalW1, Vector& finalB1,
   Matrix& finalW2, Vector& finalB2) {
@@ -118,16 +118,16 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  nlohmann::json layer1Config;
-  layer1Config["size"] = layer1Size;
-  layer1Config["learnRate"] = 0.1;
-  layer1Config["learnRateDecay"] = 1.0;
-  layer1Config["dropoutRate"] = 0.0;
+  Config layer1Config;
+  layer1Config.setValue("size", layer1Size);
+  layer1Config.setValue("learnRate", 0.1);
+  layer1Config.setValue("learnRateDecay", 1.0);
+  layer1Config.setValue("dropoutRate", 0.0);
 
-  nlohmann::json layer2Config;
-  layer2Config["size"] = layer2Size;
-  layer2Config["learnRate"] = 0.1;
-  layer2Config["learnRateDecay"] = 1.0;
+  Config layer2Config;
+  layer2Config.setValue("size", layer2Size);
+  layer2Config.setValue("learnRate", 0.1);
+  layer2Config.setValue("learnRateDecay", 1.0);
 
   gpu::DenseLayer layer1(*gpu, *fileSystem, *platformPaths, layer1Config, inputSize, true);
   gpu::OutputLayer layer2(*gpu, *fileSystem, *platformPaths, layer2Config, layer1Size);
@@ -249,8 +249,8 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
   }
 }
 
-netfloat_t runCpuSimpleConvNetwork(const nlohmann::json& config1, const nlohmann::json& config2,
-  const nlohmann::json& config3, const std::vector<cpu::ConvolutionalLayer::Filter>& filters,
+netfloat_t runCpuSimpleConvNetwork(const Config& config1, const Config& config2,
+  const Config& config3, const std::vector<cpu::ConvolutionalLayer::Filter>& filters,
   const Matrix& W2, const Vector& B2, const std::vector<Array3>& X, const std::vector<Vector>& Y,
   std::vector<Kernel>& finalK, Vector& finalB1, Matrix& finalW2, Vector& finalB2) {
 
@@ -373,20 +373,20 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  nlohmann::json layer1Config;
-  layer1Config["depth"] = 2;
-  layer1Config["kernelSize"] = std::array<size_t, 2>({ 2, 2 });
-  layer1Config["learnRate"] = 0.1;
-  layer1Config["learnRateDecay"] = 1.0;
-  layer1Config["dropoutRate"] = 0.0;
+  Config layer1Config;
+  layer1Config.setValue("depth", 2);
+  layer1Config.setArray<size_t>("kernelSize", { 2, 2 });
+  layer1Config.setValue("learnRate", 0.1);
+  layer1Config.setValue("learnRateDecay", 1.0);
+  layer1Config.setValue("dropoutRate", 0.0);
 
-  nlohmann::json layer2Config;
-  layer2Config["regionSize"] = std::array<size_t, 2>({ 2, 2 });
+  Config layer2Config;
+  layer2Config.setArray<size_t>("regionSize", { 2, 2 });
 
-  nlohmann::json layer3Config;
-  layer3Config["size"] = 2;
-  layer3Config["learnRate"] = 0.1;
-  layer3Config["learnRateDecay"] = 1.0;
+  Config layer3Config;
+  layer3Config.setValue("size", 2);
+  layer3Config.setValue("learnRate", 0.1);
+  layer3Config.setValue("learnRateDecay", 1.0);
 
   gpu::ConvolutionalLayer layer1(*gpu, *fileSystem, *platformPaths, layer1Config, { 3, 3, 2 },
     true);

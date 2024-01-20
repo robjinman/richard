@@ -1,7 +1,7 @@
 #pragma once
 
 #include "math.hpp"
-#include <nlohmann/json.hpp>
+#include "config.hpp"
 #include <vector>
 #include <memory>
 
@@ -27,7 +27,7 @@ class DataLoader {
 
     virtual ~DataLoader() {}
     
-    static const nlohmann::json& exampleConfig();
+    static const Config& exampleConfig();
 
   private:
     size_t m_fetchSize;
@@ -42,7 +42,7 @@ size_t DataLoader::fetchSize() const {
 class FileSystem;
 class DataDetails;
 
-DataLoaderPtr createDataLoader(FileSystem& fileSystem, const nlohmann::json& config,
+DataLoaderPtr createDataLoader(FileSystem& fileSystem, const Config& config,
   const std::string& samplesPath, const DataDetails& dataDetails);
 
 }

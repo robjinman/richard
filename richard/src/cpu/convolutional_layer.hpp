@@ -1,10 +1,12 @@
 #pragma once
 
 #include "cpu/layer.hpp"
-#include <nlohmann/json.hpp>
 #include <vector>
 
 namespace richard {
+
+class Config;
+
 namespace cpu {
 
 class ConvolutionalLayer : public Layer {
@@ -14,8 +16,8 @@ class ConvolutionalLayer : public Layer {
       netfloat_t b;
     };
 
-    ConvolutionalLayer(const nlohmann::json& obj, const Size3& inputShape);
-    ConvolutionalLayer(const nlohmann::json& obj, std::istream& stream, const Size3& inputShape);
+    ConvolutionalLayer(const Config& config, const Size3& inputShape);
+    ConvolutionalLayer(const Config& config, std::istream& stream, const Size3& inputShape);
 
     Size3 outputSize() const override;
     const DataArray& activations() const override;
@@ -33,7 +35,7 @@ class ConvolutionalLayer : public Layer {
     const std::vector<Filter> test_filterDeltas() const;
 
   private:
-    void initialize(const nlohmann::json& obj, const Size3& inputShape);
+    void initialize(const Config& config, const Size3& inputShape);
     size_t numOutputs() const;
     void forwardPass(const Array3& inputs, Array3& Z) const;
 

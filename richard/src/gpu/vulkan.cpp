@@ -156,7 +156,7 @@ struct Pipeline {
 
 class Vulkan : public Gpu {
   public:
-    Vulkan(const nlohmann::json& config, Logger& logger);
+    Vulkan(const Config& config, Logger& logger);
 
     ShaderHandle compileShader(const std::string& name, const std::string& source,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
@@ -216,9 +216,11 @@ class Vulkan : public Gpu {
     std::set<GpuBufferHandle> m_activeBuffers;
 };
 
-Vulkan::Vulkan(const nlohmann::json& config, Logger& logger)
+Vulkan::Vulkan(const Config& config, Logger& logger)
   : m_logger(logger)
-  , m_maxWorkgroupSize(config.value("maxWorkgroupSize", DEFAULT_MAX_WORKGROUP_SIZE))
+  , m_maxWorkgroupSize(config.contains("maxWorkgroupSize") ?
+      config.getValue<size_t>("maxWorkgroupSize") :
+      DEFAULT_MAX_WORKGROUP_SIZE)
   , m_commandBuffer(VK_NULL_HANDLE) {
 
   createVulkanInstance();
@@ -992,7 +994,7 @@ Vulkan::~Vulkan() {
 
 }
 
-GpuPtr createGpu(Logger& logger, const nlohmann::json& config) {
+GpuPtr createGpu(Logger& logger, const Config& config) {
   return std::make_unique<Vulkan>(config, logger);
 }
 

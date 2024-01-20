@@ -3,21 +3,21 @@
 #include "math.hpp"
 #include "gpu/layer.hpp"
 #include "gpu/gpu.hpp"
-#include <nlohmann/json.hpp>
 
 namespace richard {
 
 class FileSystem;
 class PlatformPaths;
+class Config;
 
 namespace gpu {
 
 class OutputLayer : public Layer {
   public:
     OutputLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
-      const nlohmann::json& obj, size_t inputSize);
+      const Config& obj, size_t inputSize);
     OutputLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& platformPaths,
-      const nlohmann::json& obj, std::istream& stream, size_t inputSize);
+      const Config& obj, std::istream& stream, size_t inputSize);
 
     void allocateGpuBuffers() override;
     void createGpuShaders(GpuBufferHandle inputBuffer, GpuBufferHandle statusBuffer,
@@ -46,7 +46,7 @@ class OutputLayer : public Layer {
     const Vector& test_B() const;
 
   private:
-    void initialize(const nlohmann::json& obj, size_t inputSize);
+    void initialize(const Config& obj, size_t inputSize);
     void createEvalForwardShader(GpuBufferHandle inputBuffer);
     void createTrainForwardShader(GpuBufferHandle inputBuffer);
     void createBackpropDeltaShader(GpuBufferHandle statusBuffer, GpuBufferHandle inputBuffer,

@@ -1,12 +1,12 @@
 #pragma once
 
 #include "types.hpp"
-#include <nlohmann/json.hpp>
+#include "config.hpp"
 #include <string>
 #include <memory>
 #include <vector>
 #include <array>
-#include <variant>
+#include <filesystem>
 
 namespace richard {
 
@@ -85,7 +85,7 @@ class Gpu {
 
 using GpuPtr = std::unique_ptr<Gpu>;
 
-GpuPtr createGpu(Logger& logger, const nlohmann::json& config = nlohmann::json::object());
+GpuPtr createGpu(Logger& logger, const Config& config = Config{});
 
 }
 }
