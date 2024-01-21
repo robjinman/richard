@@ -225,8 +225,8 @@ void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusB
 
   Size3 workSize{ m_kernelSize[0] * m_kernelSize[1], m_inputDepth, m_depth };
 
-  m_backpropParamDeltasShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_backpropParamDeltasShader = m_gpu.compileShader(sourceName, source, buffers, constants,
+    workSize, m_platformPaths.get("shaders"));
 }
 
 void ConvolutionalLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {

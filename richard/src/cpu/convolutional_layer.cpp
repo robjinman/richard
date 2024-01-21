@@ -87,7 +87,7 @@ void ConvolutionalLayer::forwardPass(const Array3& inputs, Array3& Z) const {
 
     computeCrossCorrelation(inputs, K, *featureMap);
 
-    (*featureMap) += b;
+    *featureMap += b;
   }
 }
 

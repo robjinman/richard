@@ -94,12 +94,7 @@ void DenseLayer::updateDeltas(const DataArray& inputs, const DataArray& outputDe
 void DenseLayer::updateParams(size_t epoch) {
   netfloat_t learnRate = m_learnRate * pow(m_learnRateDecay, epoch);
 
-  for (size_t j = 0; j < m_W.rows(); j++) {
-    for (size_t k = 0; k < m_W.cols(); k++) {
-      m_W.set(k, j, m_W.at(k, j) - m_deltaW.at(k, j) * learnRate);
-    }
-  }
-
+  m_W -= m_deltaW * learnRate;
   m_B -= m_deltaB * learnRate;
 
   m_deltaB.zero();
