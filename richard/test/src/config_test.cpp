@@ -1,6 +1,7 @@
 #include <config.hpp>
 #include <gtest/gtest.h>
 #include <vector>
+#include <array>
 
 using namespace richard;
 
