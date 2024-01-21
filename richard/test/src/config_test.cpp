@@ -69,6 +69,21 @@ TEST_F(ConfigTest, getArrayCoercedType) {
   EXPECT_EQ(arr, expected);
 }
 
+TEST_F(ConfigTest, getFloatArrayAsInt) {
+  const std::string json = R"(
+    {
+      "array": [ 3.1, 4.7, 5.6, 6.3, 7.2 ]
+    }
+  )";
+
+  Config config = Config::fromJson(json);
+
+  auto arr = config.getArray<int>("array");
+  std::vector<int> expected{ 3, 4, 5, 6, 7 };
+
+  EXPECT_EQ(arr, expected);
+}
+
 TEST_F(ConfigTest, setArray) {
   Config config;
 
