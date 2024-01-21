@@ -75,7 +75,7 @@ TEST_F(GpuMaxPoolingLayerTest, trainForward) {
   status.sampleIndex = 0;
 
   Config config;
-  config.setIntegerArray<size_t>("regionSize", { 2, 2 });
+  config.setNumberArray<size_t>("regionSize", { 2, 2 });
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -167,7 +167,7 @@ TEST_F(GpuMaxPoolingLayerTest, backprop) {
   gpu->submitBufferData(deltaABuffer.handle, deltaA.data());
 
   Config config;
-  config.setIntegerArray<size_t>("regionSize", { 2, 2 });
+  config.setNumberArray<size_t>("regionSize", { 2, 2 });
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();

@@ -6,47 +6,60 @@
 #include <vector>
 #include <istream>
 #include <memory>
+#include <type_traits>
 
 namespace richard {
+
+template<class... Ts>
+struct Overloaded : Ts... { using Ts::operator()...; };
+
+template<class... Ts>
+Overloaded(Ts...) -> Overloaded<Ts...>;
 
 class Config {
   public:
     bool contains(const std::string& key) const;
   
     bool getBoolean(const std::string& key) const;
-    long getInteger(const std::string& key) const;
-    double getFloat(const std::string& key) const;
     const std::string& getString(const std::string& key) const;
     const std::vector<std::string>& getStringArray(const std::string& key) const;
     Config getObject(const std::string& key) const;
     std::vector<Config> getObjectArray(const std::string& key) const;
 
     void setBoolean(const std::string& key, bool value);
-    void setInteger(const std::string& key, long value);
-    void setFloat(const std::string& key, double value);
     void setString(const std::string& key, const std::string& value);
     void setStringArray(const std::string& key, const std::vector<std::string>& value);
     void setObject(const std::string& key, const Config& value);
     void setObjectArray(const std::string& key, const std::vector<Config>& value);
 
-    template<class T = long>
-    std::vector<T> getIntegerArray(const std::string& key) const {
-      return coerceVectorType<long, T>(getValue<std::vector<long>>(key));
+    template<class T>
+    T getNumber(const std::string& key) const {
+      static_assert(std::is_arithmetic_v<T>, "Expected numeric type");
+      return std::visit(Overloaded{
+        [this](long value) { return static_cast<T>(value); },
+        [this](double value) { return static_cast<T>(value); },
+        [this](const auto&) { return T{}; }
+      }, getEntry(key));
     }
 
-    template<class T = double>
-    std::vector<T> getFloatArray(const std::string& key) const {
-      return coerceVectorType<double, T>(getValue<std::vector<double>>(key));
+    template<class T>
+    std::vector<T> getNumberArray(const std::string& key) const {
+      static_assert(std::is_arithmetic_v<T>, "Expected numeric type");
+      return std::visit(Overloaded{
+        [this](const std::vector<long>& value) { return coerceVectorType<T>(value); },
+        [this](const std::vector<double>& value) { return coerceVectorType<T>(value); },
+        [this](const auto&) { return std::vector<T>{}; }
+      }, getEntry(key));
     }
 
     template<class T, size_t N>
-    std::array<T, N> getIntegerArray(const std::string& key) const {
-      return vectorToArray<long, T, N>(getIntegerArray(key));
-    }
-
-    template<class T, size_t N>
-    std::array<T, N> getFloatArray(const std::string& key) const {
-      return vectorToArray<double, T, N>(getFloatArray(key));
+    std::array<T, N> getNumberArray(const std::string& key) const {
+      static_assert(std::is_arithmetic_v<T>, "Expected numeric type");
+      return std::visit(Overloaded{
+        [this](const std::vector<long>& value) { return vectorToArray<T, N>(value); },
+        [this](const std::vector<double>& value) { return vectorToArray<T, N>(value); },
+        [this](const auto&) { return std::array<T, N>{}; }
+      }, getEntry(key));
     }
 
     template<size_t N>
@@ -55,13 +68,17 @@ class Config {
     }
 
     template<class T>
-    void setIntegerArray(const std::string& key, const std::vector<T>& value) {
-      m_entries[key] = coerceVectorType<T, long>(value);
+    void setNumber(const std::string& key, T value) {
+      static_assert(std::is_arithmetic_v<T>, "Expected numeric type");
+      using StoredType = std::conditional_t<std::is_floating_point_v<T>, double, long>;
+      m_entries[key] = static_cast<StoredType>(value);
     }
 
     template<class T>
-    void setFloatArray(const std::string& key, const std::vector<T>& value) {
-      m_entries[key] = coerceVectorType<T, double>(value);
+    void setNumberArray(const std::string& key, const std::vector<T>& value) {
+      static_assert(std::is_arithmetic_v<T>, "Expected numeric type");
+      using StoredType = std::conditional_t<std::is_floating_point_v<T>, double, long>;
+      m_entries[key] = coerceVectorType<StoredType, T>(value);
     }
 
     std::string dump(int indent = -1) const;
@@ -87,36 +104,27 @@ class Config {
       std::vector<Config>
     >;
 
+    const ConfigValue& getEntry(const std::string& key) const;
+
     template<class T>
     const T& getValue(const std::string& key) const {
-      ASSERT_MSG(m_entries.count(key), "No '" << key << "' value found in config");
-      return std::get<T>(m_entries.at(key));
+      return std::get<T>(getEntry(key));
     }
 
-    template<class T, class ALT>
-    T getValue(const std::string& key) const {
-      ASSERT_MSG(m_entries.count(key), "No '" << key << "' value found in config");
-      const auto& entry = m_entries.at(key);
-      if (std::holds_alternative<ALT>(entry)) {
-        return std::get<ALT>(entry);
-      }
-      return std::get<T>(entry);
-    }
-
-    template<class SRC_TYPE, class DEST_TYPE, size_t N>
-    std::array<DEST_TYPE, N> vectorToArray(const std::vector<SRC_TYPE>& vec) const {
-      std::array<DEST_TYPE, N> arr{};
+    template<class DestType, size_t N, class SrcType>
+    std::array<DestType, N> vectorToArray(const std::vector<SrcType>& vec) const {
+      std::array<DestType, N> arr{};
       for (size_t i = 0; i < std::min(vec.size(), N); ++i) {
-        arr[i] = static_cast<DEST_TYPE>(vec[i]);
+        arr[i] = static_cast<DestType>(vec[i]);
       }
       return arr;
     }
 
-    template<class SRC_TYPE, class DEST_TYPE>
-    std::vector<DEST_TYPE> coerceVectorType(const std::vector<SRC_TYPE>& srcVec) const {
-      std::vector<DEST_TYPE> destVec(srcVec.size());
+    template<class DestType, class SrcType>
+    std::vector<DestType> coerceVectorType(const std::vector<SrcType>& srcVec) const {
+      std::vector<DestType> destVec(srcVec.size());
       for (size_t i = 0; i < srcVec.size(); ++i) {
-        destVec[i] = static_cast<DEST_TYPE>(srcVec[i]);
+        destVec[i] = static_cast<DestType>(srcVec[i]);
       }
       return destVec;
     }

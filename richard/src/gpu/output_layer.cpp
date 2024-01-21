@@ -34,9 +34,9 @@ OutputLayer::OutputLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& 
 void OutputLayer::initialize(const Config& config, size_t inputSize) {
   m_inputSize = inputSize;
 
-  m_size = config.getInteger("size");
-  m_learnRate = config.getFloat("learnRate");
-  m_learnRateDecay = config.getFloat("learnRateDecay");
+  m_size = config.getNumber<size_t>("size");
+  m_learnRate = config.getNumber<netfloat_t>("learnRate");
+  m_learnRateDecay = config.getNumber<netfloat_t>("learnRateDecay");
 
   m_B = Vector(m_size);
   m_W = Matrix(m_inputSize, m_size);

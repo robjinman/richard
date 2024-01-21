@@ -3,16 +3,6 @@
 
 namespace richard {
 
-namespace {
-
-template<class... Ts>
-struct Overloaded : Ts... { using Ts::operator()...; };
-
-template<class... Ts>
-Overloaded(Ts...) -> Overloaded<Ts...>;
-
-}
-
 struct ConfigMaker {
   static Config fromJson(const nlohmann::json& json);
   static Config::ConfigValue valueFromJsonArray(const nlohmann::json& obj);
@@ -99,13 +89,16 @@ Config ConfigMaker::fromJson(const nlohmann::json& obj) {
         config.setBoolean(i.key(), i.value());
         break;
       }
-      case nlohmann::json::value_t::number_integer:
+      case nlohmann::json::value_t::number_integer: {
+        config.setNumber(i.key(), i.value().get<long>());
+        break;
+      }
       case nlohmann::json::value_t::number_unsigned: {
-        config.setInteger(i.key(), i.value());
+        config.setNumber(i.key(), i.value().get<unsigned long>());
         break;
       }
       case nlohmann::json::value_t::number_float: {
-        config.setFloat(i.key(), i.value());
+        config.setNumber(i.key(), i.value().get<double>());
         break;
       }
       case nlohmann::json::value_t::string: {
@@ -138,16 +131,13 @@ bool Config::contains(const std::string& key) const {
   return m_entries.count(key) != 0;
 }
 
+const Config::ConfigValue& Config::getEntry(const std::string& key) const {
+  ASSERT_MSG(m_entries.count(key), "No '" << key << "' value found in config");
+  return m_entries.at(key);
+}
+
 bool Config::getBoolean(const std::string& key) const {
   return getValue<bool>(key);
-}
-
-long Config::getInteger(const std::string& key) const {
-  return getValue<long, double>(key);
-}
-
-double Config::getFloat(const std::string& key) const {
-  return getValue<double, long>(key);
 }
 
 const std::string& Config::getString(const std::string& key) const {
@@ -159,14 +149,6 @@ const std::vector<std::string>& Config::getStringArray(const std::string& key) c
 }
 
 void Config::setBoolean(const std::string& key, bool value) {
-  m_entries[key] =  value;
-}
-
-void Config::setInteger(const std::string& key, long value) {
-  m_entries[key] =  value;
-}
-
-void Config::setFloat(const std::string& key, double value) {
   m_entries[key] =  value;
 }
 

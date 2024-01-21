@@ -13,9 +13,9 @@ class CpuOutputLayerTest : public testing::Test {
 
 TEST_F(CpuOutputLayerTest, evalForward) {
   Config config;
-  config.setInteger("size", 2);
-  config.setFloat("learnRate", 0.5);
-  config.setFloat("learnRateDecay", 1.0);
+  config.setNumber("size", 2);
+  config.setNumber("learnRate", 0.5);
+  config.setNumber("learnRateDecay", 1.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
     return x * 2.0;

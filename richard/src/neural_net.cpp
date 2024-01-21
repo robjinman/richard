@@ -10,9 +10,9 @@ Hyperparams::Hyperparams()
   , miniBatchSize(16) {}
 
 Hyperparams::Hyperparams(const Config& config) {
-  epochs = config.getInteger("epochs");
-  batchSize = config.getInteger("batchSize");
-  miniBatchSize = config.getInteger("miniBatchSize");
+  epochs = config.getNumber<size_t>("epochs");
+  batchSize = config.getNumber<size_t>("batchSize");
+  miniBatchSize = config.getNumber<size_t>("miniBatchSize");
 }
 
 const Config& Hyperparams::exampleConfig() {
@@ -20,9 +20,9 @@ const Config& Hyperparams::exampleConfig() {
   static bool done = false;
 
   if (!done) {
-    config.setInteger("epochs", 10);
-    config.setInteger("batchSize", 1000);
-    config.setInteger("miniBatchSize", 16);
+    config.setNumber("epochs", 10);
+    config.setNumber("batchSize", 1000);
+    config.setNumber("miniBatchSize", 16);
 
     done = true;
   }
@@ -38,17 +38,17 @@ const Config& NeuralNet::exampleConfig() {
     Config layer1;
 
     layer1.setString("type", "dense");
-    layer1.setInteger("size", 300);
-    layer1.setFloat("learnRate", 0.7);
-    layer1.setFloat("learnRateDecay", 1.0);
-    layer1.setFloat("dropoutRate", 0.5);
+    layer1.setNumber("size", 300);
+    layer1.setNumber("learnRate", 0.7);
+    layer1.setNumber("learnRateDecay", 1.0);
+    layer1.setNumber("dropoutRate", 0.5);
 
     Config layer2;
     layer2.setString("type", "dense");
-    layer2.setInteger("size", 80);
-    layer2.setFloat("learnRate", 0.7);
-    layer2.setFloat("learnRateDecay", 1.0);
-    layer2.setFloat("dropoutRate", 0.5);
+    layer2.setNumber("size", 80);
+    layer2.setNumber("learnRate", 0.7);
+    layer2.setNumber("learnRateDecay", 1.0);
+    layer2.setNumber("dropoutRate", 0.5);
 
     std::vector<Config> layersConfig{layer1, layer2};
 
@@ -57,9 +57,9 @@ const Config& NeuralNet::exampleConfig() {
 
     Config outLayer;
     outLayer.setString("type", "output");
-    outLayer.setInteger("size", 10);
-    outLayer.setFloat("learnRate", 0.7);
-    outLayer.setFloat("learnRateDecay", 1.0);
+    outLayer.setNumber("size", 10);
+    outLayer.setNumber("learnRate", 0.7);
+    outLayer.setNumber("learnRateDecay", 1.0);
 
     config.setObject("outputLayer", outLayer);
 

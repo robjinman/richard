@@ -14,7 +14,7 @@ const Config& DataLoader::exampleConfig() {
   static bool done = false;
   
   if (!done) {
-    obj.setInteger("fetchSize", 500);
+    obj.setNumber("fetchSize", 500);
 
     done = true;
   }
@@ -25,7 +25,7 @@ const Config& DataLoader::exampleConfig() {
 DataLoaderPtr createDataLoader(FileSystem& fileSystem, const Config& config,
   const std::string& samplesPath, const DataDetails& dataDetails) {
 
-  size_t fetchSize = config.getInteger("fetchSize");
+  size_t fetchSize = config.getNumber<size_t>("fetchSize");
 
   if (std::filesystem::is_directory(samplesPath)) {
     return std::make_unique<ImageDataLoader>(samplesPath, dataDetails.classLabels,

@@ -22,7 +22,7 @@ TEST_F(ConfigTest, fromJsonString) {
   )";
 
   Config config = Config::fromJson(json);
-  EXPECT_EQ(config.getInteger("number"), 234);
+  EXPECT_EQ(config.getNumber<long>("number"), 234);
 }
 
 TEST_F(ConfigTest, getArray) {
@@ -34,7 +34,7 @@ TEST_F(ConfigTest, getArray) {
 
   Config config = Config::fromJson(json);
 
-  auto arr = config.getIntegerArray("array");
+  auto arr = config.getNumberArray<long>("array");
   std::vector<long> expected{ 3, 4, 5, 6, 7 };
 
   EXPECT_EQ(arr, expected);
@@ -42,23 +42,23 @@ TEST_F(ConfigTest, getArray) {
 
 TEST_F(ConfigTest, setNumber) {
   Config config;
-  config.setInteger("number", 678);
+  config.setNumber("number", 678);
 
-  EXPECT_EQ(config.getInteger("number"), 678);
+  EXPECT_EQ(config.getNumber<long>("number"), 678);
 }
 
 TEST_F(ConfigTest, getFloatAsInteger) {
   Config config;
-  config.setFloat("number", 12.34);
+  config.setNumber("number", 12.34);
 
-  EXPECT_EQ(config.getInteger("number"), 12);
+  EXPECT_EQ(config.getNumber<int>("number"), 12);
 }
 
 TEST_F(ConfigTest, getIntegerAsFloat) {
   Config config;
-  config.setInteger("number", 1234);
+  config.setNumber("number", 1234);
 
-  EXPECT_EQ(config.getFloat("number"), 1234.0);
+  EXPECT_EQ(config.getNumber<float>("number"), 1234.0);
 }
 
 TEST_F(ConfigTest, getArrayCoercedType) {
@@ -70,7 +70,7 @@ TEST_F(ConfigTest, getArrayCoercedType) {
 
   Config config = Config::fromJson(json);
 
-  auto arr = config.getIntegerArray<int>("array");
+  auto arr = config.getNumberArray<int>("array");
   std::vector<int> expected{ 3, 4, 5, 6, 7 };
 
   EXPECT_EQ(arr, expected);
@@ -85,7 +85,7 @@ TEST_F(ConfigTest, getFloatArrayAsInt) {
 
   Config config = Config::fromJson(json);
 
-  auto arr = config.getFloatArray<int>("array");
+  auto arr = config.getNumberArray<int>("array");
   std::vector<int> expected{ 3, 4, 5, 6, 7 };
 
   EXPECT_EQ(arr, expected);
@@ -95,9 +95,9 @@ TEST_F(ConfigTest, setArray) {
   Config config;
 
   std::vector<long> arr{ 3, 4, 5, 6 };
-  config.setIntegerArray("array", arr);
+  config.setNumberArray("array", arr);
 
-  EXPECT_EQ(config.getIntegerArray("array"), arr);
+  EXPECT_EQ(config.getNumberArray<long>("array"), arr);
 }
 
 TEST_F(ConfigTest, setArrayCoercedType) {
@@ -110,9 +110,9 @@ TEST_F(ConfigTest, setArrayCoercedType) {
   Config config = Config::fromJson(json);
 
   std::vector<int> arr{ 3, 4, 5, 6 };
-  config.setIntegerArray("array", arr);
+  config.setNumberArray("array", arr);
 
-  EXPECT_EQ(config.getIntegerArray<int>("array"), arr);
+  EXPECT_EQ(config.getNumberArray<int>("array"), arr);
 }
 
 TEST_F(ConfigTest, getStdArray) {
@@ -124,7 +124,7 @@ TEST_F(ConfigTest, getStdArray) {
 
   Config config = Config::fromJson(json);
 
-  auto arr = config.getIntegerArray<long, 5>("array");
+  auto arr = config.getNumberArray<long, 5>("array");
   std::array<long, 5> expected{3, 4, 5, 6, 7};
 
   EXPECT_EQ(arr, expected);
@@ -139,7 +139,7 @@ TEST_F(ConfigTest, getStdArrayCoercedType) {
 
   Config config = Config::fromJson(json);
 
-  auto arr = config.getIntegerArray<size_t, 5>("array");
+  auto arr = config.getNumberArray<size_t, 5>("array");
   std::array<size_t, 5> expected{3, 4, 5, 6, 7};
 
   EXPECT_EQ(arr, expected);
@@ -159,7 +159,7 @@ TEST_F(ConfigTest, getObject) {
   Config config = Config::fromJson(json);
   Config object = config.getObject("object");
 
-  EXPECT_EQ(object.getInteger("number"), 123);
+  EXPECT_EQ(object.getNumber<long>("number"), 123);
 }
 
 TEST_F(ConfigTest, getObjectArray) {
@@ -186,7 +186,7 @@ TEST_F(ConfigTest, getObjectArray) {
 
   size_t i = 0;
   for (auto obj : arr) {
-    EXPECT_EQ(obj.getInteger("number"), expected[i]);
+    EXPECT_EQ(obj.getNumber<long>("number"), expected[i]);
     ++i;
   }
 }

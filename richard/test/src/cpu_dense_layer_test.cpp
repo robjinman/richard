@@ -14,10 +14,10 @@ class CpuDenseLayerTest : public testing::Test {
 
 TEST_F(CpuDenseLayerTest, evalForward) {
   Config config;
-  config.setInteger("size", 2);
-  config.setFloat("learnRate", 0.5);
-  config.setFloat("learnRateDecay", 1.0);
-  config.setFloat("dropoutRate", 0.0);
+  config.setNumber("size", 2);
+  config.setNumber("learnRate", 0.5);
+  config.setNumber("learnRateDecay", 1.0);
+  config.setNumber("dropoutRate", 0.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
     return x * 2.0;
@@ -47,10 +47,10 @@ TEST_F(CpuDenseLayerTest, evalForward) {
 
 TEST_F(CpuDenseLayerTest, trainForward) {
   Config config;
-  config.setInteger("size", 2);
-  config.setFloat("learnRate", 0.5);
-  config.setFloat("learnRateDecay", 1.0);
-  config.setFloat("dropoutRate", 0.0);
+  config.setNumber("size", 2);
+  config.setNumber("learnRate", 0.5);
+  config.setNumber("learnRateDecay", 1.0);
+  config.setNumber("dropoutRate", 0.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
     return x * 2.0;
@@ -87,10 +87,10 @@ TEST_F(CpuDenseLayerTest, trainForward) {
 
 TEST_F(CpuDenseLayerTest, updateDelta) {
   Config config;
-  config.setInteger("size", 2);
-  config.setFloat("learnRate", 0.5);
-  config.setFloat("learnRateDecay", 1.0);
-  config.setFloat("dropoutRate", 0.0);
+  config.setNumber("size", 2);
+  config.setNumber("learnRate", 0.5);
+  config.setNumber("learnRateDecay", 1.0);
+  config.setNumber("dropoutRate", 0.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
     return 0.5 * x * x;
