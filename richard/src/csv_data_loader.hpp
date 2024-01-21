@@ -18,7 +18,7 @@ class CsvDataLoader : public DataLoader {
   private:
     size_t m_inputSize;
     NormalizationParams m_normalization;
-    std::unique_ptr<std::istream> m_fin;
+    std::unique_ptr<std::istream> m_stream;
 };
 
 }

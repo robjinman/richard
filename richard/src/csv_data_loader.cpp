@@ -13,21 +13,21 @@ namespace richard {
 // a,44.0,52.1
 // c,11.9,92.4
 // ...
-CsvDataLoader::CsvDataLoader(std::unique_ptr<std::istream> fin, size_t inputSize,
+CsvDataLoader::CsvDataLoader(std::unique_ptr<std::istream> stream, size_t inputSize,
   const NormalizationParams& normalization, size_t fetchSize)
   : DataLoader(fetchSize)
   , m_inputSize(inputSize)
   , m_normalization(normalization)
-  , m_fin(std::move(fin)) {}
+  , m_stream(std::move(stream)) {}
 
 void CsvDataLoader::seekToBeginning() {
-  m_fin->seekg(0);
+  m_stream->seekg(0);
 }
 
 size_t CsvDataLoader::loadSamples(std::vector<Sample>& samples) {
   size_t numSamples = 0;
   std::string line;
-  while (std::getline(*m_fin, line)) {
+  while (std::getline(*m_stream, line)) {
     std::stringstream ss{line};
     std::string label = "_";
     Vector v(m_inputSize);

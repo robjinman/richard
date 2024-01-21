@@ -80,8 +80,7 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
   std::vector<Sample> samples;
   const auto& costFn = m_neuralNet->costFn();
 
-  auto inputSz = m_neuralNet->inputSize();
-  [[maybe_unused]] size_t netInputSize = inputSz[0] * inputSz[1] * inputSz[2];
+  [[maybe_unused]] size_t netInputSize = calcProduct(m_neuralNet->inputSize());
 
   size_t totalSamples = 0;
   netfloat_t totalCost = 0.0;

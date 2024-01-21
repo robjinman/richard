@@ -149,15 +149,15 @@ const std::vector<std::string>& Config::getStringArray(const std::string& key) c
 }
 
 void Config::setBoolean(const std::string& key, bool value) {
-  m_entries[key] =  value;
+  m_entries[key] = value;
 }
 
 void Config::setString(const std::string& key, const std::string& value) {
-  m_entries[key] =  value;
+  m_entries[key] = value;
 }
 
 void Config::setStringArray(const std::string& key, const std::vector<std::string>& value) {
-  m_entries[key] =  value;
+  m_entries[key] = value;
 }
 
 void Config::setObjectArray(const std::string& key, const std::vector<Config>& value) {
