@@ -13,7 +13,7 @@ MaxPoolingLayer::MaxPoolingLayer(const Config& config, const Size3& inputShape)
   , m_inputDepth(inputShape[2])
   , m_mask(m_inputW, m_inputH, m_inputDepth) {
 
-  auto regionSize = config.getArray<size_t, 2>("regionSize");
+  auto regionSize = config.getNumberArray<size_t, 2>("regionSize");
   m_regionW = regionSize[0];
   m_regionH = regionSize[1];
 

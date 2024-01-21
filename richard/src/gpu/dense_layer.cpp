@@ -32,10 +32,10 @@ void DenseLayer::initialize(const Config& config, size_t inputSize, bool isFirst
   m_inputSize = inputSize;
   m_isFirstLayer = isFirstLayer;
 
-  m_size = config.getValue<size_t>("size");
-  m_learnRate = config.getValue<netfloat_t>("learnRate");
-  m_learnRateDecay = config.getValue<netfloat_t>("learnRateDecay");
-  m_dropoutRate = config.getValue<netfloat_t>("dropoutRate");
+  m_size = config.getNumber<size_t>("size");
+  m_learnRate = config.getNumber<netfloat_t>("learnRate");
+  m_learnRateDecay = config.getNumber<netfloat_t>("learnRateDecay");
+  m_dropoutRate = config.getNumber<netfloat_t>("dropoutRate");
 
   m_B = Vector(m_size);
   m_W = Matrix(m_inputSize, m_size);

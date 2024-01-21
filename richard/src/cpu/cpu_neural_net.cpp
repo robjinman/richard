@@ -93,14 +93,14 @@ void CpuNeuralNetImpl::initialize(const Size3& inputShape, const Config& config,
   }
 
   auto outLayerConfig = config.getObject("outputLayer");
-  outLayerConfig.setValue("type", "output");
+  outLayerConfig.setString("type", "output");
   m_layers.push_back(constructLayer(outLayerConfig, prevLayerSize, stream));
 }
 
 LayerPtr CpuNeuralNetImpl::constructLayer(const Config& obj, const Size3& prevLayerSize,
   std::istream* stream) const {
 
-  std::string type = obj.getValue<std::string>("type");
+  std::string type = obj.getString("type");
 
   if (type == "dense") {
     return stream ?

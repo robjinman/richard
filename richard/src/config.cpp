@@ -3,16 +3,6 @@
 
 namespace richard {
 
-namespace {
-
-template<class... Ts>
-struct overloaded : Ts... { using Ts::operator()...; };
-
-template<class... Ts>
-overloaded(Ts...) -> overloaded<Ts...>;
-
-}
-
 struct ConfigMaker {
   static Config fromJson(const nlohmann::json& json);
   static Config::ConfigValue valueFromJsonArray(const nlohmann::json& obj);
@@ -23,8 +13,8 @@ struct ConfigMaker {
 
 std::vector<Config> ConfigMaker::createConfigArray(const nlohmann::json& obj) {
   std::vector<Config> configs;
-  for (auto i : obj) {
-    configs.push_back(fromJson(i));
+  for (const auto& element : obj) {
+    configs.push_back(fromJson(element));
   }
   return configs;
 }
@@ -37,26 +27,26 @@ bool ConfigMaker::isArrayOfObjects(const nlohmann::json& obj) {
 
 nlohmann::json ConfigMaker::toJsonObj(const Config& config) {
   nlohmann::json obj;
-  for (auto i : config.m_entries) {
-    std::visit(overloaded{
-      [&obj, i](std::shared_ptr<Config> child) {
-        obj[i.first] = toJsonObj(*child);
+  for (const auto& entry : config.m_entries) {
+    std::visit(Overloaded{
+      [&](std::shared_ptr<Config> child) {
+        obj[entry.first] = toJsonObj(*child);
       },
-      [&obj, i](std::vector<Config> children) {
+      [&](std::vector<Config> children) {
         std::vector<nlohmann::json> objs;
         for (const auto& child : children) {
           objs.push_back(toJsonObj(child));
         }
-        obj[i.first] = objs;
+        obj[entry.first] = objs;
       },
-      [&obj, i](bool value) { obj[i.first] = value; },
-      [&obj, i](long value) { obj[i.first] = value; },
-      [&obj, i](double value) { obj[i.first] = value; },
-      [&obj, i](std::string value) { obj[i.first] = value; },
-      [&obj, i](std::vector<long> value) { obj[i.first] = value; },
-      [&obj, i](std::vector<double> value) { obj[i.first] = value; },
-      [&obj, i](std::vector<std::string> value) { obj[i.first] = value; },
-    }, i.second);
+      [&](bool value) { obj[entry.first] = value; },
+      [&](long value) { obj[entry.first] = value; },
+      [&](double value) { obj[entry.first] = value; },
+      [&](std::string value) { obj[entry.first] = value; },
+      [&](std::vector<long> value) { obj[entry.first] = value; },
+      [&](std::vector<double> value) { obj[entry.first] = value; },
+      [&](std::vector<std::string> value) { obj[entry.first] = value; },
+    }, entry.second);
   }
   return obj;
 }
@@ -96,23 +86,23 @@ Config ConfigMaker::fromJson(const nlohmann::json& obj) {
   for (auto i = obj.begin(); i != obj.end(); ++i) {
     switch (i.value().type()) {
       case nlohmann::json::value_t::boolean: {
-        config.setValue<bool>(i.key(), i.value());
+        config.setBoolean(i.key(), i.value());
         break;
       }
       case nlohmann::json::value_t::number_integer: {
-        config.setValue<int>(i.key(), i.value());
+        config.setNumber(i.key(), i.value().get<long>());
         break;
       }
       case nlohmann::json::value_t::number_unsigned: {
-        config.setValue<size_t>(i.key(), i.value());
+        config.setNumber(i.key(), i.value().get<unsigned long>());
         break;
       }
       case nlohmann::json::value_t::number_float: {
-        config.setValue<double>(i.key(), i.value());
+        config.setNumber(i.key(), i.value().get<double>());
         break;
       }
       case nlohmann::json::value_t::string: {
-        config.setValue<std::string>(i.key(), i.value());
+        config.setString(i.key(), i.value());
         break;
       }
       case nlohmann::json::value_t::object: {
@@ -139,6 +129,35 @@ Config ConfigMaker::fromJson(const nlohmann::json& obj) {
 
 bool Config::contains(const std::string& key) const {
   return m_entries.count(key) != 0;
+}
+
+const Config::ConfigValue& Config::getEntry(const std::string& key) const {
+  ASSERT_MSG(m_entries.count(key), "No '" << key << "' value found in config");
+  return m_entries.at(key);
+}
+
+bool Config::getBoolean(const std::string& key) const {
+  return getValue<bool>(key);
+}
+
+const std::string& Config::getString(const std::string& key) const {
+  return getValue<std::string>(key);
+}
+
+const std::vector<std::string>& Config::getStringArray(const std::string& key) const {
+  return getValue<std::vector<std::string>>(key);
+}
+
+void Config::setBoolean(const std::string& key, bool value) {
+  m_entries[key] =  value;
+}
+
+void Config::setString(const std::string& key, const std::string& value) {
+  m_entries[key] =  value;
+}
+
+void Config::setStringArray(const std::string& key, const std::vector<std::string>& value) {
+  m_entries[key] =  value;
 }
 
 void Config::setObjectArray(const std::string& key, const std::vector<Config>& value) {
@@ -175,12 +194,12 @@ Config Config::fromJson(std::istream& stream) {
 }
 
 bool Config::operator==(const Config& rhs) const {
-  for (auto i : m_entries) {
-    if (rhs.m_entries.count(i.first) == 0) {
+  for (const auto& entry : m_entries) {
+    if (rhs.m_entries.count(entry.first) == 0) {
       return false;
     }
-    auto rhsEntry = rhs.m_entries.at(i.first);
-    bool match = std::visit(overloaded{
+    auto rhsEntry = rhs.m_entries.at(entry.first);
+    bool match = std::visit(Overloaded{
       [&](std::shared_ptr<Config> child) {
         if (!std::holds_alternative<std::shared_ptr<Config>>(rhsEntry)) {
           return false;
@@ -198,13 +217,16 @@ bool Config::operator==(const Config& rhs) const {
         return true;
       },
       [&](bool value) {
-        return std::holds_alternative<bool>(rhsEntry) && std::get<bool>(rhsEntry) == value;
+        return std::holds_alternative<bool>(rhsEntry)
+          && std::get<bool>(rhsEntry) == value;
       },
       [&](long value) {
-        return std::holds_alternative<long>(rhsEntry) && std::get<long>(rhsEntry) == value;
+        return std::holds_alternative<long>(rhsEntry)
+          && std::get<long>(rhsEntry) == value;
       },
       [&](double value) {
-        return std::holds_alternative<double>(rhsEntry) && std::get<double>(rhsEntry) == value;
+        return std::holds_alternative<double>(rhsEntry)
+          && std::get<double>(rhsEntry) == value;
       },
       [&](std::string value) {
         return std::holds_alternative<std::string>(rhsEntry)
@@ -222,7 +244,7 @@ bool Config::operator==(const Config& rhs) const {
         return std::holds_alternative<std::vector<std::string>>(rhsEntry)
           && std::get<std::vector<std::string>>(rhsEntry) == value;
       },
-    }, i.second);
+    }, entry.second);
     if (!match) {
       return false;
     }

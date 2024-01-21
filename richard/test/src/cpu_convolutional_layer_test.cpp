@@ -14,11 +14,11 @@ class CpuConvolutionalLayerTest : public testing::Test {
 
 TEST_F(CpuConvolutionalLayerTest, forwardPass_depth1) {
   Config config;
-  config.setValue("depth", 1);
-  config.setArray<size_t>("kernelSize", { 2, 2 });
-  config.setValue("learnRate", 1.0);
-  config.setValue("learnRateDecay", 1.0);
-  config.setValue("dropoutRate", 0.0);
+  config.setNumber("depth", 1);
+  config.setNumberArray<size_t>("kernelSize", { 2, 2 });
+  config.setNumber("learnRate", 1.0);
+  config.setNumber("learnRateDecay", 1.0);
+  config.setNumber("dropoutRate", 0.0);
 
   ConvolutionalLayer layer(config, { 3, 3, 1 });
 
@@ -49,11 +49,11 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth1) {
 
 TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
   Config config;
-  config.setValue("depth", 2);
-  config.setArray<size_t>("kernelSize", { 2, 2 });
-  config.setValue("learnRate", 1.0);
-  config.setValue("learnRateDecay", 1.0);
-  config.setValue("dropoutRate", 0.0);
+  config.setNumber("depth", 2);
+  config.setNumberArray<size_t>("kernelSize", { 2, 2 });
+  config.setNumber("learnRate", 1.0);
+  config.setNumber("learnRateDecay", 1.0);
+  config.setNumber("dropoutRate", 0.0);
 
   ConvolutionalLayer layer(config, { 3, 3, 1 });
 
@@ -94,11 +94,11 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_depth2) {
 
 TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
   Config config;
-  config.setValue("depth", 2);
-  config.setArray<size_t>("kernelSize", { 2, 2 });
-  config.setValue("learnRate", 1.0);
-  config.setValue("learnRateDecay", 1.0);
-  config.setValue("dropoutRate", 0.0);
+  config.setNumber("depth", 2);
+  config.setNumberArray<size_t>("kernelSize", { 2, 2 });
+  config.setNumber("learnRate", 1.0);
+  config.setNumber("learnRateDecay", 1.0);
+  config.setNumber("dropoutRate", 0.0);
 
   ConvolutionalLayer layer(config, { 3, 3, 2 });
 
@@ -155,11 +155,11 @@ TEST_F(CpuConvolutionalLayerTest, forwardPass_inputDepth2_depth2) {
 
 TEST_F(CpuConvolutionalLayerTest, updateDelta_inputDepth1_depth2) {
   Config config;
-  config.setValue("depth", 2);
-  config.setArray<size_t>("kernelSize", { 2, 2 });
-  config.setValue("learnRate", 1.0);
-  config.setValue("learnRateDecay", 1.0);
-  config.setValue("dropoutRate", 0.0);
+  config.setNumber("depth", 2);
+  config.setNumberArray<size_t>("kernelSize", { 2, 2 });
+  config.setNumber("learnRate", 1.0);
+  config.setNumber("learnRateDecay", 1.0);
+  config.setNumber("dropoutRate", 0.0);
 
   ConvolutionalLayer layer(config, { 3, 3, 1 });
 

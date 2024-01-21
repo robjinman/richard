@@ -119,15 +119,15 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
   status.sampleIndex = 0;
 
   Config layer1Config;
-  layer1Config.setValue("size", layer1Size);
-  layer1Config.setValue("learnRate", 0.1);
-  layer1Config.setValue("learnRateDecay", 1.0);
-  layer1Config.setValue("dropoutRate", 0.0);
+  layer1Config.setNumber("size", layer1Size);
+  layer1Config.setNumber("learnRate", 0.1);
+  layer1Config.setNumber("learnRateDecay", 1.0);
+  layer1Config.setNumber("dropoutRate", 0.0);
 
   Config layer2Config;
-  layer2Config.setValue("size", layer2Size);
-  layer2Config.setValue("learnRate", 0.1);
-  layer2Config.setValue("learnRateDecay", 1.0);
+  layer2Config.setNumber("size", layer2Size);
+  layer2Config.setNumber("learnRate", 0.1);
+  layer2Config.setNumber("learnRateDecay", 1.0);
 
   gpu::DenseLayer layer1(*gpu, *fileSystem, *platformPaths, layer1Config, inputSize, true);
   gpu::OutputLayer layer2(*gpu, *fileSystem, *platformPaths, layer2Config, layer1Size);
@@ -374,19 +374,19 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
   status.sampleIndex = 0;
 
   Config layer1Config;
-  layer1Config.setValue("depth", 2);
-  layer1Config.setArray<size_t>("kernelSize", { 2, 2 });
-  layer1Config.setValue("learnRate", 0.1);
-  layer1Config.setValue("learnRateDecay", 1.0);
-  layer1Config.setValue("dropoutRate", 0.0);
+  layer1Config.setNumber("depth", 2);
+  layer1Config.setNumberArray<size_t>("kernelSize", { 2, 2 });
+  layer1Config.setNumber("learnRate", 0.1);
+  layer1Config.setNumber("learnRateDecay", 1.0);
+  layer1Config.setNumber("dropoutRate", 0.0);
 
   Config layer2Config;
-  layer2Config.setArray<size_t>("regionSize", { 2, 2 });
+  layer2Config.setNumberArray<size_t>("regionSize", { 2, 2 });
 
   Config layer3Config;
-  layer3Config.setValue("size", 2);
-  layer3Config.setValue("learnRate", 0.1);
-  layer3Config.setValue("learnRateDecay", 1.0);
+  layer3Config.setNumber("size", 2);
+  layer3Config.setNumber("learnRate", 0.1);
+  layer3Config.setNumber("learnRateDecay", 1.0);
 
   gpu::ConvolutionalLayer layer1(*gpu, *fileSystem, *platformPaths, layer1Config, { 3, 3, 2 },
     true);

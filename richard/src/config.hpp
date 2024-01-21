@@ -5,129 +5,83 @@
 #include <map>
 #include <vector>
 #include <istream>
-#include <type_traits>
 #include <memory>
+#include <type_traits>
 
 namespace richard {
 
-template <typename T> struct is_vector : public std::false_type {};
+template<class... Ts>
+struct Overloaded : Ts... { using Ts::operator()...; };
 
-template <typename T, typename A>
-struct is_vector<std::vector<T, A>> : public std::true_type {};
+template<class... Ts>
+Overloaded(Ts...) -> Overloaded<Ts...>;
 
 class Config {
   public:
     bool contains(const std::string& key) const;
   
-    void setObjectArray(const std::string& key, const std::vector<Config>& value);
-    std::vector<Config> getObjectArray(const std::string& key) const;
-  
-    void setObject(const std::string& key, const Config& value);
+    bool getBoolean(const std::string& key) const;
+    const std::string& getString(const std::string& key) const;
+    const std::vector<std::string>& getStringArray(const std::string& key) const;
     Config getObject(const std::string& key) const;
+    std::vector<Config> getObjectArray(const std::string& key) const;
+
+    void setBoolean(const std::string& key, bool value);
+    void setString(const std::string& key, const std::string& value);
+    void setStringArray(const std::string& key, const std::vector<std::string>& value);
+    void setObject(const std::string& key, const Config& value);
+    void setObjectArray(const std::string& key, const std::vector<Config>& value);
+
+    template<class T>
+    T getNumber(const std::string& key) const {
+      static_assert(std::is_arithmetic_v<T>, "Expected numeric type");
+      return std::visit(Overloaded{
+        [this](long value) { return static_cast<T>(value); },
+        [this](double value) { return static_cast<T>(value); },
+        [this](const auto&) { return T{}; }
+      }, getEntry(key));
+    }
+
+    template<class T>
+    std::vector<T> getNumberArray(const std::string& key) const {
+      static_assert(std::is_arithmetic_v<T>, "Expected numeric type");
+      return std::visit(Overloaded{
+        [this](const std::vector<long>& value) { return coerceVectorType<T>(value); },
+        [this](const std::vector<double>& value) { return coerceVectorType<T>(value); },
+        [this](const auto&) { return std::vector<T>{}; }
+      }, getEntry(key));
+    }
+
+    template<class T, size_t N>
+    std::array<T, N> getNumberArray(const std::string& key) const {
+      static_assert(std::is_arithmetic_v<T>, "Expected numeric type");
+      return std::visit(Overloaded{
+        [this](const std::vector<long>& value) { return vectorToArray<T, N>(value); },
+        [this](const std::vector<double>& value) { return vectorToArray<T, N>(value); },
+        [this](const auto&) { return std::array<T, N>{}; }
+      }, getEntry(key));
+    }
+
+    template<size_t N>
+    std::array<std::string, N> getStringArray(const std::string& key) const {
+      return vectorToArray<std::string, N>(getStringArray(key));
+    }
+
+    template<class T>
+    void setNumber(const std::string& key, T value) {
+      static_assert(std::is_arithmetic_v<T>, "Expected numeric type");
+      using StoredType = std::conditional_t<std::is_floating_point_v<T>, double, long>;
+      m_entries[key] = static_cast<StoredType>(value);
+    }
+
+    template<class T>
+    void setNumberArray(const std::string& key, const std::vector<T>& value) {
+      static_assert(std::is_arithmetic_v<T>, "Expected numeric type");
+      using StoredType = std::conditional_t<std::is_floating_point_v<T>, double, long>;
+      m_entries[key] = coerceVectorType<StoredType, T>(value);
+    }
 
     std::string dump(int indent = -1) const;
-
-    template <class T>
-    void setValue(const std::string& key, T value) {
-      if constexpr (std::is_integral_v<T>) {
-        m_entries[key] = static_cast<long>(value);
-      }
-      else if constexpr (std::is_floating_point_v<T>) {
-        m_entries[key] = static_cast<double>(value);
-      }
-      else {
-        m_entries[key] = value;
-      }
-    }
-  
-    template <class T>
-    T getValue(const std::string& key) const {
-      ASSERT_MSG(m_entries.count(key), "No '" << key << "' value found in config");
-
-      if constexpr (std::is_arithmetic_v<T>) {
-        return std::visit([](auto value) {
-          if constexpr (std::is_arithmetic_v<decltype(value)>) {
-            return static_cast<T>(value);
-          }
-          return T{};
-        }, m_entries.at(key));
-      }
-      else {
-        return std::get<T>(m_entries.at(key));
-      }
-    }
-
-    template <class T>
-    void setArray(const std::string& key, const std::vector<T>& value) {
-      if constexpr (std::is_integral_v<T>) {
-        std::vector<long> vec;
-        for (auto x : value) {
-          vec.push_back(static_cast<long>(x));
-        }
-        m_entries[key] = vec;
-      }
-      else if constexpr (std::is_floating_point_v<T>) {
-        std::vector<double> vec;
-        for (auto x : value) {
-          vec.push_back(static_cast<double>(x));
-        }
-        m_entries[key] = vec;
-      }
-      else {
-        m_entries[key] = value;
-      }
-    }
-  
-    template <class T>
-    std::vector<T> getArray(const std::string& key) const {
-      ASSERT_MSG(m_entries.count(key), "No '" << key << "' value found in config");
-
-      if constexpr (std::is_arithmetic_v<T>) {
-        return std::visit([](auto value) {
-          if constexpr (is_vector<decltype(value)>::value) {
-            if constexpr (std::is_arithmetic_v<typename decltype(value)::value_type>) {
-              std::vector<T> vec;
-              for (auto x : value) {
-                vec.push_back(static_cast<T>(x));
-              }
-              return vec;
-            }
-          }
-          return std::vector<T>{};
-        }, m_entries.at(key));
-      }
-      else {
-        return std::get<std::vector<T>>(m_entries.at(key));
-      }
-    }
-
-    template <class T, size_t N>
-    std::array<T, N> getArray(const std::string& key) const {
-      ASSERT_MSG(m_entries.count(key), "No '" << key << "' value found in config");
-
-      if constexpr (std::is_arithmetic_v<T>) {
-        return std::visit([](auto value) {
-          if constexpr (is_vector<decltype(value)>::value) {
-            if constexpr (std::is_arithmetic_v<typename decltype(value)::value_type>) {
-              std::array<T, N> arr{};
-              for (size_t i = 0; i < std::min(N, value.size()); ++i) {
-                arr[i] = static_cast<T>(value[i]);
-              }
-              return arr;
-            }
-          }
-          return std::array<T, N>{};
-        }, m_entries.at(key));
-      }
-      else {
-        auto value = std::get<std::vector<T>>(m_entries.at(key));
-        std::array<T, N> arr{};
-        for (size_t i = 0; i < std::min(N, value.size()); ++i) {
-          arr[i] = static_cast<T>(value[i]);
-        }
-        return arr;
-      }
-    }
 
     bool operator==(const Config& rhs) const;
     bool operator!=(const Config& rhs) const;
@@ -149,6 +103,31 @@ class Config {
       std::vector<std::string>,
       std::vector<Config>
     >;
+
+    const ConfigValue& getEntry(const std::string& key) const;
+
+    template<class T>
+    const T& getValue(const std::string& key) const {
+      return std::get<T>(getEntry(key));
+    }
+
+    template<class DestType, size_t N, class SrcType>
+    std::array<DestType, N> vectorToArray(const std::vector<SrcType>& vec) const {
+      std::array<DestType, N> arr{};
+      for (size_t i = 0; i < std::min(vec.size(), N); ++i) {
+        arr[i] = static_cast<DestType>(vec[i]);
+      }
+      return arr;
+    }
+
+    template<class DestType, class SrcType>
+    std::vector<DestType> coerceVectorType(const std::vector<SrcType>& srcVec) const {
+      std::vector<DestType> destVec(srcVec.size());
+      for (size_t i = 0; i < srcVec.size(); ++i) {
+        destVec[i] = static_cast<DestType>(srcVec[i]);
+      }
+      return destVec;
+    }
 
     std::map<std::string, ConfigValue> m_entries;
 };

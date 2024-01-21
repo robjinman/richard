@@ -42,11 +42,11 @@ void ConvolutionalLayer::initialize(const Config& config, const Size3& inputShap
   m_inputW = inputShape[0];
   m_inputH = inputShape[1];
   m_inputDepth = inputShape[2];
-  m_kernelSize = config.getArray<size_t, 2>("kernelSize");
-  m_depth = config.getValue<size_t>("depth");
-  m_learnRate = config.getValue<netfloat_t>("learnRate");
-  m_learnRateDecay = config.getValue<netfloat_t>("learnRateDecay");
-  m_dropoutRate = config.getValue<netfloat_t>("dropoutRate");
+  m_kernelSize = config.getNumberArray<size_t, 2>("kernelSize");
+  m_depth = config.getNumber<size_t>("depth");
+  m_learnRate = config.getNumber<netfloat_t>("learnRate");
+  m_learnRateDecay = config.getNumber<netfloat_t>("learnRateDecay");
+  m_dropoutRate = config.getNumber<netfloat_t>("dropoutRate");
   m_isFirstLayer = isFirstLayer;
   m_kernelData = Vector(m_kernelSize[0] * m_kernelSize[1] * m_inputDepth * m_depth);
   m_biasData = Vector(m_depth);

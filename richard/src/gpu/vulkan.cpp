@@ -219,7 +219,7 @@ class Vulkan : public Gpu {
 Vulkan::Vulkan(const Config& config, Logger& logger)
   : m_logger(logger)
   , m_maxWorkgroupSize(config.contains("maxWorkgroupSize") ?
-      config.getValue<size_t>("maxWorkgroupSize") :
+      config.getNumber<size_t>("maxWorkgroupSize") :
       DEFAULT_MAX_WORKGROUP_SIZE)
   , m_commandBuffer(VK_NULL_HANDLE) {
 

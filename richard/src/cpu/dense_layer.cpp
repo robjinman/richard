@@ -22,10 +22,10 @@ void DenseLayer::initialize(const Config& config, size_t inputSize) {
   m_activationFn = sigmoid;
   m_activationFnPrime = sigmoidPrime;
 
-  size_t size = config.getValue<size_t>("size");
-  m_learnRate = config.getValue<netfloat_t>("learnRate");
-  m_learnRateDecay = config.getValue<netfloat_t>("learnRateDecay");
-  m_dropoutRate = config.getValue<netfloat_t>("dropoutRate");
+  size_t size = config.getNumber<size_t>("size");
+  m_learnRate = config.getNumber<netfloat_t>("learnRate");
+  m_learnRateDecay = config.getNumber<netfloat_t>("learnRateDecay");
+  m_dropoutRate = config.getNumber<netfloat_t>("dropoutRate");
 
   m_B = Vector(size);
   m_W = Matrix(inputSize, size);
