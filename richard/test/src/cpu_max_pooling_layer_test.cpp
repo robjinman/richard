@@ -18,7 +18,7 @@ TEST_F(CpuMaxPoolingLayerTest, evalForward_depth1) {
   size_t inputDepth = 1;
 
   Config config;
-  config.setArray<size_t>("regionSize", { 2, 2 });
+  config.setIntegerArray<size_t>("regionSize", { 2, 2 });
 
   MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
@@ -43,7 +43,7 @@ TEST_F(CpuMaxPoolingLayerTest, evalForward_depth2) {
   size_t inputDepth = 2;
 
   Config config;
-  config.setArray<size_t>("regionSize", { 2, 2 });
+  config.setIntegerArray<size_t>("regionSize", { 2, 2 });
 
   MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
@@ -80,7 +80,7 @@ TEST_F(CpuMaxPoolingLayerTest, trainForward_1x1_depth1) {
   size_t inputDepth = 1;
 
   Config config;
-  config.setArray<size_t>("regionSize", { 1, 1 });
+  config.setIntegerArray<size_t>("regionSize", { 1, 1 });
 
   MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
@@ -120,7 +120,7 @@ TEST_F(CpuMaxPoolingLayerTest, trainForward_depth1) {
   size_t inputDepth = 1;
 
   Config config;
-  config.setArray<size_t>("regionSize", { 2, 2 });
+  config.setIntegerArray<size_t>("regionSize", { 2, 2 });
 
   MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
@@ -158,7 +158,7 @@ TEST_F(CpuMaxPoolingLayerTest, trainForward_depth2) {
   size_t inputDepth = 2;
 
   Config config;
-  config.setArray<size_t>("regionSize", { 2, 2 });
+  config.setIntegerArray<size_t>("regionSize", { 2, 2 });
 
   MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
@@ -213,7 +213,7 @@ TEST_F(CpuMaxPoolingLayerTest, updateDeltas_depth1) {
   size_t inputDepth = 1;
 
   Config config;
-  config.setArray<size_t>("regionSize", { 2, 2 });
+  config.setIntegerArray<size_t>("regionSize", { 2, 2 });
 
   MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 
@@ -250,7 +250,7 @@ TEST_F(CpuMaxPoolingLayerTest, updateDeltas_depth2) {
   size_t inputDepth = 2;
 
   Config config;
-  config.setArray<size_t>("regionSize", { 2, 2 });
+  config.setIntegerArray<size_t>("regionSize", { 2, 2 });
 
   MaxPoolingLayer layer(config, { inputW, inputH, inputDepth });
 

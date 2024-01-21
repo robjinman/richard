@@ -74,11 +74,11 @@ TEST_F(GpuConvolutionalLayerTest, trainForward) {
   status.sampleIndex = 0;
 
   Config config;
-  config.setValue("depth", 2);
-  config.setArray<size_t>("kernelSize", { 2, 2 });
-  config.setValue("learnRate", 1.0);
-  config.setValue("learnRateDecay", 1.0);
-  config.setValue("dropoutRate", 0.0);
+  config.setInteger("depth", 2);
+  config.setIntegerArray<size_t>("kernelSize", { 2, 2 });
+  config.setFloat("learnRate", 1.0);
+  config.setFloat("learnRateDecay", 1.0);
+  config.setFloat("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -212,11 +212,11 @@ TEST_F(GpuConvolutionalLayerTest, backprop) {
   size_t layerDepth = 2;
 
   Config config;
-  config.setValue("depth", layerDepth);
-  config.setArray<size_t>("kernelSize", { 2, 2 });
-  config.setValue("learnRate", 1.0);
-  config.setValue("learnRateDecay", 1.0);
-  config.setValue("dropoutRate", 0.0);
+  config.setInteger("depth", layerDepth);
+  config.setIntegerArray<size_t>("kernelSize", { 2, 2 });
+  config.setFloat("learnRate", 1.0);
+  config.setFloat("learnRateDecay", 1.0);
+  config.setFloat("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -311,11 +311,11 @@ TEST_F(GpuConvolutionalLayerTest, updateParams) {
   netfloat_t learnRate = 0.47;
 
   Config config;
-  config.setValue("depth", layerDepth);
-  config.setArray<size_t>("kernelSize", { 2, 2 });
-  config.setValue("learnRate", learnRate);
-  config.setValue("learnRateDecay", 1.0);
-  config.setValue("dropoutRate", 0.0);
+  config.setInteger("depth", layerDepth);
+  config.setIntegerArray<size_t>("kernelSize", { 2, 2 });
+  config.setFloat("learnRate", learnRate);
+  config.setFloat("learnRateDecay", 1.0);
+  config.setFloat("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();

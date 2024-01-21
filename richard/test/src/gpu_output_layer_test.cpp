@@ -74,9 +74,9 @@ TEST_F(GpuOutputLayerTest, trainForward) {
   status.sampleIndex = 0;
 
   Config config;
-  config.setValue("size", outputSize);
-  config.setValue("learnRate", 0.1);
-  config.setValue("learnRateDecay", 1.0);
+  config.setInteger("size", outputSize);
+  config.setFloat("learnRate", 0.1);
+  config.setFloat("learnRateDecay", 1.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -162,9 +162,9 @@ TEST_F(GpuOutputLayerTest, backprop) {
   status.sampleIndex = 0;
 
   Config config;
-  config.setValue("size", outputSize);
-  config.setValue("learnRate", 0.1);
-  config.setValue("learnRateDecay", 1.0);
+  config.setInteger("size", outputSize);
+  config.setFloat("learnRate", 0.1);
+  config.setFloat("learnRateDecay", 1.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();

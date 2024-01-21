@@ -16,7 +16,7 @@ MaxPoolingLayer::MaxPoolingLayer(Gpu& gpu, FileSystem& fileSystem,
   , m_inputH(inputShape[1])
   , m_inputDepth(inputShape[2]) {
 
-  auto regionSize = config.getArray<size_t, 2>("regionSize");
+  auto regionSize = config.getIntegerArray<size_t, 2>("regionSize");
   m_regionW = regionSize[0];
   m_regionH = regionSize[1];
 

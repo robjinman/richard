@@ -67,10 +67,10 @@ TEST_F(GpuDenseLayerTest, trainForward) {
   status.sampleIndex = 0;
 
   Config config;
-  config.setValue("size", layerSize);
-  config.setValue("learnRate", 0.1);
-  config.setValue("learnRateDecay", 1.0);
-  config.setValue("dropoutRate", 0.0);
+  config.setInteger("size", layerSize);
+  config.setFloat("learnRate", 0.1);
+  config.setFloat("learnRateDecay", 1.0);
+  config.setFloat("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -165,10 +165,10 @@ TEST_F(GpuDenseLayerTest, backprop) {
   gpu->submitBufferData(nextBufferD.handle, nextDelta.data());
 
   Config config;
-  config.setValue("size", layerSize);
-  config.setValue("learnRate", 0.1);
-  config.setValue("learnRateDecay", 1.0);
-  config.setValue("dropoutRate", 0.0);
+  config.setInteger("size", layerSize);
+  config.setFloat("learnRate", 0.1);
+  config.setFloat("learnRateDecay", 1.0);
+  config.setFloat("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();
@@ -249,10 +249,10 @@ TEST_F(GpuDenseLayerTest, updateParams) {
   status.sampleIndex = 0;
 
   Config config;
-  config.setValue("size", layerSize);
-  config.setValue("learnRate", 0.1);
-  config.setValue("learnRateDecay", 1.0);
-  config.setValue("dropoutRate", 0.0);
+  config.setInteger("size", layerSize);
+  config.setFloat("learnRate", 0.1);
+  config.setFloat("learnRateDecay", 1.0);
+  config.setFloat("dropoutRate", 0.0);
 
   FileSystemPtr fileSystem = createFileSystem();
   PlatformPathsPtr platformPaths = createPlatformPaths();

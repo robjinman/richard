@@ -109,7 +109,7 @@ void GpuNeuralNet::initialize(const Size3& inputShape, const Config& config,
   }
 
   auto outLayerConfig = config.getObject("outputLayer");
-  outLayerConfig.setValue("type", "output");
+  outLayerConfig.setString("type", "output");
   m_layers.push_back(constructLayer(outLayerConfig, prevLayerSize, false, stream));
 
   m_outputSize = m_layers.back()->outputSize()[0];
@@ -122,7 +122,7 @@ void GpuNeuralNet::abort() {
 LayerPtr GpuNeuralNet::constructLayer(const Config& config, const Size3& prevLayerSize,
   bool isFirstLayer, std::istream* stream) const {
 
-  auto type = config.getValue<std::string>("type");
+  auto type = config.getString("type");
 
   if (type == "dense") {
     return stream ?

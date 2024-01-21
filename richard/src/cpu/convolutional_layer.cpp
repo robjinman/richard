@@ -29,11 +29,11 @@ void ConvolutionalLayer::initialize(const Config& config, const Size3& inputShap
   m_inputH = inputShape[1];
   m_inputDepth = inputShape[2];
 
-  auto kernelSize = config.getArray<size_t, 2>("kernelSize");
-  m_learnRate = config.getValue<netfloat_t>("learnRate");
-  m_learnRateDecay = config.getValue<netfloat_t>("learnRateDecay");
-  size_t depth = config.getValue<size_t>("depth");
-  m_dropoutRate = config.getValue<netfloat_t>("dropoutRate");
+  auto kernelSize = config.getIntegerArray<size_t, 2>("kernelSize");
+  m_learnRate = config.getFloat("learnRate");
+  m_learnRateDecay = config.getFloat("learnRateDecay");
+  size_t depth = config.getInteger("depth");
+  m_dropoutRate = config.getFloat("dropoutRate");
 
   ASSERT_MSG(kernelSize[0] <= m_inputW,
     "Kernel width " << kernelSize[0] << " is larger than input width " << m_inputW);
