@@ -6,10 +6,10 @@ namespace richard {
 namespace {
 
 template<class... Ts>
-struct Overloaded : Ts... { using Ts::operator()...; };
+struct overloaded : Ts... { using Ts::operator()...; };
 
 template<class... Ts>
-Overloaded(Ts...) -> Overloaded<Ts...>;
+overloaded(Ts...) -> overloaded<Ts...>;
 
 }
 
@@ -37,26 +37,26 @@ bool ConfigMaker::isArrayOfObjects(const nlohmann::json& obj) {
 
 nlohmann::json ConfigMaker::toJsonObj(const Config& config) {
   nlohmann::json obj;
-  for (const auto& entry : config.m_entries) {
-    std::visit(Overloaded{
-      [&](std::shared_ptr<Config> child) {
-        obj[entry.first] = toJsonObj(*child);
+  for (auto i : config.m_entries) {
+    std::visit(overloaded{
+      [&obj, i](std::shared_ptr<Config> child) {
+        obj[i.first] = toJsonObj(*child);
       },
-      [&](std::vector<Config> children) {
+      [&obj, i](std::vector<Config> children) {
         std::vector<nlohmann::json> objs;
         for (const auto& child : children) {
           objs.push_back(toJsonObj(child));
         }
-        obj[entry.first] = objs;
+        obj[i.first] = objs;
       },
-      [&](bool value) { obj[entry.first] = value; },
-      [&](long value) { obj[entry.first] = value; },
-      [&](double value) { obj[entry.first] = value; },
-      [&](std::string value) { obj[entry.first] = value; },
-      [&](std::vector<long> value) { obj[entry.first] = value; },
-      [&](std::vector<double> value) { obj[entry.first] = value; },
-      [&](std::vector<std::string> value) { obj[entry.first] = value; },
-    }, entry.second);
+      [&obj, i](bool value) { obj[i.first] = value; },
+      [&obj, i](long value) { obj[i.first] = value; },
+      [&obj, i](double value) { obj[i.first] = value; },
+      [&obj, i](std::string value) { obj[i.first] = value; },
+      [&obj, i](std::vector<long> value) { obj[i.first] = value; },
+      [&obj, i](std::vector<double> value) { obj[i.first] = value; },
+      [&obj, i](std::vector<std::string> value) { obj[i.first] = value; },
+    }, i.second);
   }
   return obj;
 }
@@ -175,12 +175,12 @@ Config Config::fromJson(std::istream& stream) {
 }
 
 bool Config::operator==(const Config& rhs) const {
-  for (const auto& entry : m_entries) {
-    if (rhs.m_entries.count(entry.first) == 0) {
+  for (auto i : m_entries) {
+    if (rhs.m_entries.count(i.first) == 0) {
       return false;
     }
-    auto rhsEntry = rhs.m_entries.at(entry.first);
-    bool match = std::visit(Overloaded{
+    auto rhsEntry = rhs.m_entries.at(i.first);
+    bool match = std::visit(overloaded{
       [&](std::shared_ptr<Config> child) {
         if (!std::holds_alternative<std::shared_ptr<Config>>(rhsEntry)) {
           return false;
@@ -198,16 +198,13 @@ bool Config::operator==(const Config& rhs) const {
         return true;
       },
       [&](bool value) {
-        return std::holds_alternative<bool>(rhsEntry)
-          && std::get<bool>(rhsEntry) == value;
+        return std::holds_alternative<bool>(rhsEntry) && std::get<bool>(rhsEntry) == value;
       },
       [&](long value) {
-        return std::holds_alternative<long>(rhsEntry)
-          && std::get<long>(rhsEntry) == value;
+        return std::holds_alternative<long>(rhsEntry) && std::get<long>(rhsEntry) == value;
       },
       [&](double value) {
-        return std::holds_alternative<double>(rhsEntry)
-          && std::get<double>(rhsEntry) == value;
+        return std::holds_alternative<double>(rhsEntry) && std::get<double>(rhsEntry) == value;
       },
       [&](std::string value) {
         return std::holds_alternative<std::string>(rhsEntry)
@@ -225,7 +222,7 @@ bool Config::operator==(const Config& rhs) const {
         return std::holds_alternative<std::vector<std::string>>(rhsEntry)
           && std::get<std::vector<std::string>>(rhsEntry) == value;
       },
-    }, entry.second);
+    }, i.second);
     if (!match) {
       return false;
     }

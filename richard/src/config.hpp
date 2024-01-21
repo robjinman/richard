@@ -10,9 +10,9 @@
 
 namespace richard {
 
-template<typename T> struct is_vector : public std::false_type {};
+template <typename T> struct is_vector : public std::false_type {};
 
-template<typename T, typename A>
+template <typename T, typename A>
 struct is_vector<std::vector<T, A>> : public std::true_type {};
 
 class Config {
@@ -27,7 +27,7 @@ class Config {
 
     std::string dump(int indent = -1) const;
 
-    template<class T>
+    template <class T>
     void setValue(const std::string& key, T value) {
       if constexpr (std::is_integral_v<T>) {
         m_entries[key] = static_cast<long>(value);
@@ -40,7 +40,7 @@ class Config {
       }
     }
   
-    template<class T>
+    template <class T>
     T getValue(const std::string& key) const {
       ASSERT_MSG(m_entries.count(key), "No '" << key << "' value found in config");
 
@@ -57,7 +57,7 @@ class Config {
       }
     }
 
-    template<class T>
+    template <class T>
     void setArray(const std::string& key, const std::vector<T>& value) {
       if constexpr (std::is_integral_v<T>) {
         std::vector<long> vec;
@@ -78,7 +78,7 @@ class Config {
       }
     }
   
-    template<class T>
+    template <class T>
     std::vector<T> getArray(const std::string& key) const {
       ASSERT_MSG(m_entries.count(key), "No '" << key << "' value found in config");
 
@@ -101,7 +101,7 @@ class Config {
       }
     }
 
-    template<class T, size_t N>
+    template <class T, size_t N>
     std::array<T, N> getArray(const std::string& key) const {
       ASSERT_MSG(m_entries.count(key), "No '" << key << "' value found in config");
 
