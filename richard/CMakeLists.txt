@@ -43,6 +43,7 @@ FetchContent_Declare(
   Boost
   URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
   URL_MD5 893b5203b862eb9bbd08553e24ff146a
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 
 FetchContent_MakeAvailable(Boost)
@@ -50,6 +51,7 @@ FetchContent_MakeAvailable(Boost)
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 
 FetchContent_MakeAvailable(googletest)
@@ -57,6 +59,7 @@ FetchContent_MakeAvailable(googletest)
 FetchContent_Declare(
   json
   URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+  DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 
 FetchContent_MakeAvailable(json)
@@ -110,9 +113,8 @@ target_compile_options(${RICHARD_LIB_NAME}
 target_link_libraries(${RICHARD_LIB_NAME}
   PRIVATE
     Vulkan::Vulkan
-    shaderc
-  PUBLIC
     nlohmann_json::nlohmann_json
+  PUBLIC
     "$<$<CONFIG:DEBUG>:${DEBUG_LINK_FLAGS}>"
     "$<$<CONFIG:RELEASE>:${RELEASE_LINK_FLAGS}>"
 )
