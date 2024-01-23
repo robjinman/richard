@@ -225,13 +225,12 @@ void GpuNeuralNet::allocateGpuResources() {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_params.miniBatchSize) }
   };
 
-  const std::string computeCostsSrcName = "compute_costs.glsl";
-  const std::string computeCostsSrc = m_fileSystem.loadTextFile(m_platformPaths.get("shaders",
-    computeCostsSrcName));
+  std::string computeCostsShaderName = "compute_costs.spv";
+  auto computeCostsShaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders",
+    computeCostsShaderName));
 
-  m_computeCostsShader = m_gpu->compileShader(computeCostsSrcName, computeCostsSrc,
-    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(m_outputSize), 1, 1 },
-    m_platformPaths.get("shaders"));
+  m_computeCostsShader = m_gpu->addShader(computeCostsShaderName, computeCostsShaderCode,
+    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(m_outputSize), 1, 1 });
 }
 
 void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,

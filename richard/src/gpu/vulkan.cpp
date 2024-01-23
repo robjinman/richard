@@ -4,14 +4,10 @@
 #include "logger.hpp"
 #include "utils.hpp"
 #include <vulkan/vulkan.h>
-#include <shaderc/shaderc.hpp>
 #include <vector>
 #include <cstring>
-#include <iostream>
 #include <algorithm>
-#include <filesystem>
-#include <sstream>
-#include <fstream>
+#include <limits>
 
 namespace richard {
 namespace gpu {
@@ -70,69 +66,6 @@ void optimumWorkgroups(const Size3& workSize, size_t maxWorkgroupSize, Size3& wo
   }
 }
 
-class SourceIncluder : public shaderc::CompileOptions::IncluderInterface {
-  public:
-    SourceIncluder(const std::filesystem::path& sourcesDirectory)
-      : m_sourcesDirectory(sourcesDirectory) {}
-
-    shaderc_include_result* GetInclude(const char* requested_source,
-      shaderc_include_type type, const char* requesting_source, size_t include_depth) override;
-
-    void ReleaseInclude(shaderc_include_result* data) override;
-
-  private:
-    std::filesystem::path m_sourcesDirectory;
-    std::string m_errorMessage;
-};
-
-shaderc_include_result* SourceIncluder::GetInclude(const char* requested_source,
-  shaderc_include_type, const char*, size_t) {
-
-  auto result = new shaderc_include_result{};
-
-  try {
-    auto sourcePath = m_sourcesDirectory.append(requested_source);
-    std::ifstream stream(sourcePath, std::ios::binary | std::ios::ate);
-
-    ASSERT_MSG(stream.good(), "Error opening file " << sourcePath);
-
-    size_t contentLength = stream.tellg();
-    stream.seekg(0, stream.beg);
-
-    char* contentBuffer = new char[contentLength];
-    stream.read(contentBuffer, contentLength);
-
-    size_t sourceNameLength = sourcePath.string().length();
-    char* nameBuffer = new char[sourceNameLength];
-    memcpy(nameBuffer, reinterpret_cast<const char*>(sourcePath.c_str()), sourceNameLength);
-
-    result->source_name = nameBuffer;
-    result->source_name_length = sourceNameLength;
-    result->content = contentBuffer;
-    result->content_length = contentLength;
-    result->user_data = nullptr;
-  }
-  catch (const std::exception& ex) {
-    m_errorMessage = ex.what();
-    result->content = m_errorMessage.c_str();
-    result->content_length = m_errorMessage.length();
-  }
-
-  return result;
-}
-
-void SourceIncluder::ReleaseInclude(shaderc_include_result* data) {
-  if (data) {
-    if (data->content) {
-      delete[] data->content;
-    }
-    if (data->source_name) {
-      delete[] data->source_name;
-    }
-    delete data;
-  }
-}
-
 const std::vector<const char*> ValidationLayers = {
   "VK_LAYER_KHRONOS_validation"
 };
@@ -158,9 +91,9 @@ class Vulkan : public Gpu {
   public:
     Vulkan(const Config& config, Logger& logger);
 
-    ShaderHandle compileShader(const std::string& name, const std::string& source,
+    ShaderHandle addShader(const std::string& name, const ShaderCode& shaderCode,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-      const Size3& workSize, const std::filesystem::path& includesPath) override;
+      const Size3& workSize) override;
     GpuBuffer allocateBuffer(size_t size, GpuBufferFlags flags) override;
     void submitBufferData(GpuBufferHandle buffer, const void* data) override;
     void queueShader(ShaderHandle shaderHandle) override;
@@ -185,8 +118,7 @@ class Vulkan : public Gpu {
       VkDescriptorSetLayout layout);
     VkCommandBuffer createCommandBuffer();
     void createSyncObjects();
-    VkShaderModule createShaderModule(const std::string& name, const std::string& sourcePath,
-      const std::string& includesPath) const;
+    VkShaderModule createShaderModule(const ShaderCode& shaderCode) const;
     Buffer& getBuffer(GpuBufferHandle handle);
     const Buffer& getBuffer(GpuBufferHandle handle) const;
     void beginCommandBuffer();
@@ -366,13 +298,13 @@ VkSpecializationInfo createSpecializationInfo(const SpecializationConstants& con
   };
 }
 
-ShaderHandle Vulkan::compileShader(const std::string& name, const std::string& source,
-  const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-  const Size3& workSize, const std::filesystem::path& includesPath) {
+ShaderHandle Vulkan::addShader([[maybe_unused]] const std::string& name,
+  const ShaderCode& shaderCode, const GpuBufferBindings& bufferBindings,
+  const SpecializationConstants& constants, const Size3& workSize) {
 
   DBG_TRACE
 
-  VkShaderModule shaderModule = createShaderModule(name, source, includesPath.string());
+  VkShaderModule shaderModule = createShaderModule(shaderCode);
 
   Size3 workgroupSize;
   Size3 numWorkgroups;
@@ -815,34 +747,13 @@ VkCommandBuffer Vulkan::createCommandBuffer() {
   return commandBuffer;
 }
 
-VkShaderModule Vulkan::createShaderModule(const std::string& name, const std::string& source,
-  const std::string& includesPath) const {
-
+VkShaderModule Vulkan::createShaderModule(const ShaderCode& shaderCode) const {
   DBG_TRACE
-
-  shaderc::Compiler compiler;
-  shaderc::CompileOptions options;
-  options.SetOptimizationLevel(shaderc_optimization_level_performance);
-  options.SetWarningsAsErrors();
-
-  if (!includesPath.empty()) {
-    options.SetIncluder(std::make_unique<SourceIncluder>(includesPath));
-  }
-
-  auto result = compiler.CompileGlslToSpv(source, shaderc_shader_kind::shaderc_glsl_compute_shader,
-    name.c_str(), options);
-
-  if (result.GetCompilationStatus() != shaderc_compilation_status_success) {
-    EXCEPTION("Error compiling shader: " << result.GetErrorMessage());
-  }
-
-  std::vector<uint32_t> code;
-  code.assign(result.cbegin(), result.cend());
 
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  createInfo.codeSize = code.size() * sizeof(uint32_t);
-  createInfo.pCode = code.data();
+  createInfo.codeSize = shaderCode.size();
+  createInfo.pCode = reinterpret_cast<const uint32_t*>(shaderCode.data());
 
   VkShaderModule shaderModule;
   VK_CHECK(vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule),

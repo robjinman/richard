@@ -1,6 +1,6 @@
 #version 430
 
-#include "common.glsl"
+#include "common/common.glsl"
 
 layout(std140, binding = 0) readonly buffer ZSsbo {
   vec4 Z[];

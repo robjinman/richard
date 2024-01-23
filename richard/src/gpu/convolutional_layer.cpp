@@ -123,13 +123,12 @@ void ConvolutionalLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputDepth) }
   };
 
-  const std::string sourceName = "convolutional_eval_forward.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "convolutional_eval_forward.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ outputSize()[0], outputSize()[1], m_depth };
 
-  m_evalForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_evalForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
 }
 
 void ConvolutionalLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
@@ -152,13 +151,12 @@ void ConvolutionalLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
   //  { SpecializationConstant::Type::float_type, m_dropoutRate }
   };
 
-  const std::string sourceName = "convolutional_train_forward.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "convolutional_train_forward.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ outputSize()[0], outputSize()[1], m_depth };
 
-  m_trainForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_trainForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
 }
 
 void ConvolutionalLayer::createBackpropDeltaShader(const Layer* nextLayer) {
@@ -168,13 +166,12 @@ void ConvolutionalLayer::createBackpropDeltaShader(const Layer* nextLayer) {
     { nextLayer->inputDeltaBuffer(), BufferAccessMode::read }
   };
 
-  const std::string sourceName = "convolutional_backprop_delta.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "convolutional_backprop_delta.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ outputSize()[0], outputSize()[1], m_depth };
 
-  m_backpropDeltaShader = m_gpu.compileShader(sourceName, source, buffers, {}, workSize,
-    m_platformPaths.get("shaders"));
+  m_backpropDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, {}, workSize);
 }
 
 void ConvolutionalLayer::createBackpropInputDeltaShader() {
@@ -191,13 +188,13 @@ void ConvolutionalLayer::createBackpropInputDeltaShader() {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_depth) }
   };
 
-  const std::string sourceName = "convolutional_backprop_input_delta.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "convolutional_backprop_input_delta.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ m_inputW, m_inputH, m_inputDepth };
 
-  m_backpropInputDeltaShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_backpropInputDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants,
+    workSize);
 }
 
 void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusBuffer,
@@ -220,13 +217,13 @@ void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusB
     { SpecializationConstant::Type::bool_type, m_isFirstLayer }
   };
 
-  const std::string sourceName = "convolutional_backprop_param_deltas.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "convolutional_backprop_param_deltas.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ m_kernelSize[0] * m_kernelSize[1], m_inputDepth, m_depth };
 
-  m_backpropParamDeltasShader = m_gpu.compileShader(sourceName, source, buffers, constants,
-    workSize, m_platformPaths.get("shaders"));
+  m_backpropParamDeltasShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants,
+    workSize);
 }
 
 void ConvolutionalLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
@@ -246,13 +243,12 @@ void ConvolutionalLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) 
     { SpecializationConstant::Type::float_type, m_learnRateDecay }
   };
 
-  const std::string sourceName = "convolutional_update_params.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "convolutional_update_params.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ m_kernelSize[0] * m_kernelSize[1], m_inputDepth, m_depth };
 
-  m_updateParamsShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_updateParamsShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
 }
 
 size_t ConvolutionalLayer::size() const {

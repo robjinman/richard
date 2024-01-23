@@ -55,13 +55,12 @@ void MaxPoolingLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionH) }
   };
 
-  const std::string sourceName = "max_pooling_eval_forward.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "max_pooling_eval_forward.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize = outputSize();
 
-  m_evalForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_evalForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
 }
 
 void MaxPoolingLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
@@ -76,13 +75,12 @@ void MaxPoolingLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionH) }
   };
 
-  const std::string sourceName = "max_pooling_train_forward.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "max_pooling_train_forward.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize = outputSize();
 
-  m_trainForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_trainForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
 }
 
 void MaxPoolingLayer::createBackpropShader(const Layer* nextLayer) {
@@ -97,13 +95,12 @@ void MaxPoolingLayer::createBackpropShader(const Layer* nextLayer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_regionH) }
   };
 
-  const std::string sourceName = "max_pooling_backprop.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "max_pooling_backprop.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize = outputSize();
 
-  m_backpropShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_backpropShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
 }
 
 size_t MaxPoolingLayer::size() const {

@@ -1,5 +1,6 @@
 #include "mock_logger.hpp"
 #include <types.hpp>
+#include <file_system.hpp>
 #include <math.hpp>
 #include <gpu/gpu.hpp>
 #include <gtest/gtest.h>
@@ -12,8 +13,14 @@ const double FLOAT_TOLERANCE = 0.0001;
 
 class GpuTest : public testing::Test {
   public:
+    GpuTest()
+      : m_fileSystem(createFileSystem()) {}
+
     virtual void SetUp() override {}
     virtual void TearDown() override {}
+
+  protected:
+    FileSystemPtr m_fileSystem;
 };
 
 TEST_F(GpuTest, constructionAndDestruction) {
@@ -55,44 +62,13 @@ TEST_F(GpuTest, runShader) {
   GpuBuffer buffer = gpu->allocateBuffer(data.size() * sizeof(netfloat_t), GpuBufferFlags::large);
   gpu->submitBufferData(buffer.handle, data.data());
 
-  std::string shaderSource = R"(
-    #version 430
-
-    #define FN_READ(BUF) \
-      float read##BUF(uint pos) { \
-        return BUF[pos / 4][pos % 4]; \
-      }
-
-    #define FN_WRITE(BUF) \
-      void write##BUF(uint pos, float val) { \
-        BUF[pos / 4][pos % 4] = val; \
-      }
-
-    layout(constant_id = 0) const uint local_size_x = 1;
-    layout(constant_id = 1) const uint local_size_y = 1;
-    layout(constant_id = 2) const uint local_size_z = 1;
-
-    layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
-
-    layout(std140, binding = 0) buffer Ssbo {
-      vec4 X[];
-    };
-
-    FN_READ(X)
-    FN_WRITE(X)
-
-    void main() {
-      const uint index = gl_GlobalInvocationID.x;
-
-      writeX(index, readX(index) * 2.0);
-    }
-  )";
+  auto shaderCode = m_fileSystem->loadBinaryFile("test/shaders/simple_shader.spv");
 
   GpuBufferBindings buffers{
     { buffer.handle, BufferAccessMode::write }
   };
 
-  ShaderHandle shader = gpu->compileShader("simple_shader", shaderSource, buffers, {},
+  ShaderHandle shader = gpu->addShader("simple_shader", shaderCode, buffers, {},
     { bufferSize, 1, 1 });
 
   gpu->queueShader(shader);
@@ -124,39 +100,13 @@ TEST_F(GpuTest, structuredBuffer) {
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
   status.cost = 100.0;
 
-  std::string shaderSource = R"(
-    #version 430
-
-    struct StatusBuffer {
-      uint epoch;
-      float cost;
-      uint sampleIndex;
-    };
-
-    layout(constant_id = 0) const uint local_size_x = 1;
-    layout(constant_id = 1) const uint local_size_y = 1;
-    layout(constant_id = 2) const uint local_size_z = 1;
-
-    layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
-
-    layout(std140, binding = 0) buffer StatusSsbo {
-      StatusBuffer Status;
-    };
-
-    void main() {
-      const uint index = gl_GlobalInvocationID.x;
-
-      if (index == 0) {
-        Status.cost = Status.cost + 123.45;
-      }
-    }
-  )";
+  auto shaderCode = m_fileSystem->loadBinaryFile("test/shaders/structured_buffer.spv");
 
   GpuBufferBindings buffers{
     { statusBuffer.handle, BufferAccessMode::write }
   };
 
-  ShaderHandle shader = gpu->compileShader("structured_buffer", shaderSource, buffers, {},
+  ShaderHandle shader = gpu->addShader("structured_buffer", shaderCode, buffers, {},
     { 16, 1, 1 });
 
   gpu->queueShader(shader);
@@ -186,57 +136,7 @@ TEST_F(GpuTest, matrixMultiply) {
   gpu->submitBufferData(bufferM.handle, M.data());
   gpu->submitBufferData(bufferV.handle, V.data());
 
-  std::string shaderSource = R"(
-    #version 430
-
-    #define FN_READ(BUF) \
-      float read##BUF(uint pos) { \
-        return BUF[pos / 4][pos % 4]; \
-      }
-
-    #define FN_WRITE(BUF) \
-      void write##BUF(uint pos, float val) { \
-        BUF[pos / 4][pos % 4] = val; \
-      }
-
-    layout(constant_id = 0) const uint local_size_x = 1;
-    layout(constant_id = 1) const uint local_size_y = 1;
-    layout(constant_id = 2) const uint local_size_z = 1;
-
-    layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
-
-    layout(constant_id = 3) const uint VECTOR_SIZE = 1;
-
-    layout(std140, binding = 0) readonly buffer MSsbo {
-      vec4 M[];
-    };
-
-    FN_READ(M)
-
-    layout(std140, binding = 1) readonly buffer VSsbo {
-      vec4 V[];
-    };
-
-    FN_READ(V)
-
-    layout(std140, binding = 2) writeonly buffer RSsbo {
-      vec4 R[];
-    };
-
-    FN_WRITE(R)
-
-    void main() {
-      const uint index = gl_GlobalInvocationID.x;
-
-      float weightedSum = 0.0;
-      for (uint i = 0; i < VECTOR_SIZE; ++i) {
-        float m = readM(index * VECTOR_SIZE + i);
-        float v = readV(i);
-        weightedSum += m * v;
-      }
-      writeR(index, weightedSum);
-    }
-  )";
+  auto shaderCode = m_fileSystem->loadBinaryFile("test/shaders/matrix_multiply.spv");
 
   GpuBufferBindings buffers{
     { bufferM.handle, BufferAccessMode::read },
@@ -244,7 +144,7 @@ TEST_F(GpuTest, matrixMultiply) {
     { bufferR.handle, BufferAccessMode::write }
   };
 
-  ShaderHandle shader = gpu->compileShader("matrix_multiply", shaderSource, buffers,
+  ShaderHandle shader = gpu->addShader("matrix_multiply", shaderCode, buffers,
     {{ SpecializationConstant::Type::uint_type, static_cast<uint32_t>(V.size()) }},
     { static_cast<uint32_t>(M.rows()), 1, 1 });
 
@@ -290,80 +190,7 @@ TEST_F(GpuTest, convolution) {
   gpu->submitBufferData(bufferX.handle, X.data());
   gpu->submitBufferData(bufferK.handle, K.data());
 
-  std::string shaderSource = R"(
-    #version 430
-
-    #define FN_READ(BUF) \
-      float read##BUF(uint pos) { \
-        return BUF[pos / 4][pos % 4]; \
-      }
-
-    #define FN_WRITE(BUF) \
-      void write##BUF(uint pos, float val) { \
-        BUF[pos / 4][pos % 4] = val; \
-      }
-
-    uint arrayIndex3d(uint W, uint H, uint x, uint y, uint z) {
-      return z * W * H + y * W + x;
-    }
-
-    layout(constant_id = 0) const uint local_size_x = 1;
-    layout(constant_id = 1) const uint local_size_y = 1;
-    layout(constant_id = 2) const uint local_size_z = 1;
-
-    layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
-
-    layout(constant_id = 3) const uint KERNEL_W = 1;
-    layout(constant_id = 4) const uint KERNEL_H = 1;
-    layout(constant_id = 5) const uint KERNEL_D = 1;
-
-    layout(std140, binding = 0) readonly buffer ImageSsbo {
-      vec4 Image[];
-    };
-
-    FN_READ(Image)
-
-    layout(std140, binding = 1) readonly buffer KernelSsbo {
-      vec4 Kernel[];
-    };
-
-    FN_READ(Kernel)
-
-    layout(std140, binding = 2) writeonly buffer ResultSsbo {
-      vec4 Result[];
-    };
-
-    FN_WRITE(Result)
-
-    void main() {
-      const uint xIdx = gl_GlobalInvocationID.x;
-      const uint yIdx = gl_GlobalInvocationID.y;
-
-      const uint fmW = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
-      const uint fmH = gl_WorkGroupSize.y * gl_NumWorkGroups.y;
-
-      const uint imW = fmW + KERNEL_W - 1;
-      const uint imH = fmH + KERNEL_H - 1;
-
-      float sum = 0.0;
-      for (uint k = 0; k < KERNEL_D; ++k) {
-        for (uint j = 0; j < KERNEL_H; ++j) {
-          for (uint i = 0; i < KERNEL_W; ++i) {
-            const uint x = xIdx + i;
-            const uint y = yIdx + j;
-            const uint z = k;
-
-            const float pixel = readImage(arrayIndex3d(imW, imH, x, y, z));
-            const uint kernelIdx = arrayIndex3d(KERNEL_W, KERNEL_H, KERNEL_W - i - 1,
-              KERNEL_H - j - 1, k);
-            sum += pixel * readKernel(kernelIdx);
-          }
-        }
-      }
-
-      writeResult(yIdx * fmW + xIdx, sum);
-    }
-  )";
+  auto shaderCode = m_fileSystem->loadBinaryFile("test/shaders/convolution.spv");
 
   Size3 workgroupSize{
     static_cast<uint32_t>(R.W()),
@@ -383,7 +210,7 @@ TEST_F(GpuTest, convolution) {
     { bufferR.handle, BufferAccessMode::write }
   };
 
-  ShaderHandle shader = gpu->compileShader("convolution", shaderSource, buffers, constants,
+  ShaderHandle shader = gpu->addShader("convolution", shaderCode, buffers, constants,
     workgroupSize);
 
   gpu->queueShader(shader);
@@ -434,92 +261,7 @@ TEST_F(GpuTest, fullConvolution) {
   gpu->submitBufferData(bufferX.handle, X.data());
   gpu->submitBufferData(bufferK.handle, K.data());
 
-  std::string shaderSource = R"(
-    #version 430
-
-    #define FN_READ(BUF) \
-      float read##BUF(uint pos) { \
-        return BUF[pos / 4][pos % 4]; \
-      }
-
-    #define FN_WRITE(BUF) \
-      void write##BUF(uint pos, float val) { \
-        BUF[pos / 4][pos % 4] = val; \
-      }
-
-    uint arrayIndex3d(uint W, uint H, uint x, uint y, uint z) {
-      return z * W * H + y * W + x;
-    }
-
-    layout(constant_id = 0) const uint local_size_x = 1;
-    layout(constant_id = 1) const uint local_size_y = 1;
-    layout(constant_id = 2) const uint local_size_z = 1;
-
-    layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
-
-    layout(constant_id = 3) const uint KERNEL_W = 1;
-    layout(constant_id = 4) const uint KERNEL_H = 1;
-    layout(constant_id = 5) const uint KERNEL_D = 1;
-
-    layout(std140, binding = 0) readonly buffer ImageSsbo {
-      vec4 Image[];
-    };
-
-    FN_READ(Image)
-
-    layout(std140, binding = 1) readonly buffer KernelSsbo {
-      vec4 Kernel[];
-    };
-
-    FN_READ(Kernel)
-
-    layout(std140, binding = 2) writeonly buffer ResultSsbo {
-      vec4 Result[];
-    };
-
-    FN_WRITE(Result)
-
-    void main() {
-      const int xIdx = int(gl_GlobalInvocationID.x);
-      const int yIdx = int(gl_GlobalInvocationID.y);
-
-      const int fmW = int(gl_WorkGroupSize.x * gl_NumWorkGroups.x);
-      const int fmH = int(gl_WorkGroupSize.y * gl_NumWorkGroups.y);
-
-      const int kW = int(KERNEL_W);
-      const int kH = int(KERNEL_H);
-
-      const int imW = fmW - kW + 1;
-      const int imH = fmH - kH + 1;
-
-      const int xMin = -kW + 1;
-      const int yMin = -kH + 1;
-
-      float sum = 0.0;
-      for (int k = 0; k < KERNEL_D; ++k) {
-        for (int j = 0; j < kH; ++j) {
-          for (int i = 0; i < kW; ++i) {
-            const int x = xMin + xIdx + i;
-            const int y = yMin + yIdx + j;
-
-            if (x < 0 || x + 1 > imW) {
-              continue;
-            }
-
-            if (y < 0 || y + 1 > imH) {
-              continue;
-            }
-
-            const float pixel = readImage(arrayIndex3d(imW, imH, x, y, k));
-            const uint kernelIdx = arrayIndex3d(KERNEL_W, KERNEL_H, kW - i - 1, kH - j - 1, k);
-            sum += pixel * readKernel(kernelIdx);
-          }
-        }
-      }
-
-      writeResult(yIdx * fmW + xIdx, sum);
-    }
-  )";
+  auto shaderCode = m_fileSystem->loadBinaryFile("test/shaders/full_convolution.spv");
 
   Size3 workgroupSize{
     static_cast<uint32_t>(R.W()),
@@ -539,7 +281,7 @@ TEST_F(GpuTest, fullConvolution) {
     { bufferR.handle, BufferAccessMode::write }
   };
 
-  ShaderHandle shader = gpu->compileShader("full_convolution", shaderSource, buffers, constants,
+  ShaderHandle shader = gpu->addShader("full_convolution", shaderCode, buffers, constants,
     workgroupSize);
 
   gpu->queueShader(shader);

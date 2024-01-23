@@ -19,16 +19,25 @@ Building
 
 #### Prerequisites
 
-Requires CMake.
+Install CMake.
+
+Install the Vulkan SDK
+
+```
+    # See https://vulkan.lunarg.com/sdk/home
+
+    wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+    sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.275-jammy.list https://packages.lunarg.com/vulkan/1.3.275/lunarg-vulkan-1.3.275-jammy.list
+    sudo apt update
+    sudo apt install vulkan-sdk
+```
 
 Install development dependencies
 
 ```
     sudo apt install \
         build-essential \
-        libboost-program-options-dev \
-        libvulkan-dev \
-        vulkan-validationLayers-dev
+        libboost-program-options-dev
 ```
 
 #### Compile

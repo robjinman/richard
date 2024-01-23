@@ -6,7 +6,6 @@
 #include <memory>
 #include <vector>
 #include <array>
-#include <filesystem>
 
 namespace richard {
 
@@ -16,6 +15,8 @@ namespace gpu {
 
 using ShaderHandle = uint32_t;
 using GpuBufferHandle = uint32_t;
+
+using ShaderCode = std::vector<uint8_t>;
 
 enum class BufferAccessMode {
   read,
@@ -71,10 +72,9 @@ struct GpuBuffer {
 class Gpu {
   public:
     virtual GpuBuffer allocateBuffer(size_t size, GpuBufferFlags flags) = 0;
-    virtual ShaderHandle compileShader(const std::string& name, const std::string& source,
+    virtual ShaderHandle addShader(const std::string& name, const ShaderCode& shaderCode,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-      const Size3& workSize,
-      const std::filesystem::path& includesPath = std::filesystem::path{}) = 0;
+      const Size3& workSize) = 0;
     virtual void submitBufferData(GpuBufferHandle buffer, const void* data) = 0;
     virtual void queueShader(ShaderHandle shaderHandle) = 0;
     virtual void retrieveBuffer(GpuBufferHandle buffer, void* data) = 0;

@@ -50,7 +50,7 @@ const Config& NeuralNet::exampleConfig() {
     layer2.setNumber("learnRateDecay", 1.0);
     layer2.setNumber("dropoutRate", 0.5);
 
-    std::vector<Config> layersConfig{layer1, layer2};
+    std::vector<Config> layersConfig{ layer1, layer2 };
 
     config.setObject("hyperparams", Hyperparams::exampleConfig());
     config.setObjectArray("hiddenLayers", layersConfig);

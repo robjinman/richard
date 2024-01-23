@@ -96,13 +96,12 @@ void OutputLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
   };
 
-  const std::string sourceName = "output_eval_forward.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "output_eval_forward.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ m_size, 1, 1 };
 
-  m_evalForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_evalForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
 }
 
 void OutputLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
@@ -118,13 +117,12 @@ void OutputLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
   };
 
-  const std::string sourceName = "output_train_forward.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "output_train_forward.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ m_size, 1, 1 };
 
-  m_trainForwardShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_trainForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
 }
 
 void OutputLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
@@ -147,13 +145,12 @@ void OutputLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
   };
 
-  const std::string sourceName = "output_backprop_delta.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "output_backprop_delta.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ m_size, 1, 1 };
 
-  m_backpropDeltaShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_backpropDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
 }
 
 void OutputLayer::createBackpropInputDeltaShader() {
@@ -168,13 +165,13 @@ void OutputLayer::createBackpropInputDeltaShader() {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
   };
 
-  const std::string sourceName = "dense_backprop_input_delta.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "dense_backprop_input_delta.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ m_inputSize, 1, 1 };
 
-  m_backpropInputDeltaShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_backpropInputDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants,
+    workSize);
 }
 
 void OutputLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
@@ -192,13 +189,12 @@ void OutputLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
     { SpecializationConstant::Type::float_type, m_learnRateDecay },
   };
 
-  const std::string sourceName = "dense_update_params.glsl";
-  const std::string source = m_fileSystem.loadTextFile(m_platformPaths.get("shaders", sourceName));
+  std::string shaderName = "dense_update_params.spv";
+  auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ m_inputSize, m_size, 1 };
 
-  m_updateParamsShader = m_gpu.compileShader(sourceName, source, buffers, constants, workSize,
-    m_platformPaths.get("shaders"));
+  m_updateParamsShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
 }
 
 size_t OutputLayer::size() const {

@@ -12,4 +12,5 @@ class MockFileSystem : public FileSystem {
     MOCK_METHOD(std::unique_ptr<std::istream>, openFileForReading, (const std::filesystem::path&),
       (override));
     MOCK_METHOD(std::string, loadTextFile, (const std::filesystem::path&), (override));
+    MOCK_METHOD(std::vector<uint8_t>, loadBinaryFile, (const std::filesystem::path&), (override));
 };

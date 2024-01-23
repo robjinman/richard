@@ -32,8 +32,14 @@ struct StatusBuffer {
 
 class GpuNeuralNetTest : public testing::Test {
   public:
+    GpuNeuralNetTest()
+      : m_fileSystem(createFileSystem()) {}
+
     virtual void SetUp() override {}
     virtual void TearDown() override {}
+
+  protected:
+    FileSystemPtr m_fileSystem;
 };
 
 void runCpuSimpleDenseNetwork(const Config& denseConfig, const Config& outputConfig,
@@ -176,12 +182,11 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
     { gpu::SpecializationConstant::Type::uint_type, static_cast<uint32_t>(miniBatchSize) }
   };
 
-  auto computeCostsSrcPath = platformPaths->get("shaders", "compute_costs.glsl");
-  std::string computeCostsSrc = fileSystem->loadTextFile(computeCostsSrcPath);
+  auto computeCostsShaderPath = platformPaths->get("shaders", "compute_costs.spv");
+  auto computeCostsShaderCode = fileSystem->loadBinaryFile(computeCostsShaderPath);
 
-  gpu::ShaderHandle computeCostsShader = gpu->compileShader("compute_costs.glsl", computeCostsSrc,
-    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(layer2Size), 1, 1 },
-    platformPaths->get("shaders"));
+  gpu::ShaderHandle computeCostsShader = gpu->addShader("compute_costs.spv", computeCostsShaderCode,
+    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(layer2Size), 1, 1 });
 
   for (size_t i = 0; i < X.size(); ++i) {
     memcpy(bufferX.data, X[i].data(), inputSize * sizeof(netfloat_t));
@@ -461,12 +466,11 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
     { gpu::SpecializationConstant::Type::uint_type, static_cast<uint32_t>(miniBatchSize) }
   };
 
-  auto computeCostsSrcPath = platformPaths->get("shaders", "compute_costs.glsl");
-  std::string computeCostsSrc = fileSystem->loadTextFile(computeCostsSrcPath);
+  auto computeCostsShaderPath = platformPaths->get("shaders", "compute_costs.spv");
+  auto computeCostsShaderCode = fileSystem->loadBinaryFile(computeCostsShaderPath);
 
-  gpu::ShaderHandle computeCostsShader = gpu->compileShader("compute_costs.glsl", computeCostsSrc,
-    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(outputLayerSize), 1, 1 },
-    platformPaths->get("shaders"));
+  gpu::ShaderHandle computeCostsShader = gpu->addShader("compute_costs.spv", computeCostsShaderCode,
+    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(outputLayerSize), 1, 1 });
 
   for (size_t i = 0; i < X.size(); ++i) {
     memcpy(bufferX.data, X[i].data(), inputSize * sizeof(netfloat_t));

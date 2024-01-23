@@ -1,6 +1,6 @@
 #version 430
 
-#include "common.glsl"
+#include "common/common.glsl"
 
 layout(constant_id = 3) const uint KERNEL_W = 1;
 layout(constant_id = 4) const uint KERNEL_H = 1;

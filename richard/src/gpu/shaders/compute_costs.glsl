@@ -1,6 +1,6 @@
 #version 430
 
-#include "common.glsl"
+#include "common/common.glsl"
 
 layout(constant_id = 3) const uint MINI_BATCH_SIZE = 1;
 

@@ -1,4 +1,5 @@
 #include "file_system.hpp"
+#include "exception.hpp"
 #include <sstream>
 
 namespace fs = std::filesystem;
@@ -11,6 +12,7 @@ class FileSystemImpl : public FileSystem {
     std::unique_ptr<std::istream> openFileForReading(const fs::path& path) override;
 
     std::string loadTextFile(const std::filesystem::path& path) override;
+    std::vector<uint8_t> loadBinaryFile(const std::filesystem::path& path) override;
 };
 
 std::unique_ptr<std::ostream> FileSystemImpl::openFileForWriting(const fs::path& path) {
@@ -29,6 +31,19 @@ std::string FileSystemImpl::loadTextFile(const fs::path& path) {
     ss << line << std::endl;
   }
   return ss.str();
+}
+
+std::vector<uint8_t> FileSystemImpl::loadBinaryFile(const fs::path& path) {
+  std::ifstream stream(path, std::ios::binary | std::ios::ate);
+  std::streamsize size = stream.tellg();
+  stream.seekg(0, std::ios::beg);
+
+  std::vector<uint8_t> buffer(size);
+  if (!stream.read(reinterpret_cast<char*>(buffer.data()), size)) {
+    EXCEPTION("Failed to load file at '" << path << "'");
+  }
+
+  return buffer;
 }
 
 FileSystemPtr createFileSystem() {

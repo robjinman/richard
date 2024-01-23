@@ -31,8 +31,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 find_package(Vulkan REQUIRED)
-
-set(BUILD_TESTING OFF)
+find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
 include(FetchContent)
 set(FETCHCONTENT_BASE_DIR ${CMAKE_SOURCE_DIR}/dependencies/${CMAKE_BUILD_TYPE})
@@ -61,83 +60,6 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(json)
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  set(ABSL_ENABLE_INSTALL ON)
-  set(ABSL_PROPAGATE_CXX_STD ON)
-
-  FetchContent_Declare(
-    absl
-    URL https://github.com/abseil/abseil-cpp/archive/refs/tags/20230802.1.tar.gz
-  )
-
-  FetchContent_MakeAvailable(absl)
-
-  FetchContent_Declare(
-    re2
-    URL https://github.com/google/re2/archive/refs/tags/2023-11-01.tar.gz
-  )
-
-  FetchContent_MakeAvailable(re2)
-
-  set(EFFCEE_BUILD_TESTS OFF)
-
-  FetchContent_Declare(
-    effcee
-    GIT_REPOSITORY https://github.com/google/effcee.git
-    GIT_TAG 19b4aa87af25cb4ee779a071409732f34bfc305c
-  )
-
-  FetchContent_MakeAvailable(effcee)
-
-  FetchContent_Declare(
-    spirv-headers
-    URL https://github.com/KhronosGroup/SPIRV-Headers/archive/refs/tags/vulkan-sdk-1.3.268.0.tar.gz
-  )
-
-  FetchContent_MakeAvailable(spirv-headers)
-
-  FetchContent_Declare(
-    spirv-tools
-    URL https://github.com/KhronosGroup/SPIRV-Tools/archive/refs/tags/vulkan-sdk-1.3.268.0.tar.gz
-  )
-
-  FetchContent_MakeAvailable(spirv-tools)
-
-  FetchContent_Declare(
-    glslang
-    URL https://github.com/KhronosGroup/glslang/archive/refs/tags/13.1.1.tar.gz
-  )
-
-  FetchContent_MakeAvailable(glslang)
-
-  set(SHADERC_SKIP_TESTS ON)
-
-  FetchContent_Declare(
-    shaderc
-    URL https://github.com/google/shaderc/archive/refs/tags/v2023.7.tar.gz
-  )
-
-  FetchContent_MakeAvailable(shaderc)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-  if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    FetchContent_Declare(
-      shaderc
-      URL https://storage.googleapis.com/shaderc/artifacts/prod/graphics_shader_compiler/shaderc/windows/continuous_debug_2019/35/20240103-103943/install.zip
-    )
-  else()
-    FetchContent_Declare(
-      shaderc
-      URL https://storage.googleapis.com/shaderc/artifacts/prod/graphics_shader_compiler/shaderc/windows/continuous_release_2019/35/20240103-104154/install.zip
-    )
-  endif()
-
-  FetchContent_MakeAvailable(shaderc)
-
-  add_library(shaderc STATIC IMPORTED)
-  set_property(TARGET shaderc PROPERTY
-               IMPORTED_LOCATION ${FETCHCONTENT_BASE_DIR}/shaderc-src/lib/shaderc_shared.lib)
-endif()
 
 file(GLOB
   CPP_SOURCES
@@ -182,7 +104,8 @@ endif()
 target_compile_options(${RICHARD_LIB_NAME}
   PUBLIC
     "$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>"
-    "$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>")
+    "$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>"
+)
 
 target_link_libraries(${RICHARD_LIB_NAME}
   PRIVATE
@@ -191,7 +114,29 @@ target_link_libraries(${RICHARD_LIB_NAME}
   PUBLIC
     nlohmann_json::nlohmann_json
     "$<$<CONFIG:DEBUG>:${DEBUG_LINK_FLAGS}>"
-    "$<$<CONFIG:RELEASE>:${RELEASE_LINK_FLAGS}>")
+    "$<$<CONFIG:RELEASE>:${RELEASE_LINK_FLAGS}>"
+)
+
+file(GLOB SHADER_SOURCES "${PROJECT_SOURCE_DIR}/src/gpu/shaders/*.glsl")
+set(SHADER_BINARY_DIR "${PROJECT_BINARY_DIR}/shaders")
+
+set(SHADER_BINARIES "")
+foreach(SHADER_SOURCE ${SHADER_SOURCES})
+  get_filename_component(SHADER_FILENAME ${SHADER_SOURCE} NAME)
+  string(REGEX REPLACE "[.]glsl$" ".spv" SHADER_BINARY_NAME ${SHADER_FILENAME})
+  set(SHADER_BINARY "${SHADER_BINARY_DIR}/${SHADER_BINARY_NAME}")
+  list(APPEND SHADER_BINARIES ${SHADER_BINARY})
+  add_custom_command(
+    OUTPUT ${SHADER_BINARY}
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_BINARY_DIR}"
+    COMMAND ${glslc_executable} -fshader-stage=compute ${SHADER_SOURCE} -o ${SHADER_BINARY}
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    MAIN_DEPENDENCY ${SHADER_SOURCE}
+  )
+endforeach()
+add_custom_target(shaders DEPENDS ${SHADER_BINARIES})
+
+add_dependencies(${RICHARD_LIB_NAME} shaders)
 
 add_executable(richard "${PROJECT_SOURCE_DIR}/src/main.cpp")
 
@@ -202,7 +147,3 @@ target_link_libraries(richard
 
 add_subdirectory(test)
 
-add_custom_target(
-  link_shaders ALL
-  COMMAND ${CMAKE_COMMAND} -E create_symlink ${PROJECT_SOURCE_DIR}/src/gpu/shaders ${PROJECT_BINARY_DIR}/shaders
-)
