@@ -8,6 +8,7 @@ set(RICHARD_LIB_NAME "librichard")
 message("System name is ${CMAKE_SYSTEM_NAME}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+include("richard_common")
 
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
@@ -31,7 +32,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 find_package(Vulkan REQUIRED)
-find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
 include(FetchContent)
 set(FETCHCONTENT_BASE_DIR ${CMAKE_SOURCE_DIR}/dependencies/${CMAKE_BUILD_TYPE})
@@ -118,23 +118,12 @@ target_link_libraries(${RICHARD_LIB_NAME}
 )
 
 file(GLOB SHADER_SOURCES "${PROJECT_SOURCE_DIR}/src/gpu/shaders/*.glsl")
-set(SHADER_BINARY_DIR "${PROJECT_BINARY_DIR}/shaders")
 
-set(SHADER_BINARIES "")
-foreach(SHADER_SOURCE ${SHADER_SOURCES})
-  get_filename_component(SHADER_FILENAME ${SHADER_SOURCE} NAME)
-  string(REGEX REPLACE "[.]glsl$" ".spv" SHADER_BINARY_NAME ${SHADER_FILENAME})
-  set(SHADER_BINARY "${SHADER_BINARY_DIR}/${SHADER_BINARY_NAME}")
-  list(APPEND SHADER_BINARIES ${SHADER_BINARY})
-  add_custom_command(
-    OUTPUT ${SHADER_BINARY}
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADER_BINARY_DIR}"
-    COMMAND ${glslc_executable} -fshader-stage=compute ${SHADER_SOURCE} -o ${SHADER_BINARY}
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-    MAIN_DEPENDENCY ${SHADER_SOURCE}
-  )
-endforeach()
-add_custom_target(shaders DEPENDS ${SHADER_BINARIES})
+compile_shaders(
+  shaders
+  "${SHADER_SOURCES}"
+  "${PROJECT_BINARY_DIR}/shaders"
+)
 
 add_dependencies(${RICHARD_LIB_NAME} shaders)
 
