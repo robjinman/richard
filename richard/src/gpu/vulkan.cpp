@@ -143,6 +143,7 @@ class Vulkan : public Gpu {
     std::vector<Pipeline> m_pipelines;
     VkCommandPool m_commandPool;
     VkCommandBuffer m_commandBuffer;
+    bool m_startedRecording;
     VkDescriptorPool m_descriptorPool;
     VkFence m_taskCompleteFence;
     std::set<GpuBufferHandle> m_activeBuffers;
@@ -164,6 +165,9 @@ Vulkan::Vulkan(const Config& config, Logger& logger)
   createCommandPool();
   createDescriptorPool();
   createSyncObjects();
+
+  m_startedRecording = false;
+  m_commandBuffer = createCommandBuffer();
 }
 
 void chooseVulkanBufferFlags(GpuBufferFlags flags, VkMemoryPropertyFlags& memProps,
@@ -362,17 +366,15 @@ ShaderHandle Vulkan::addShader([[maybe_unused]] const std::string& name,
 }
 
 void Vulkan::beginCommandBuffer() {
-  if (m_commandBuffer == VK_NULL_HANDLE) {
-    m_commandBuffer = createCommandBuffer();
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = 0;
+  beginInfo.pInheritanceInfo = nullptr;
 
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0;
-    beginInfo.pInheritanceInfo = nullptr;
+  VK_CHECK(vkBeginCommandBuffer(m_commandBuffer, &beginInfo),
+    "Failed to begin recording command buffer");
 
-    VK_CHECK(vkBeginCommandBuffer(m_commandBuffer, &beginInfo),
-      "Failed to begin recording command buffer");
-  }
+  m_startedRecording = true;
 }
 
 void Vulkan::queueShader(ShaderHandle shaderHandle) {
@@ -415,7 +417,7 @@ void Vulkan::queueShader(ShaderHandle shaderHandle) {
 
   const Size3& workgroups = pipeline.numWorkgroups;
 
-  if (m_commandBuffer == VK_NULL_HANDLE) {
+  if (!m_startedRecording) {
     beginCommandBuffer();
   }
 
@@ -431,7 +433,7 @@ void Vulkan::queueShader(ShaderHandle shaderHandle) {
 void Vulkan::flushQueue() {
   DBG_TRACE
 
-  if (m_commandBuffer == VK_NULL_HANDLE) {
+  if (!m_startedRecording) {
     return;
   }
 
@@ -452,8 +454,8 @@ void Vulkan::flushQueue() {
 
   m_activeBuffers.clear();
 
-  vkFreeCommandBuffers(m_device, m_commandPool, 1, &m_commandBuffer);
-  m_commandBuffer = VK_NULL_HANDLE;
+  vkResetCommandBuffer(m_commandBuffer, 0);
+  m_startedRecording = false;
 }
 
 void Vulkan::retrieveBuffer(GpuBufferHandle bufIdx, void* data) {
