@@ -41,7 +41,7 @@ class GpuNeuralNet : public NeuralNet {
     Size3 inputSize() const override;
     void writeToStream(std::ostream& stream) const override;
     void train(LabelledDataSet& data) override;
-    VectorPtr evaluate(const Array3& inputs) const override;
+    Vector evaluate(const Array3& inputs) const override;
 
     void abort() override;
 
@@ -52,7 +52,7 @@ class GpuNeuralNet : public NeuralNet {
     void allocateGpuResources();
     void loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,
       size_t numSamples);
-    OutputLayer& outputLayer();
+    OutputLayer& outputLayer() const;
 
     Logger& m_logger;
     FileSystem& m_fileSystem;
@@ -113,6 +113,8 @@ void GpuNeuralNet::initialize(const Size3& inputShape, const Config& config,
   m_layers.push_back(constructLayer(outLayerConfig, prevLayerSize, false, stream));
 
   m_outputSize = m_layers.back()->outputSize()[0];
+
+  allocateGpuResources();
 }
 
 void GpuNeuralNet::abort() {
@@ -154,7 +156,7 @@ LayerPtr GpuNeuralNet::constructLayer(const Config& config, const Size3& prevLay
   }
 }
 
-OutputLayer& GpuNeuralNet::outputLayer() {
+OutputLayer& GpuNeuralNet::outputLayer() const {
   ASSERT_MSG(!m_layers.empty(), "No output layer");
   return dynamic_cast<OutputLayer&>(*m_layers.back());
 }
@@ -261,8 +263,6 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
   ASSERT_MSG(m_params.batchSize % m_params.miniBatchSize == 0,
     "Batch size must be multiple of mini-batch size");
 
-  allocateGpuResources();
-
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(m_statusBuffer.data);
 
   m_abort = false;
@@ -336,9 +336,16 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
   m_isTrained = true;
 }
 
-VectorPtr GpuNeuralNet::evaluate(const Array3&) const {
-  // TODO
-  return VectorPtr(nullptr);
+Vector GpuNeuralNet::evaluate(const Array3& sample) const {
+  memcpy(m_bufferX.data, sample.data(), sample.size() * sizeof(netfloat_t));
+
+  for (const LayerPtr& layer : m_layers) {
+    layer->evalForward();
+  }
+
+  m_gpu->flushQueue();
+
+  return outputLayer().activations();
 }
 
 }

@@ -35,7 +35,7 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
     Size3 inputSize() const override;
     void writeToStream(std::ostream& s) const override;
     void train(LabelledDataSet& data) override;
-    VectorPtr evaluate(const Array3& inputs) const override;
+    Vector evaluate(const Array3& inputs) const override;
 
     void abort() override;
 
@@ -237,14 +237,14 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
   m_isTrained = true;
 }
 
-VectorPtr CpuNeuralNetImpl::evaluate(const Array3& x) const {
+Vector CpuNeuralNetImpl::evaluate(const Array3& x) const {
   DataArray A;
 
   for (size_t i = 0; i < m_layers.size(); ++i) {
     A = m_layers[i]->evalForward(i == 0 ? x.storage() : A);
   }
 
-  return std::make_unique<Vector>(A);
+  return Vector(A);
 }
 
 }

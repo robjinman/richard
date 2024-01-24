@@ -27,7 +27,7 @@ class NeuralNet {
     virtual Size3 inputSize() const = 0;
     virtual void writeToStream(std::ostream& stream) const = 0;
     virtual void train(LabelledDataSet& data) = 0;
-    virtual VectorPtr evaluate(const Array3& inputs) const = 0;
+    virtual Vector evaluate(const Array3& inputs) const = 0;
 
     // Called from another thread
     virtual void abort() = 0;

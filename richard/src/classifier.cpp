@@ -89,10 +89,10 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
       DBG_ASSERT_MSG(sample.data.size() == netInputSize,
         "Expected sample of size " << netInputSize << ", got " << sample.data.size());
 
-      std::unique_ptr<Vector> actual = m_neuralNet->evaluate(sample.data);
+      Vector actual = m_neuralNet->evaluate(sample.data);
       Vector expected = testData.classOutputVector(sample.label);
 
-      if (outputsMatch(*actual, expected)) {
+      if (outputsMatch(actual, expected)) {
         ++results.good;
         m_logger.info("1", false);
       }
@@ -101,7 +101,7 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
         m_logger.info("0", false);
       }
 
-      totalCost += costFn(*actual, expected);
+      totalCost += costFn(actual, expected);
       ++totalSamples;
     }
     samples.clear();

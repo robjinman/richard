@@ -9,7 +9,7 @@ The new version of Richard is strictly benevolent.
 
 In its current form, Richard is a CLI application that performs classification using a neural network. Supported layer types include dense, convolutional, and max pooling, but there will likely be others in the future.
 
-GPU acceleration is supported with Vulkan compute shaders, but this is a work in progress.
+GPU acceleration is supported with Vulkan compute shaders.
 
 
 Building

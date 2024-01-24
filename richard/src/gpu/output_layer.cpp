@@ -96,7 +96,7 @@ void OutputLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) }
   };
 
-  std::string shaderName = "output_eval_forward.spv";
+  std::string shaderName = "dense_eval_forward.spv";
   auto shaderCode = m_fileSystem.loadBinaryFile(m_platformPaths.get("shaders", shaderName));
 
   Size3 workSize{ m_size, 1, 1 };
