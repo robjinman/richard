@@ -12,9 +12,9 @@ struct Hyperparams {
   Hyperparams();
   explicit Hyperparams(const Config& obj);
 
-  size_t epochs;
-  size_t batchSize;
-  size_t miniBatchSize;
+  uint32_t epochs;
+  uint32_t batchSize;
+  uint32_t miniBatchSize;
 
   static const Config& exampleConfig();
 };

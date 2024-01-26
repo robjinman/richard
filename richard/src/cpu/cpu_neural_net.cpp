@@ -20,7 +20,7 @@ namespace {
 
 const NeuralNet::CostFn quadraticCost = [](const Vector& actual, const Vector& expected) {
   DBG_ASSERT(actual.size() == expected.size());
-  return (expected - actual).squareMagnitude() * 0.5;
+  return (expected - actual).squareMagnitude() * netfloat_t(0.5);
 };
 
 class CpuNeuralNetImpl : public CpuNeuralNet {
@@ -185,7 +185,7 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
   m_logger.info(STR("Mini-batch size: " << m_params.miniBatchSize));
 
   m_abort = false;
-  for (size_t epoch = 0; epoch < m_params.epochs; ++epoch) {
+  for (uint32_t epoch = 0; epoch < m_params.epochs; ++epoch) {
     if (m_abort) {
       break;
     }

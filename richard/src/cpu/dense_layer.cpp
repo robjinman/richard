@@ -8,7 +8,7 @@ namespace cpu {
 DenseLayer::DenseLayer(const Config& config, size_t inputSize) {
   initialize(config, inputSize);
 
-  m_W.randomize(0.1);
+  m_W.randomize(0.1f);
 }
 
 DenseLayer::DenseLayer(const Config& config, std::istream& stream, size_t inputSize) {
@@ -92,7 +92,7 @@ void DenseLayer::updateDeltas(const DataArray& inputs, const DataArray& outputDe
 }
 
 void DenseLayer::updateParams(size_t epoch) {
-  netfloat_t learnRate = m_learnRate * pow(m_learnRateDecay, epoch);
+  netfloat_t learnRate = m_learnRate * static_cast<netfloat_t>(pow(m_learnRateDecay, epoch));
 
   m_W -= m_deltaW * learnRate;
   m_B -= m_deltaB * learnRate;

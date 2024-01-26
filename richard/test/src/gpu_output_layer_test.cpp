@@ -66,7 +66,7 @@ TEST_F(GpuOutputLayerTest, trainForward) {
 
   GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
 
-  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
+  Vector inputs{ 0.5f, 0.4f, 0.3f, 0.2f };
   gpu->submitBufferData(inputBuffer.handle, inputs.data());
 
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
@@ -84,11 +84,11 @@ TEST_F(GpuOutputLayerTest, trainForward) {
   gpu::OutputLayer layer(*gpu, *fileSystem, *platformPaths, config, layerInputSize);
 
   Matrix W({
-    { 0.1, 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3, 0.2 }
+    { 0.1f, 0.2f, 0.3f, 0.4f },
+    { 0.5f, 0.4f, 0.3f, 0.2f }
   });
 
-  Vector B({ 0.7, 0.8 });
+  Vector B({ 0.7f, 0.8f });
 
   layer.test_setWeights(W.storage());
   layer.test_setBiases(B.storage());
@@ -136,7 +136,7 @@ TEST_F(GpuOutputLayerTest, backprop) {
   const size_t layerInputSize = 4;
   const size_t outputSize = 2;
 
-  Vector Y({ 0.0, 1.0 });
+  Vector Y({ 0.f, 1.f });
 
   GpuBufferFlags bufferYFlags = GpuBufferFlags::frequentHostAccess
                               | GpuBufferFlags::large
@@ -154,7 +154,7 @@ TEST_F(GpuOutputLayerTest, backprop) {
 
   GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
 
-  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
+  Vector inputs{ 0.5f, 0.4f, 0.3f, 0.2f };
   gpu->submitBufferData(inputBuffer.handle, inputs.data());
 
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
@@ -172,11 +172,11 @@ TEST_F(GpuOutputLayerTest, backprop) {
   gpu::OutputLayer layer(*gpu, *fileSystem, *platformPaths, config, layerInputSize);
 
   Matrix W({
-    { 0.1, 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3, 0.2 }
+    { 0.1f, 0.2f, 0.3f, 0.4f },
+    { 0.5f, 0.4f, 0.3f, 0.2f }
   });
 
-  Vector B({ 0.7, 0.8 });
+  Vector B({ 0.7f, 0.8f });
 
   layer.test_setWeights(W.storage());
   layer.test_setBiases(B.storage());

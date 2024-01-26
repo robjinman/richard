@@ -55,7 +55,7 @@ void ConvolutionalLayer::initialize(const Config& config, const Size3& inputShap
   size_t kernelSize = calcProduct(kernelShape);
   for (size_t i = 0; i < m_depth; ++i) {
     KernelPtr kernel = Kernel::createShallow(m_kernelData.data() + i * kernelSize, kernelShape);
-    kernel->randomize(0.1);
+    kernel->randomize(0.1f);
   }
 
   ASSERT_MSG(m_kernelSize[0] <= m_inputW,

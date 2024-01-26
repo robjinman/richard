@@ -24,6 +24,6 @@ TEST_F(CsvDataLoaderTest, loadSamples) {
 
   VectorPtr pX = Vector::createShallow(samples[0].data.storage());
 
-  ASSERT_EQ(*pX, Vector({ 0, 1.0, 128.0 / 255.0 }));
+  ASSERT_EQ(*pX, Vector({ 0.f, 1.f, 128.f / 255.f }));
 }
 

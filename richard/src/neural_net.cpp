@@ -10,9 +10,9 @@ Hyperparams::Hyperparams()
   , miniBatchSize(16) {}
 
 Hyperparams::Hyperparams(const Config& config) {
-  epochs = config.getNumber<size_t>("epochs");
-  batchSize = config.getNumber<size_t>("batchSize");
-  miniBatchSize = config.getNumber<size_t>("miniBatchSize");
+  epochs = config.getNumber<uint32_t>("epochs");
+  batchSize = config.getNumber<uint32_t>("batchSize");
+  miniBatchSize = config.getNumber<uint32_t>("miniBatchSize");
 }
 
 const Config& Hyperparams::exampleConfig() {

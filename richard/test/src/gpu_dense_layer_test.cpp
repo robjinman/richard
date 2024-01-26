@@ -59,7 +59,7 @@ TEST_F(GpuDenseLayerTest, trainForward) {
 
   GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
 
-  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
+  Vector inputs{ 0.5f, 0.4f, 0.3f, 0.2f };
   gpu->submitBufferData(inputBuffer.handle, inputs.data());
 
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
@@ -78,11 +78,11 @@ TEST_F(GpuDenseLayerTest, trainForward) {
   gpu::DenseLayer layer(*gpu, *fileSystem, *platformPaths, config, layerInputSize, true);
 
   Matrix W({
-    { 0.1, 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3, 0.2 }
+    { 0.1f, 0.2f, 0.3f, 0.4f },
+    { 0.5f, 0.4f, 0.3f, 0.2f }
   });
 
-  Vector B({ 0.7, 0.8 });
+  Vector B({ 0.7f, 0.8f });
 
   layer.test_setWeights(W.storage());
   layer.test_setBiases(B.storage());
@@ -141,17 +141,17 @@ TEST_F(GpuDenseLayerTest, backprop) {
 
   GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
 
-  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
+  Vector inputs{ 0.5f, 0.4f, 0.3f, 0.2f };
   gpu->submitBufferData(inputBuffer.handle, inputs.data());
 
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
   status.epoch = 0;
   status.sampleIndex = 0;
 
-  Vector nextDelta({ 0.2, 0.7 });
+  Vector nextDelta({ 0.2f, 0.7f });
   Matrix nextW({
-    { 0.2, 0.5 },
-    { 0.4, 0.3 }
+    { 0.2f, 0.5f },
+    { 0.4f, 0.3f }
   });
 
   Vector dA = nextW.transposeMultiply(nextDelta);
@@ -176,11 +176,11 @@ TEST_F(GpuDenseLayerTest, backprop) {
   gpu::DenseLayer layer(*gpu, *fileSystem, *platformPaths, config, layerInputSize, true);
 
   Matrix W({
-    { 0.1, 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3, 0.2 }
+    { 0.1f, 0.2f, 0.3f, 0.4f },
+    { 0.5f, 0.4f, 0.3f, 0.2f }
   });
 
-  Vector B({ 0.7, 0.8 });
+  Vector B({ 0.7f, 0.8f });
 
   testing::NiceMock<MockGpuLayer> nextLayer;
   ON_CALL(nextLayer, weightsBuffer).WillByDefault(testing::Return(nextBufferW.handle));
@@ -241,7 +241,7 @@ TEST_F(GpuDenseLayerTest, updateParams) {
 
   GpuBuffer inputBuffer = gpu->allocateBuffer(inputBufferSize, inputBufferFlags);
 
-  Vector inputs{ 0.5, 0.4, 0.3, 0.2 };
+  Vector inputs{ 0.5f, 0.4f, 0.3f, 0.2f };
   gpu->submitBufferData(inputBuffer.handle, inputs.data());
 
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
@@ -260,11 +260,11 @@ TEST_F(GpuDenseLayerTest, updateParams) {
   gpu::DenseLayer layer(*gpu, *fileSystem, *platformPaths, config, layerInputSize, true);
 
   Matrix W({
-    { 0.1, 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3, 0.2 }
+    { 0.1f, 0.2f, 0.3f, 0.4f },
+    { 0.5f, 0.4f, 0.3f, 0.2f }
   });
 
-  Vector B({ 0.7, 0.8 });
+  Vector B({ 0.7f, 0.8f });
 
   testing::NiceMock<MockGpuLayer> nextLayer;
 
@@ -275,11 +275,11 @@ TEST_F(GpuDenseLayerTest, updateParams) {
   layer.createGpuShaders(inputBuffer.handle, statusBuffer.handle, &nextLayer, 0);
 
   Matrix deltaW({
-    { 0.5, 0.3, 0.7, 0.1 },
-    { 0.8, 0.6, 0.2, 0.9 }
+    { 0.5f, 0.3f, 0.7f, 0.1f },
+    { 0.8f, 0.6f, 0.2f, 0.9f }
   });
 
-  Vector deltaB({ 0.5, 0.1 });
+  Vector deltaB({ 0.5f, 0.1f });
 
   gpu->submitBufferData(layer.test_deltaWBuffer(), deltaW.data());
   gpu->submitBufferData(layer.test_deltaBBuffer(), deltaB.data());
@@ -290,8 +290,8 @@ TEST_F(GpuDenseLayerTest, updateParams) {
 
   layer.retrieveBuffers();
 
-  Matrix expectedW = W - deltaW * 0.1;
-  Vector expectedB = B - deltaB * 0.1;
+  Matrix expectedW = W - deltaW * 0.1f;
+  Vector expectedB = B - deltaB * 0.1f;
 
   const Matrix& actualW = layer.test_W();
   const Vector& actualB = layer.test_B();

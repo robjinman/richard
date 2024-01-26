@@ -18,11 +18,11 @@ TEST_F(CpuOutputLayerTest, evalForward) {
   config.setNumber("learnRateDecay", 1.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
-    return x * 2.0;
+    return x * 2.f;
   };
 
   ActivationFn activationFnPrime = [](netfloat_t) {
-    return 2.0;
+    return 2.f;
   };
 
   Matrix W({

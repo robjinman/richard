@@ -22,7 +22,7 @@ using richard::gpu::GpuBufferFlags;
 const double FLOAT_TOLERANCE = 0.000001;
 
 const auto quadraticCost = [](const Vector& actual, const Vector& expected) {
-  return (expected - actual).squareMagnitude() * 0.5;
+  return (expected - actual).squareMagnitude() * 0.5f;
 };
 
 struct StatusBuffer {
@@ -97,12 +97,12 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
   const size_t inputSize = 4;
 
   std::vector<Vector> X{
-    Vector{ 0.6, 0.2, 0.5, 0.7 },
-    Vector{ 0.7, 0.1, 0.9, 0.5 }
+    Vector{ 0.6f, 0.2f, 0.5f, 0.7f },
+    Vector{ 0.7f, 0.1f, 0.9f, 0.5f }
   };
   std::vector<Vector> Y{
-    Vector{ 1.0, 0.0 },
-    Vector{ 0.0, 1.0 }
+    Vector{ 1.f, 0.f },
+    Vector{ 0.f, 1.f }
   };
 
   size_t bufferXSize = miniBatchSize * inputSize * sizeof(netfloat_t);
@@ -139,19 +139,19 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
   gpu::OutputLayer layer2(*gpu, *fileSystem, *platformPaths, layer2Config, layer1Size);
 
   Matrix W1({
-    { 0.7, 0.3, 0.1, 0.4 },
-    { 0.2, 0.9, 0.4, 0.5 },
-    { 0.1, 0.6, 0.2, 0.7 },
+    { 0.7f, 0.3f, 0.1f, 0.4f },
+    { 0.2f, 0.9f, 0.4f, 0.5f },
+    { 0.1f, 0.6f, 0.2f, 0.7f },
   });
 
-  Vector B1({ 0.5, 0.4, 0.2 });
+  Vector B1({ 0.5f, 0.4f, 0.2f });
 
   Matrix W2({
-    { 0.8, 0.3, 0.1 },
-    { 0.9, 0.4, 0.5 }
+    { 0.8f, 0.3f, 0.1f },
+    { 0.9f, 0.4f, 0.5f }
   });
 
-  Vector B2({ 0.4, 0.2 });
+  Vector B2({ 0.4f, 0.2f });
 
   layer1.test_setWeights(W1.storage());
   layer1.test_setBiases(B1.storage());
@@ -323,37 +323,37 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
 
   std::vector<Array3> X{
     Array3{{
-      { 0.7, 0.1, 0.3 },
-      { 0.8, 0.6, 0.2 },
-      { 0.2, 0.9, 0.5 }
+      { 0.7f, 0.1f, 0.3f },
+      { 0.8f, 0.6f, 0.2f },
+      { 0.2f, 0.9f, 0.5f }
     }, {
-      { 0.8, 0.5, 0.4 },
-      { 0.9, 0.1, 0.2 },
-      { 0.5, 0.8, 0.6 }
+      { 0.8f, 0.5f, 0.4f },
+      { 0.9f, 0.1f, 0.2f },
+      { 0.5f, 0.8f, 0.6f }
     }},
     Array3{{
-      { 0.1, 0.8, 0.6 },
-      { 0.5, 0.4, 0.1 },
-      { 0.2, 0.5, 0.7 }
+      { 0.1f, 0.8f, 0.6f },
+      { 0.5f, 0.4f, 0.1f },
+      { 0.2f, 0.5f, 0.7f }
     }, {
-      { 0.3, 0.5, 0.2 },
-      { 0.8, 0.1, 0.6 },
-      { 0.1, 0.8, 0.4 }
+      { 0.3f, 0.5f, 0.2f },
+      { 0.8f, 0.1f, 0.6f },
+      { 0.1f, 0.8f, 0.4f }
     }},
     Array3{{
-      { 0.2, 0.3, 0.5 },
-      { 0.4, 0.8, 0.2 },
-      { 0.1, 0.7, 0.2 }
+      { 0.2f, 0.3f, 0.5f },
+      { 0.4f, 0.8f, 0.2f },
+      { 0.1f, 0.7f, 0.2f }
     }, {
-      { 0.9, 0.2, 0.1 },
-      { 0.2, 0.3, 0.1 },
-      { 0.4, 0.6, 0.5 }
+      { 0.9f, 0.2f, 0.1f },
+      { 0.2f, 0.3f, 0.1f },
+      { 0.4f, 0.6f, 0.5f }
     }}
   };
   std::vector<Vector> Y{
-    Vector{ 1.0, 0.0 },
-    Vector{ 0.0, 1.0 },
-    Vector{ 1.0, 0.0 }
+    Vector{ 1.f, 0.f },
+    Vector{ 0.f, 1.f },
+    Vector{ 1.f, 0.f }
   };
 
   Size3 inputShape{ 3, 3, 2 };
@@ -401,41 +401,41 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
   cpu::ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({
     {
-      { 0.5, 0.3 },
-      { 0.1, 0.2 }
+      { 0.5f, 0.3f },
+      { 0.1f, 0.2f }
     }, {
-      { 0.8, 0.4 },
-      { 0.5, 0.3 }
+      { 0.8f, 0.4f },
+      { 0.5f, 0.3f }
     }
   });
-  filter0.b = 0.7;
+  filter0.b = 0.7f;
 
   cpu::ConvolutionalLayer::Filter filter1;
   filter1.K = Kernel({
     {
-      { 0.2, 0.4 },
-      { 0.5, 0.6 }
+      { 0.2f, 0.4f },
+      { 0.5f, 0.6f }
     }, {
-      { 0.4, 0.1 },
-      { 0.2, 0.9 }
+      { 0.4f, 0.1f },
+      { 0.2f, 0.9f }
     }
   });
-  filter1.b = 0.3;
+  filter1.b = 0.3f;
 
   size_t kernelSize = 2 * 2 * 2;
 
-  DataArray K = DataArray::concat({ filter0.K.storage(), filter1.K.storage() });
+  DataArray KData = DataArray::concat({ filter0.K.storage(), filter1.K.storage() });
   Vector biasData{ filter0.b, filter1.b };
 
-  layer1.test_setKernels(K);
+  layer1.test_setKernels(KData);
   layer1.test_setBiases(biasData.storage());
 
   Matrix W2({
-    { 0.8, 0.3 },
-    { 0.9, 0.4 }
+    { 0.8f, 0.3f },
+    { 0.9f, 0.4f }
   });
 
-  Vector B2({ 0.4, 0.2 });
+  Vector B2({ 0.4f, 0.2f });
 
   layer3.test_setWeights(W2.storage());
   layer3.test_setBiases(B2.storage());

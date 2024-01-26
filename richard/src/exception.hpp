@@ -9,9 +9,9 @@ namespace richard {
 
 #define EXCEPTION(msg) \
 { \
-  std::stringstream ss; \
-  ss << msg; \
-  throw Exception(ss.str(), __FILE__, __LINE__); \
+  std::stringstream _ss; \
+  _ss << msg; \
+  throw Exception(_ss.str(), __FILE__, __LINE__); \
 }
 
 #define ASSERT_MSG(condition, msg) \

@@ -13,7 +13,7 @@ const uint32_t BMP_HEADER_SIZE = 54;
 #pragma pack(push, 1)
 struct BmpFileHeader {
   BmpFileHeader(uint32_t w, uint32_t h, uint32_t channels)
-    : size(BMP_HEADER_SIZE + h * ceil(0.25 * w * channels) * 4) {}
+    : size(BMP_HEADER_SIZE + h * static_cast<uint32_t>(ceil(0.25 * w * channels)) * 4) {}
 
   char type[2] = {'B', 'M'};
   uint32_t size;
@@ -23,7 +23,7 @@ struct BmpFileHeader {
 };
 
 struct BmpImgHeader {
-  BmpImgHeader(uint32_t w, uint32_t h, uint32_t channels, uint32_t rawSize)
+  BmpImgHeader(uint32_t w, uint32_t h, uint16_t channels, uint32_t rawSize)
     : width(w),
       height(h),
       bitCount(channels * 8),
@@ -43,7 +43,7 @@ struct BmpImgHeader {
 };
 
 struct BmpHeader {
-  BmpHeader(uint32_t imgW, uint32_t imgH, uint32_t channels, uint32_t rawSize)
+  BmpHeader(uint32_t imgW, uint32_t imgH, uint16_t channels, uint32_t rawSize)
     : fileHdr(imgW, imgH, channels),
       imgHdr(imgW, imgH, channels, rawSize) {}
 

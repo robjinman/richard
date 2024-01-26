@@ -13,20 +13,20 @@ using ActivationFn = std::function<netfloat_t(netfloat_t)>;
 using CostDerivativesFn = std::function<Vector(const Vector&, const Vector&)>;
 
 const ActivationFn sigmoid = [](netfloat_t x) {
-  return 1.0 / (1.0 + exp(-x));
+  return static_cast<netfloat_t>(1.0 / (1.0 + exp(-x)));
 };
 
 const ActivationFn sigmoidPrime = [](netfloat_t x) {
   netfloat_t sigX = sigmoid(x);
-  return sigX * (1.0 - sigX);
+  return static_cast<netfloat_t>(sigX * (1.0 - sigX));
 };
 
 const ActivationFn relu = [](netfloat_t x) {
-  return x < 0.0 ? 0.0 : x;
+  return x < 0.f ? 0.f : x;
 };
 
 const ActivationFn reluPrime = [](netfloat_t x) {
-  return x < 0.0 ? 0.0 : 1.0;
+  return x < 0.f ? 0.f : 1.f;
 };
 
 // Partial derivatives of quadraticCost with respect to the activations

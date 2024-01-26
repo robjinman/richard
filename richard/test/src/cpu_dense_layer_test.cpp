@@ -20,11 +20,11 @@ TEST_F(CpuDenseLayerTest, evalForward) {
   config.setNumber("dropoutRate", 0.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
-    return x * 2.0;
+    return x * 2.f;
   };
 
   ActivationFn activationFnPrime = [](netfloat_t) {
-    return 2.0;
+    return 2.f;
   };
 
   Matrix W({
@@ -53,11 +53,11 @@ TEST_F(CpuDenseLayerTest, trainForward) {
   config.setNumber("dropoutRate", 0.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
-    return x * 2.0;
+    return x * 2.f;
   };
 
   ActivationFn activationFnPrime = [](netfloat_t) {
-    return 2.0;
+    return 2.f;
   };
 
   Matrix W({
@@ -93,7 +93,7 @@ TEST_F(CpuDenseLayerTest, updateDelta) {
   config.setNumber("dropoutRate", 0.0);
 
   ActivationFn activationFn = [](netfloat_t x) {
-    return 0.5 * x * x;
+    return 0.f * x * x;
   };
 
   ActivationFn activationFnPrime = [](netfloat_t x) {

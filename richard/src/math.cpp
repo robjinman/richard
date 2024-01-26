@@ -1137,14 +1137,14 @@ void computeCrossCorrelation(const Array3& image, const Kernel& kernel, Array2& 
 void computeFullCrossCorrelation(const Array3& image, const Kernel& kernel, Array2& result,
   bool flipKernel) {
 
-  const int kD = kernel.D();
-  const int kH = kernel.H();
-  const int kW = kernel.W();
+  const int kD = static_cast<int>(kernel.D());
+  const int kH = static_cast<int>(kernel.H());
+  const int kW = static_cast<int>(kernel.W());
 
-  DBG_ASSERT(image.D() == static_cast<size_t>(kD));
+  DBG_ASSERT(image.D() == kernel.D());
 
-  const int imW = image.W();
-  const int imH = image.H();
+  const int imW = static_cast<int>(image.W());
+  const int imH = static_cast<int>(image.H());
 
   const int fmW = imW + kW - 1;
   const int fmH = imH + kH - 1;

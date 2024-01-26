@@ -224,7 +224,7 @@ GpuBuffer Vulkan::allocateBuffer(size_t size, GpuBufferFlags flags) {
   m_buffers.push_back(buffer);
 
   // TODO: Can't just be an index if we allow buffer deletion
-  gpuBuffer.handle = m_buffers.size() - 1;
+  gpuBuffer.handle = static_cast<uint32_t>(m_buffers.size() - 1);
 
   return gpuBuffer;
 }
@@ -270,7 +270,7 @@ VkSpecializationInfo createSpecializationInfo(const SpecializationConstants& con
   }
 
   for (const auto& constant : constants) {
-    uint32_t constantId = entries.size();
+    uint32_t constantId = static_cast<uint32_t>(entries.size());
     size_t offset = specializationData.size();
     size_t typeSize = 4;
     switch (constant.type) {
@@ -362,7 +362,7 @@ ShaderHandle Vulkan::addShader([[maybe_unused]] const std::string& name,
 
   m_pipelines.push_back(pipeline);
 
-  return m_pipelines.size() - 1;
+  return static_cast<uint32_t>(m_pipelines.size() - 1);
 }
 
 void Vulkan::beginCommandBuffer() {
@@ -426,8 +426,9 @@ void Vulkan::queueShader(ShaderHandle shaderHandle) {
     &pipeline.descriptorSet, 0, 0);
   vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr,
-    bufferBarriers.size(), bufferBarriers.data(), 0, nullptr);
-  vkCmdDispatch(m_commandBuffer, workgroups[0], workgroups[1], workgroups[2]);
+    static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(), 0, nullptr);
+  vkCmdDispatch(m_commandBuffer, static_cast<uint32_t>(workgroups[0]),
+    static_cast<uint32_t>(workgroups[1]), static_cast<uint32_t>(workgroups[2]));
 }
 
 void Vulkan::flushQueue() {
@@ -620,7 +621,7 @@ void Vulkan::createLogicalDevice() {
 #ifdef NDEBUG
   createInfo.enabledLayerCount = 0;
 #else
-  createInfo.enabledLayerCount = ValidationLayers.size();
+  createInfo.enabledLayerCount = static_cast<uint32_t>(ValidationLayers.size());
   createInfo.ppEnabledLayerNames = ValidationLayers.data();
 #endif
 
@@ -709,7 +710,7 @@ void Vulkan::createVulkanInstance() {
   createInfo.enabledLayerCount = 0;
   createInfo.pNext = nullptr;
 #else
-  createInfo.enabledLayerCount = ValidationLayers.size();
+  createInfo.enabledLayerCount = static_cast<uint32_t>(ValidationLayers.size());
   createInfo.ppEnabledLayerNames = ValidationLayers.data();
 
   auto debugMessengerInfo = getDebugMessengerCreateInfo();
@@ -718,7 +719,7 @@ void Vulkan::createVulkanInstance() {
 
   auto extensions = getRequiredExtensions();
 
-  createInfo.enabledExtensionCount = extensions.size();
+  createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
   createInfo.ppEnabledExtensionNames = extensions.data();
 
   VK_CHECK(vkCreateInstance(&createInfo, nullptr, &m_instance), "Failed to create instance");
@@ -785,7 +786,7 @@ VkDescriptorSetLayout Vulkan::createDescriptorSetLayout(const GpuBufferBindings&
 
   VkDescriptorSetLayoutCreateInfo layoutInfo{};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutInfo.bindingCount = bindings.size();
+  layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
   layoutInfo.pBindings = bindings.data();
 
   VkDescriptorSetLayout layout;
@@ -806,7 +807,7 @@ void Vulkan::createDescriptorPool() {
 
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.poolSizeCount = poolSizes.size();
+  poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
   poolInfo.pPoolSizes = poolSizes.data();
   poolInfo.maxSets = 32; // TODO
 
@@ -833,7 +834,7 @@ VkDescriptorSet Vulkan::createDescriptorSet(const GpuBufferBindings& buffers,
   std::vector<VkDescriptorBufferInfo> bufferInfos(buffers.size());
   std::vector<VkWriteDescriptorSet> descriptorWrites(buffers.size());
 
-  for (size_t slot = 0; slot < buffers.size(); ++slot) {
+  for (uint32_t slot = 0; slot < buffers.size(); ++slot) {
     GpuBufferHandle bufIdx = buffers[slot].buffer;
     const Buffer& buffer = getBuffer(bufIdx);
 
@@ -854,7 +855,8 @@ VkDescriptorSet Vulkan::createDescriptorSet(const GpuBufferBindings& buffers,
     descriptorWrite.pTexelBufferView = nullptr;
   }
 
-  vkUpdateDescriptorSets(m_device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+  vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()),
+    descriptorWrites.data(), 0, nullptr);
 
   return descriptorSet;
 }

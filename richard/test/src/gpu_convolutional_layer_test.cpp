@@ -50,13 +50,13 @@ TEST_F(GpuConvolutionalLayerTest, trainForward) {
 
   Array3 inputs({
     {
-      { 0, 1, 2 },
-      { 5, 6, 7 },
-      { 8, 7, 6 },
+      { 0.f, 1.f, 2.f },
+      { 5.f, 6.f, 7.f },
+      { 8.f, 7.f, 6.f },
     }, {
-      { 5, 4, 3 },
-      { 2, 1, 0 },
-      { 1, 2, 5 }
+      { 5.f, 4.f, 3.f },
+      { 2.f, 1.f, 0.f },
+      { 1.f, 2.f, 5.f }
     }
   });
 
@@ -88,26 +88,26 @@ TEST_F(GpuConvolutionalLayerTest, trainForward) {
   cpu::ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({
     {
-      { 5, 3 },
-      { 1, 2 }
+      { 5.f, 3.f },
+      { 1.f, 2.f }
     }, {
-      { 8, 4 },
-      { 5, 3 }
+      { 8.f, 4.f },
+      { 5.f, 3.f }
     }
   });
-  filter0.b = 7;
+  filter0.b = 7.f;
 
   cpu::ConvolutionalLayer::Filter filter1;
   filter1.K = Kernel({
     {
-      { 2, 4 },
-      { 5, 6 }
+      { 2.f, 4.f },
+      { 5.f, 6.f }
     }, {
-      { 4, 1 },
-      { 2, 9 }
+      { 4.f, 1.f },
+      { 2.f, 9.f }
     }
   });
-  filter1.b = 3;
+  filter1.b = 3.f;
 
   DataArray kernelData = DataArray::concat({ filter0.K.storage(), filter1.K.storage() });
   Vector biasData{ filter0.b, filter1.b };
@@ -171,13 +171,13 @@ TEST_F(GpuConvolutionalLayerTest, backprop) {
 
   Array3 inputs({
     {
-      { 0, 1, 2 },
-      { 5, 6, 7 },
-      { 8, 7, 6 },
+      { 0.f, 1.f, 2.f },
+      { 5.f, 6.f, 7.f },
+      { 8.f, 7.f, 6.f },
     }, {
-      { 5, 4, 3 },
-      { 2, 1, 0 },
-      { 1, 2, 5 }
+      { 5.f, 4.f, 3.f },
+      { 2.f, 1.f, 0.f },
+      { 1.f, 2.f, 5.f }
     }
   });
 
@@ -196,11 +196,11 @@ TEST_F(GpuConvolutionalLayerTest, backprop) {
 
   Array3 dA({
     {
-      { 2, 1 },
-      { 4, 7 }
+      { 2.f, 1.f },
+      { 4.f, 7.f }
     }, {
-      { 5, 2 },
-      { 9, 8 }
+      { 5.f, 2.f },
+      { 9.f, 8.f }
     }
   });
 
@@ -226,26 +226,26 @@ TEST_F(GpuConvolutionalLayerTest, backprop) {
   cpu::ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({
     {
-      { 5, 3 },
-      { 1, 2 }
+      { 5.f, 3.f },
+      { 1.f, 2.f }
     }, {
-      { 8, 4 },
-      { 5, 3 }
+      { 8.f, 4.f },
+      { 5.f, 3.f }
     }
   });
-  filter0.b = 7;
+  filter0.b = 7.f;
 
   cpu::ConvolutionalLayer::Filter filter1;
   filter1.K = Kernel({
     {
-      { 2, 4 },
-      { 5, 6 }
+      { 2.f, 4.f },
+      { 5.f, 6.f }
     }, {
-      { 4, 1 },
-      { 2, 9 }
+      { 4.f, 1.f },
+      { 2.f, 9.f }
     }
   });
-  filter1.b = 3;
+  filter1.b = 3.f;
 
   DataArray kernelData = DataArray::concat({ filter0.K.storage(), filter1.K.storage() });
   Vector biasData{ filter0.b, filter1.b };
@@ -308,7 +308,7 @@ TEST_F(GpuConvolutionalLayerTest, updateParams) {
   status.sampleIndex = 0;
 
   size_t layerDepth = 2;
-  netfloat_t learnRate = 0.47;
+  netfloat_t learnRate = 0.47f;
 
   Config config;
   config.setNumber("depth", layerDepth);
@@ -324,25 +324,25 @@ TEST_F(GpuConvolutionalLayerTest, updateParams) {
 
   Kernel K1{
     {
-      { 0.5, 0.3 },
-      { 0.1, 0.2 }
+      { 0.5f, 0.3f },
+      { 0.1f, 0.2f }
     }, {
-      { 0.8, 0.4 },
-      { 0.5, 0.3 }
+      { 0.8f, 0.4f },
+      { 0.5f, 0.3f }
     }
   };
 
   Kernel K2{
     {
-      { 0.2, 0.4 },
-      { 0.5, 0.6 }
+      { 0.2f, 0.4f },
+      { 0.5f, 0.6f }
     }, {
-      { 0.4, 0.1 },
-      { 0.2, 0.9 }
+      { 0.4f, 0.1f },
+      { 0.2f, 0.9f }
     }
   };
 
-  Vector B{ 9, 5 };
+  Vector B{ 9.f, 5.f };
   DataArray K = DataArray::concat({ K1.storage(), K2.storage() });
 
   layer.test_setKernels(K);
@@ -355,26 +355,26 @@ TEST_F(GpuConvolutionalLayerTest, updateParams) {
 
   Kernel deltaK1{
     {
-      { 0.1, 0.2 },
-      { 0.6, 0.4 }
+      { 0.1f, 0.2f },
+      { 0.6f, 0.4f }
     }, {
-      { 0.8, 0.7 },
-      { 0.5, 0.8 }
+      { 0.8f, 0.7f },
+      { 0.5f, 0.8f }
     }
   };
 
   Kernel deltaK2{
     {
-      { 0.1, 0.5 },
-      { 0.9, 0.7 }
+      { 0.1f, 0.5f },
+      { 0.9f, 0.7f }
     }, {
-      { 0.3, 0.2 },
-      { 0.3, 0.6 }
+      { 0.3f, 0.2f },
+      { 0.3f, 0.6f }
     }
   };
 
   DataArray deltaK = DataArray::concat({ deltaK1.storage(), deltaK2.storage() });
-  Vector deltaB{ 6, 2 };
+  Vector deltaB{ 6.f, 2.f };
 
   gpu->submitBufferData(layer.test_deltaKBuffer(), deltaK.data());
   gpu->submitBufferData(layer.test_deltaBBuffer(), deltaB.data());

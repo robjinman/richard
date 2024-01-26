@@ -56,7 +56,7 @@ TEST_F(CpuNeuralNetTest, evaluate) {
   Config config = Config::fromJson(configString);
   CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);
 
-  Sample sample("a", Array3({{{ 0.5, 0.3, 0.7 }}}));
+  Sample sample("a", Array3({{{ 0.5f, 0.3f, 0.7f }}}));
   auto loadSample = [&sample](std::vector<Sample>& samples) {
     samples.push_back(sample);
     return 1;
@@ -69,27 +69,27 @@ TEST_F(CpuNeuralNetTest, evaluate) {
   ON_CALL(dataSet, loadSamples).WillByDefault(testing::Invoke(loadSample));
 
   Matrix W0({
-    { 0.2, 0.3, 0.4 },
-    { 0.5, 0.4, 0.3 },
-    { 0.6, 0.7, 0.1 },
-    { 0.2, 0.9, 0.8 }
+    { 0.2f, 0.3f, 0.4f },
+    { 0.5f, 0.4f, 0.3f },
+    { 0.6f, 0.7f, 0.1f },
+    { 0.2f, 0.9f, 0.8f }
   });
-  Vector B0({ 0.4, 0.1, 0.2, 0.5 });
+  Vector B0({ 0.4f, 0.1f, 0.2f, 0.5f });
 
   Matrix W1({
-    { 0.4, 0.3, 0.1, 0.3 },
-    { 0.2, 0.4, 0.3, 0.8 },
-    { 0.7, 0.4, 0.9, 0.2 },
-    { 0.6, 0.1, 0.6, 0.5 },
-    { 0.8, 0.7, 0.2, 0.1 }
+    { 0.4f, 0.3f, 0.1f, 0.3f },
+    { 0.2f, 0.4f, 0.3f, 0.8f },
+    { 0.7f, 0.4f, 0.9f, 0.2f },
+    { 0.6f, 0.1f, 0.6f, 0.5f },
+    { 0.8f, 0.7f, 0.2f, 0.1f }
   });
-  Vector B1({ 0.2, 0.3, 0.1, 0.2, 0.6 });
+  Vector B1({ 0.2f, 0.3f, 0.1f, 0.2f, 0.6f });
 
   Matrix W2({
-    { 0.1, 0.4, 0.5, 0.2, 0.8 },
-    { 0.9, 0.8, 0.6, 0.1, 0.7 }
+    { 0.1f, 0.4f, 0.5f, 0.2f, 0.8f },
+    { 0.9f, 0.8f, 0.6f, 0.1f, 0.7f }
   });
-  Vector B2({ 0.6, 0.8 });
+  Vector B2({ 0.6f, 0.8f });
 
   dynamic_cast<DenseLayer&>(net->test_getLayer(0)).test_setWeights(W0.storage());
   dynamic_cast<DenseLayer&>(net->test_getLayer(0)).test_setBiases(B0.storage());
@@ -172,8 +172,8 @@ TEST_F(CpuNeuralNetTest, evaluateTrivialConvVsFullyConnected) {
     logger);
 
   Sample sample("a", Array3({{
-    { 0.5, 0.4 },
-    { 0.7, 0.6 },
+    { 0.5f, 0.4f },
+    { 0.7f, 0.6f },
    }}));
   auto loadSample = [&sample](std::vector<Sample>& samples) {
     samples.push_back(sample);
@@ -189,22 +189,22 @@ TEST_F(CpuNeuralNetTest, evaluateTrivialConvVsFullyConnected) {
   ConvolutionalLayer::Filter filter;
   filter.K = Kernel({
     {
-      { 1.0 }
+      { 1.f }
     }
   });
   filter.b = 0.0;
 
   Matrix denseW({
-    { 0.1, 0.4, 0.3, 0.2 },
-    { 0.9, 0.3, 0.1, 0.5 }
+    { 0.1f, 0.4f, 0.3f, 0.2f },
+    { 0.9f, 0.3f, 0.1f, 0.5f }
   });
-  Vector denseB({ 0.7, 0.8 });
+  Vector denseB({ 0.7f, 0.8f });
 
   Matrix outW({
-    { 0.4, 0.2 },
-    { 0.5, 0.6 }
+    { 0.4f, 0.2f },
+    { 0.5f, 0.6f }
   });
-  Vector outB({ 0.1, 0.2 });
+  Vector outB({ 0.1f, 0.2f });
 
   dynamic_cast<ConvolutionalLayer&>(convNet->test_getLayer(0)).test_setFilters({ filter });
   dynamic_cast<DenseLayer&>(convNet->test_getLayer(2)).test_setWeights(denseW.storage());
@@ -260,11 +260,11 @@ TEST_F(CpuNeuralNetTest, evaluateConv) {
   CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);
 
   Sample sample("a", Array3({{
-    { 0.5, 0.4, 0.3, 0.9, 0.8 },
-    { 0.7, 0.6, 0.9, 0.2, 0.5 },
-    { 0.5, 0.5, 0.1, 0.6, 0.3 },
-    { 0.4, 0.1, 0.8, 0.2, 0.7 },
-    { 0.2, 0.3, 0.7, 0.1, 0.4 }
+    { 0.5f, 0.4f, 0.3f, 0.9f, 0.8f },
+    { 0.7f, 0.6f, 0.9f, 0.2f, 0.5f },
+    { 0.5f, 0.5f, 0.1f, 0.6f, 0.3f },
+    { 0.4f, 0.1f, 0.8f, 0.2f, 0.7f },
+    { 0.2f, 0.3f, 0.7f, 0.1f, 0.4f }
    }}));
   auto loadSample = [&sample](std::vector<Sample>& samples) {
     samples.push_back(sample);
@@ -280,26 +280,26 @@ TEST_F(CpuNeuralNetTest, evaluateConv) {
   ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({
     {
-      { 0.5, 0.3 },
-      { 0.1, 0.2 }
+      { 0.5f, 0.3f },
+      { 0.1f, 0.2f }
     }
   });
-  filter0.b = 0.7;
+  filter0.b = 0.7f;
 
   ConvolutionalLayer::Filter filter1;
   filter1.K = Kernel({
     {
-      { 0.8, 0.4 },
-      { 0.5, 0.3 }
+      { 0.8f, 0.4f },
+      { 0.5f, 0.3f }
     }
   });
-  filter1.b = 0.3;
+  filter1.b = 0.3f;
 
   Matrix outW({
-    { 0.1, 0.4, 0.3, 0.2, 0.5, 0.2, 0.8, 0.1 },
-    { 0.9, 0.3, 0.1, 0.5, 0.8, 0.4, 0.4, 0.9 }
+    { 0.1f, 0.4f, 0.3f, 0.2f, 0.5f, 0.2f, 0.8f, 0.1f },
+    { 0.9f, 0.3f, 0.1f, 0.5f, 0.8f, 0.4f, 0.4f, 0.9f }
   });
-  Vector outB({ 0.0, 0.0 });
+  Vector outB({ 0.f, 0.f });
 
   dynamic_cast<ConvolutionalLayer&>(net->test_getLayer(0)).test_setFilters({ filter0, filter1 });
   dynamic_cast<OutputLayer&>(net->test_getLayer(2)).test_setWeights(outW.storage());

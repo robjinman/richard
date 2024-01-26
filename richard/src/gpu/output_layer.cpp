@@ -28,7 +28,7 @@ OutputLayer::OutputLayer(Gpu& gpu, FileSystem& fileSystem, const PlatformPaths& 
 
   initialize(config, inputSize);
 
-  m_W.randomize(0.1);
+  m_W.randomize(0.1f);
 }
 
 void OutputLayer::initialize(const Config& config, size_t inputSize) {

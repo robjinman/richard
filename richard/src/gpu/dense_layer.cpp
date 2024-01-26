@@ -40,7 +40,7 @@ void DenseLayer::initialize(const Config& config, size_t inputSize, bool isFirst
   m_B = Vector(m_size);
   m_W = Matrix(m_inputSize, m_size);
 
-  m_W.randomize(0.1);
+  m_W.randomize(0.1f);
 }
 
 void DenseLayer::allocateGpuBuffers() {

@@ -43,7 +43,7 @@ void ConvolutionalLayer::initialize(const Config& config, const Size3& inputShap
 
   for (size_t i = 0; i < depth; ++i) {
     m_filters.push_back(Filter{ Kernel(kernelSize[0], kernelSize[1], m_inputDepth), 0.f });
-    m_filters.back().K.randomize(0.1);
+    m_filters.back().K.randomize(0.1f);
 
     m_paramDeltas.push_back(Filter{ Kernel(kernelSize[0], kernelSize[1], m_inputDepth), 0.f });
   }
@@ -96,8 +96,8 @@ void ConvolutionalLayer::trainForward(const DataArray& inputs) {
     return rand() / (RAND_MAX + 1.0) < m_dropoutRate;
   };
   
-  auto reluWithDropout = [&](netfloat_t x) {
-    return shouldDrop() ? 0.0 : relu(x); 
+  auto reluWithDropout = [&](netfloat_t x) -> netfloat_t {
+    return shouldDrop() ? 0.f : relu(x); 
   };
 
   ConstArray3Ptr pX = Array3::createShallow(inputs, m_inputW, m_inputH, m_inputDepth);
@@ -174,7 +174,7 @@ void ConvolutionalLayer::updateDeltas(const DataArray& layerInputs, const DataAr
 }
 
 void ConvolutionalLayer::updateParams(size_t epoch) {
-  netfloat_t learnRate = m_learnRate * pow(m_learnRateDecay, epoch);
+  netfloat_t learnRate = m_learnRate * static_cast<netfloat_t>(pow(m_learnRateDecay, epoch));
 
   for (size_t slice = 0; slice < m_filters.size(); ++slice) {
     m_filters[slice].K -= m_paramDeltas[slice].K * learnRate;

@@ -34,7 +34,7 @@ TEST_F(GpuTest, bufferSubmitAndRetrieve) {
 
   std::array<netfloat_t, 16> data;
   for (size_t i = 0; i < data.size(); ++i) {
-    data[i] = i;
+    data[i] = static_cast<netfloat_t>(i);
   }
 
   GpuBuffer buffer = gpu->allocateBuffer(data.size() * sizeof(netfloat_t), GpuBufferFlags::large);
@@ -56,7 +56,7 @@ TEST_F(GpuTest, runShader) {
   std::array<netfloat_t, bufferSize> data{};
 
   for (size_t i = 0; i < data.size(); ++i) {
-    data[i] = i;
+    data[i] = static_cast<netfloat_t>(i);
   }
 
   GpuBuffer buffer = gpu->allocateBuffer(data.size() * sizeof(netfloat_t), GpuBufferFlags::large);
@@ -75,7 +75,7 @@ TEST_F(GpuTest, runShader) {
   gpu->flushQueue();
 
   std::array<netfloat_t, bufferSize> expected{};
-  std::transform(data.begin(), data.end(), expected.begin(), [](netfloat_t x) { return x * 2.0; });
+  std::transform(data.begin(), data.end(), expected.begin(), [](netfloat_t x) { return x * 2.f; });
 
   gpu->retrieveBuffer(buffer.handle, data.data());
 

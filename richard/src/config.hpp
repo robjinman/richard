@@ -86,7 +86,7 @@ class Config {
     bool operator==(const Config& rhs) const;
     bool operator!=(const Config& rhs) const;
 
-    friend class ConfigMaker;
+    friend struct ConfigMaker;
 
     static Config fromJson(const std::string& json);
     static Config fromJson(std::istream& stream);

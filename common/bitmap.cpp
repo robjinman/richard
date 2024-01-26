@@ -30,7 +30,7 @@ Bitmap loadBitmap(const std::string& path) {
   fin.seekg(bmpHeader.fileHdr.offset);
 
   size_t rowBytes = size[1] * channels;
-  size_t paddedRowBytes = ceil(0.25 * rowBytes) * 4;
+  size_t paddedRowBytes = static_cast<size_t>(ceil(0.25 * rowBytes)) * 4;
   size_t rowPadding = paddedRowBytes - rowBytes;
 
   char* ptr = reinterpret_cast<char*>(data);
@@ -49,12 +49,12 @@ void saveBitmap(const Bitmap& bitmap, const std::string& path) {
     EXCEPTION("Error saving bitmap at " << path);
   }
 
-  size_t rows = bitmap.size()[0];
-  size_t cols = bitmap.size()[1];
-  size_t channels = bitmap.size()[2];
-  size_t paddedRowSize = ceil(0.25 * cols * channels) * 4;
-  size_t rowPadding = paddedRowSize - cols * channels;
-  size_t rawSize = rows * paddedRowSize * channels;
+  uint32_t rows = static_cast<uint32_t>(bitmap.size()[0]);
+  uint32_t cols = static_cast<uint32_t>(bitmap.size()[1]);
+  uint16_t channels = static_cast<uint16_t>(bitmap.size()[2]);
+  uint32_t paddedRowSize = static_cast<uint32_t>(ceil(0.25 * cols * channels)) * 4;
+  uint32_t rowPadding = paddedRowSize - cols * channels;
+  uint32_t rawSize = rows * paddedRowSize * channels;
 
   BmpHeader bmpHeader(cols, rows, channels, rawSize);
   fout.write(reinterpret_cast<char*>(&bmpHeader), sizeof(bmpHeader));

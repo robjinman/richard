@@ -20,7 +20,7 @@ namespace {
 
 const NeuralNet::CostFn quadradicCost = [](const Vector& actual, const Vector& expected) {
   DBG_ASSERT(actual.size() == expected.size());
-  return (expected - actual).squareMagnitude() * 0.5;
+  return (expected - actual).squareMagnitude() * netfloat_t(0.5);
 };
 
 struct StatusBuffer {
@@ -266,7 +266,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(m_statusBuffer.data);
 
   m_abort = false;
-  for (size_t epoch = 0; epoch < m_params.epochs; ++epoch) {
+  for (uint32_t epoch = 0; epoch < static_cast<uint32_t>(m_params.epochs); ++epoch) {
     if (m_abort) {
       break;
     }
@@ -285,7 +285,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
         loadSampleBuffers(trainingData, samples.data() + sampleCursor, miniBatchSize);
 
         status.sampleIndex = 0;
-        for (size_t s = 0; s < miniBatchSize; ++s) {
+        for (uint32_t s = 0; s < miniBatchSize; ++s) {
           for (const LayerPtr& layer : m_layers) {
             layer->trainForward();
           }
