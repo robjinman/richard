@@ -16,9 +16,11 @@ class ClassifierTrainingAppTest : public testing::Test {
 TEST_F(ClassifierTrainingAppTest, exampleConfig) {
   Config config = ClassifierTrainingApp::exampleConfig();
 
-  NiceMock<MockFileSystem> fileSystem;
-  NiceMock<MockPlatformPaths> platformPaths;
+  NiceMock<MockFileSystem> mockFileSystem;
+  auto platformPaths = createPlatformPaths();
   NiceMock<MockLogger> logger;
+
+  auto fileSystem = createFileSystem();
 
   ClassifierTrainingApp::Options opts;
   opts.samplesPath = "samples.csv";
@@ -29,14 +31,17 @@ TEST_F(ClassifierTrainingAppTest, exampleConfig) {
   std::unique_ptr<std::istream> configStream = std::make_unique<std::stringstream>(config.dump());
   std::unique_ptr<std::ostream> saveFileStream = std::make_unique<std::stringstream>();
 
-  ON_CALL(fileSystem, openFileForReading(std::filesystem::path("samples.csv")))
+  ON_CALL(mockFileSystem, openFileForReading(std::filesystem::path("samples.csv")))
     .WillByDefault(testing::Return(testing::ByMove(std::move(samplesStream))));
 
-  ON_CALL(fileSystem, openFileForReading(std::filesystem::path("config.json")))
+  ON_CALL(mockFileSystem, openFileForReading(std::filesystem::path("config.json")))
     .WillByDefault(testing::Return(testing::ByMove(std::move(configStream))));
 
-  ON_CALL(fileSystem, openFileForWriting(std::filesystem::path("savefile")))
+  ON_CALL(mockFileSystem, openFileForWriting(std::filesystem::path("savefile")))
     .WillByDefault(testing::Return(testing::ByMove(std::move(saveFileStream))));
 
-  ClassifierTrainingApp app(fileSystem, platformPaths, opts, logger);
+  ON_CALL(mockFileSystem, loadBinaryFile(testing::_))
+    .WillByDefault(testing::Invoke(fileSystem.get(), &FileSystem::loadBinaryFile));
+
+  ClassifierTrainingApp app(mockFileSystem, *platformPaths, opts, logger);
 }
