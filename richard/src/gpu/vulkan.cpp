@@ -600,23 +600,36 @@ void Vulkan::pickPhysicalDevice() {
   VK_CHECK(vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data()),
     "Failed to enumerate physical devices");
 
-  m_physicalDevice = devices[0];
-
   VkPhysicalDeviceProperties props{};
-  vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
-  m_deviceLimits = props.limits;
 
-  DBG_LOG(m_logger, "Physical device properties");
-  DBG_LOG(m_logger, STR("  maxComputeWorkGroupSize: "
-    << m_deviceLimits.maxComputeWorkGroupSize[0] << ", "
-    << m_deviceLimits.maxComputeWorkGroupSize[1] << ", "
-    << m_deviceLimits.maxComputeWorkGroupSize[2]));
-  DBG_LOG(m_logger, STR("  maxComputeWorkGroupCount: "
-    << m_deviceLimits.maxComputeWorkGroupCount[0] << ", "
-    << m_deviceLimits.maxComputeWorkGroupCount[1] << ", "
-    << m_deviceLimits.maxComputeWorkGroupCount[2]));
-  DBG_LOG(m_logger, STR("  maxComputeWorkGroupInvocations: "
-    << m_deviceLimits.maxComputeWorkGroupInvocations));
+  size_t index = 0;
+  for (; index < deviceCount; ++index) {
+    vkGetPhysicalDeviceProperties(devices[index], &props);
+    m_deviceLimits = props.limits;
+
+    DBG_LOG(m_logger, STR("Device: " << props.deviceName));
+    DBG_LOG(m_logger, STR("Type: " << props.deviceType));
+
+    DBG_LOG(m_logger, "Physical device properties");
+    DBG_LOG(m_logger, STR("  maxComputeWorkGroupSize: "
+      << m_deviceLimits.maxComputeWorkGroupSize[0] << ", "
+      << m_deviceLimits.maxComputeWorkGroupSize[1] << ", "
+      << m_deviceLimits.maxComputeWorkGroupSize[2]));
+    DBG_LOG(m_logger, STR("  maxComputeWorkGroupCount: "
+      << m_deviceLimits.maxComputeWorkGroupCount[0] << ", "
+      << m_deviceLimits.maxComputeWorkGroupCount[1] << ", "
+      << m_deviceLimits.maxComputeWorkGroupCount[2]));
+    DBG_LOG(m_logger, STR("  maxComputeWorkGroupInvocations: "
+      << m_deviceLimits.maxComputeWorkGroupInvocations));
+
+    if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+      break;
+    }
+  }
+
+  DBG_LOG(m_logger, STR("Selecting " << props.deviceName));
+
+  m_physicalDevice = devices[index];
 }
 
 uint32_t Vulkan::findComputeQueueFamily() const {
