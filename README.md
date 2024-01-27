@@ -42,18 +42,20 @@ Install development dependencies
 
 #### Compile
 
-From the richard subdirectory, to make a release build, run
+From the richard subdirectory, to make a release build
 
 ```
-    cmake -B build/release -D CMAKE_BUILD_TYPE=Release
-    cmake --build build/release
+    mkdir -p build/release && cd "$_"
+    cmake -D CMAKE_BUILD_TYPE=Release -G "Unix Makefiles" ../..
+    make -j8
 ```
 
-And for a debug build:
+And for a debug build
 
 ```
-    cmake -B build/debug -D CMAKE_BUILD_TYPE=Debug
-    cmake --build build/debug
+    mkdir -p build/debug && cd "$_"
+    cmake -D CMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" ../..
+    make -j8
 ```
 
 ### Windows
@@ -64,20 +66,26 @@ Install CMake, Python 3, and the Vulkan SDK.
 
 #### Compile
 
-From the richard subdirectory, run
+To build the release configuration, open a powershell in the richard subdirectory and run
 
 ```
-    mkdir build\release
-    cd build\release
-
-    cmake -D CMAKE_BUILD_TYPE=Release -G "Visual Studio 16 2019" ..\..
+    cd (mkdir build/release)
+    cmake -D CMAKE_BUILD_TYPE=Release -G "Visual Studio 17 2022" ../..
     cmake --build . --config Release
+```
+
+And for the debug configuration
+
+```
+    cd (mkdir build/debug)
+    cmake -D CMAKE_BUILD_TYPE=Debug -G "Visual Studio 17 2022" ../..
+    cmake --build . --config Debug
 ```
 
 Usage
 -----
 
-To see usage, run
+To see usage
 
 ```
     ./richard -h
