@@ -44,28 +44,6 @@ size_t lowestDivisor(size_t value) {
   return value;
 }
 
-void optimumWorkgroups(const Size3& workSize, size_t maxWorkgroupSize, Size3& workgroupSize,
-  Size3& numWorkgroups) {
-
-  workgroupSize = workSize;
-  numWorkgroups = { 1, 1, 1 };
-
-  while (calcProduct(workgroupSize) > maxWorkgroupSize) {
-    size_t largest = 0;
-    size_t i = maxValue(workgroupSize, largest);
-
-    size_t scale = lowestDivisor(largest);
-
-    workgroupSize[i] /= scale;
-    numWorkgroups[i] *= scale;
-  }
-
-  for (size_t i = 0; i < 3; ++i) {
-    ASSERT_MSG(workgroupSize[i] * numWorkgroups[i] == workSize[i],
-      "Work size " << workSize[i] << " is not divisible by workgroup size " << workgroupSize[i]);
-  }
-}
-
 const std::vector<const char*> ValidationLayers = {
   "VK_LAYER_KHRONOS_validation"
 };
@@ -122,6 +100,7 @@ class Vulkan : public Gpu {
     Buffer& getBuffer(GpuBufferHandle handle);
     const Buffer& getBuffer(GpuBufferHandle handle) const;
     void beginCommandBuffer();
+    void optimumWorkgroups(const Size3& workSize, Size3& workgroupSize, Size3& numWorkgroups) const;
 
 #ifndef NDEBUG
     void setupDebugMessenger();
@@ -133,10 +112,11 @@ class Vulkan : public Gpu {
 #endif
 
     Logger& m_logger;
-    size_t m_maxWorkgroupSize;
+    uint32_t m_maxWorkgroupSize;
     VkInstance m_instance;
     VkDebugUtilsMessengerEXT m_debugMessenger;
     VkPhysicalDevice m_physicalDevice;
+    VkPhysicalDeviceLimits m_deviceLimits;
     VkDevice m_device;
     VkQueue m_computeQueue; // TODO: Separate queue for transfers?
     std::vector<Buffer> m_buffers;
@@ -151,10 +131,12 @@ class Vulkan : public Gpu {
 
 Vulkan::Vulkan(const Config& config, Logger& logger)
   : m_logger(logger)
-  , m_maxWorkgroupSize(config.contains("maxWorkgroupSize") ?
-      config.getNumber<size_t>("maxWorkgroupSize") :
-      DEFAULT_MAX_WORKGROUP_SIZE)
+  , m_maxWorkgroupSize(std::numeric_limits<uint32_t>::max())
   , m_commandBuffer(VK_NULL_HANDLE) {
+
+  if (config.contains("maxWorkgroupSize")) {
+    m_maxWorkgroupSize = config.getNumber<uint32_t>("maxWorkgroupSize");
+  }
 
   createVulkanInstance();
 #ifndef NDEBUG
@@ -312,10 +294,10 @@ ShaderHandle Vulkan::addShader([[maybe_unused]] const std::string& name,
 
   Size3 workgroupSize;
   Size3 numWorkgroups;
-  optimumWorkgroups(workSize, m_maxWorkgroupSize, workgroupSize, numWorkgroups);
+  optimumWorkgroups(workSize, workgroupSize, numWorkgroups);
 
-  DBG_LOG(m_logger, STR("Compiling '" << name << "' shader"));
-  DBG_LOG(m_logger, STR("  Total threads: " << calcProduct(workSize)));
+  DBG_LOG(m_logger, STR("Adding '" << name << "' shader"));
+  DBG_LOG(m_logger, STR("  Total invocations: " << calcProduct(workSize)));
   DBG_LOG(m_logger, STR("  Work size: " << workSize));
   DBG_LOG(m_logger, STR("  Workgroup size: " << workgroupSize));
   DBG_LOG(m_logger, STR("  Num workgroups: " << numWorkgroups));
@@ -567,6 +549,44 @@ std::vector<const char*> getRequiredExtensions() {
   return extensions;
 }
 
+void Vulkan::optimumWorkgroups(const Size3& workSize, Size3& workgroupSize,
+  Size3& numWorkgroups) const {
+
+  workgroupSize = workSize;
+  numWorkgroups = { 1, 1, 1 };
+
+  auto workSizeOk = [&]() {
+    size_t invocations = calcProduct(workgroupSize);
+    uint32_t maxInvocations =
+      std::min(m_maxWorkgroupSize, m_deviceLimits.maxComputeWorkGroupInvocations);
+
+    if (invocations > maxInvocations) {
+      return false;
+    }
+    for (size_t i = 0; i < 3; ++i) {
+      if (workgroupSize[i] > m_deviceLimits.maxComputeWorkGroupSize[i]) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  while (!workSizeOk()) {
+    size_t largest = 0;
+    size_t i = maxValue(workgroupSize, largest);
+
+    size_t scale = lowestDivisor(largest);
+
+    workgroupSize[i] /= scale;
+    numWorkgroups[i] *= scale;
+  }
+
+  for (size_t i = 0; i < 3; ++i) {
+    ASSERT_MSG(workgroupSize[i] * numWorkgroups[i] == workSize[i],
+      "Work size " << workSize[i] << " is not divisible by workgroup size " << workgroupSize[i]);
+  }
+}
+
 void Vulkan::pickPhysicalDevice() {
   uint32_t deviceCount = 0;
   VK_CHECK(vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr),
@@ -581,6 +601,22 @@ void Vulkan::pickPhysicalDevice() {
     "Failed to enumerate physical devices");
 
   m_physicalDevice = devices[0];
+
+  VkPhysicalDeviceProperties props{};
+  vkGetPhysicalDeviceProperties(m_physicalDevice, &props);
+  m_deviceLimits = props.limits;
+
+  DBG_LOG(m_logger, "Physical device properties");
+  DBG_LOG(m_logger, STR("  maxComputeWorkGroupSize: "
+    << m_deviceLimits.maxComputeWorkGroupSize[0] << ", "
+    << m_deviceLimits.maxComputeWorkGroupSize[1] << ", "
+    << m_deviceLimits.maxComputeWorkGroupSize[2]));
+  DBG_LOG(m_logger, STR("  maxComputeWorkGroupCount: "
+    << m_deviceLimits.maxComputeWorkGroupCount[0] << ", "
+    << m_deviceLimits.maxComputeWorkGroupCount[1] << ", "
+    << m_deviceLimits.maxComputeWorkGroupCount[2]));
+  DBG_LOG(m_logger, STR("  maxComputeWorkGroupInvocations: "
+    << m_deviceLimits.maxComputeWorkGroupInvocations));
 }
 
 uint32_t Vulkan::findComputeQueueFamily() const {
