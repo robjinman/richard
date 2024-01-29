@@ -1,9 +1,10 @@
+#include "bitmap.hpp"
 #include <iostream>
 #include <filesystem>
 #include <fstream>
 #include <vector>
 #include <algorithm>
-#include "bitmap.hpp"
+#include <sstream>
 
 using namespace cpputils;
 
@@ -11,10 +12,8 @@ namespace {
 
 const std::string DESCRIPTION = "Convert between csv and bmp";
 
-void bmpToCsv(const std::string& bmpFilePath) {
+void bmpToCsv(const std::filesystem::path& bmpFilePath) {
   Bitmap bm = loadBitmap(bmpFilePath);
-
-  //std::cout << "Size = " << bm.size()[0] << ", " << bm.size()[1] << ", " << bm.size()[2] << "\n";
 
   size_t Y = bm.size()[0];
   size_t X = bm.size()[1];
@@ -59,10 +58,10 @@ int main(int argc, char** argv) {
     size_t H = std::stoul(strHeight);
     size_t bmSize[] = { H, W, 3 };
 
-    std::ifstream fin(csvFile);
+    std::ifstream stream(csvFile);
 
     std::string line;
-    std::getline(fin, line);
+    std::getline(stream, line);
 
     std::stringstream ss{line};
     while (ss.good()) {
@@ -73,7 +72,7 @@ int main(int argc, char** argv) {
     }
 
     size_t imageId = 0;
-    while (std::getline(fin, line)) {
+    while (std::getline(stream, line)) {
       std::stringstream ss{line};
       std::string label = "0";
       std::getline(ss, label, ',');

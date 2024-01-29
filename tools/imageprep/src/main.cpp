@@ -1,9 +1,9 @@
+#include "bitmap.hpp"
+#include <jpeglib.h>
 #include <cstdio>
 #include <cstdlib>
-#include <jpeglib.h>
 #include <iostream>
 #include <filesystem>
-#include "bitmap.hpp"
 
 using namespace cpputils;
 

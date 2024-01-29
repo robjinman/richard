@@ -5,17 +5,17 @@
 
 namespace cpputils {
 
-Bitmap loadBitmap(const std::string& path) {
+Bitmap loadBitmap(const std::filesystem::path& path) {
   BmpHeader bmpHeader(0, 0, 0, 0);
 
   size_t headerSize = sizeof(BmpHeader);
 
-  std::ifstream fin(path, std::ios::binary);
-  if (!fin.good()) {
+  std::ifstream stream(path, std::ios::binary);
+  if (!stream.good()) {
     EXCEPTION("Error loading bitmap from " << path);
   }
 
-  fin.read(reinterpret_cast<char*>(&bmpHeader), headerSize);
+  stream.read(reinterpret_cast<char*>(&bmpHeader), headerSize);
 
   uint32_t channels = bmpHeader.imgHdr.bitCount / 8;
 
@@ -27,7 +27,7 @@ Bitmap loadBitmap(const std::string& path) {
   size_t bytes = size[0] * size[1] * size[2];
   uint8_t* data = new uint8_t[bytes];
 
-  fin.seekg(bmpHeader.fileHdr.offset);
+  stream.seekg(bmpHeader.fileHdr.offset);
 
   size_t rowBytes = size[1] * channels;
   size_t paddedRowBytes = static_cast<size_t>(ceil(0.25 * rowBytes)) * 4;
@@ -35,17 +35,17 @@ Bitmap loadBitmap(const std::string& path) {
 
   char* ptr = reinterpret_cast<char*>(data);
   for (size_t row = 0; row < size[0]; ++row) {
-    fin.read(ptr, rowBytes);
-    fin.ignore(rowPadding);
+    stream.read(ptr, rowBytes);
+    stream.ignore(rowPadding);
     ptr += rowBytes;
   }
 
   return Bitmap(data, size);
 }
 
-void saveBitmap(const Bitmap& bitmap, const std::string& path) {
-  std::ofstream fout(path, std::ios::binary);
-  if (!fout.good()) {
+void saveBitmap(const Bitmap& bitmap, const std::filesystem::path& path) {
+  std::ofstream stream(path, std::ios::binary);
+  if (!stream.good()) {
     EXCEPTION("Error saving bitmap at " << path);
   }
 
@@ -57,18 +57,18 @@ void saveBitmap(const Bitmap& bitmap, const std::string& path) {
   uint32_t rawSize = rows * paddedRowSize * channels;
 
   BmpHeader bmpHeader(cols, rows, channels, rawSize);
-  fout.write(reinterpret_cast<char*>(&bmpHeader), sizeof(bmpHeader));
+  stream.write(reinterpret_cast<char*>(&bmpHeader), sizeof(bmpHeader));
 
   char zeros[4];
   memset(zeros, 0, 4);
 
   const uint8_t* ptr = bitmap.data;
   for (size_t row = 0; row < rows; ++row) {
-    fout.write(reinterpret_cast<const char*>(ptr), cols * channels);
+    stream.write(reinterpret_cast<const char*>(ptr), cols * channels);
     ptr += cols * channels;
 
     assert(rowPadding <= 4);
-    fout.write(zeros, rowPadding);
+    stream.write(zeros, rowPadding);
   }
 }
 

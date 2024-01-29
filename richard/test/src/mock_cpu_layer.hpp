@@ -16,6 +16,6 @@ class MockCpuLayer : public cpu::Layer {
     MOCK_METHOD(void, updateDeltas, (const DataArray& inputs, const DataArray& outputDelta),
       (override));
     MOCK_METHOD(void, updateParams, (size_t epoch), (override));
-    MOCK_METHOD(void, writeToStream, (std::ostream& fout), (const, override));
+    MOCK_METHOD(void, writeToStream, (std::ostream& stream), (const, override));
 };
 

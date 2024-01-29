@@ -24,7 +24,7 @@ class Classifier {
       FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger,
       bool gpuAccelerated);
 
-    void writeToStream(std::ostream& fout) const;
+    void writeToStream(std::ostream& stream) const;
     void train(LabelledDataSet& trainingData);
     Results test(LabelledDataSet& testData) const;
 

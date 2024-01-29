@@ -1,8 +1,9 @@
 #pragma once
 
+#include "array.hpp"
 #include <cstdint>
 #include <cmath>
-#include "array.hpp"
+#include <filesystem>
 
 namespace cpputils {
 
@@ -52,7 +53,7 @@ struct BmpHeader {
 };
 #pragma pack(pop)
 
-Bitmap loadBitmap(const std::string& path);
-void saveBitmap(const Bitmap& bitmap, const std::string& path);
+Bitmap loadBitmap(const std::filesystem::path& path);
+void saveBitmap(const Bitmap& bitmap, const std::filesystem::path& path);
 
 }

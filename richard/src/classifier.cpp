@@ -61,10 +61,10 @@ Classifier::Classifier(const DataDetails& dataDetails, const Config& config,
   }
 }
 
-void Classifier::writeToStream(std::ostream& fout) const {
+void Classifier::writeToStream(std::ostream& stream) const {
   ASSERT_MSG(m_isTrained, "Classifier not trained");
 
-  m_neuralNet->writeToStream(fout);
+  m_neuralNet->writeToStream(stream);
 }
 
 void Classifier::train(LabelledDataSet& data) {
