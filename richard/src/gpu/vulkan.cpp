@@ -600,10 +600,10 @@ void Vulkan::pickPhysicalDevice() {
   VK_CHECK(vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data()),
     "Failed to enumerate physical devices");
 
-  VkPhysicalDeviceProperties props{};
+  VkPhysicalDeviceProperties props;
 
   size_t index = 0;
-  for (; index < deviceCount; ++index) {
+  for (size_t i = 0; i < deviceCount; ++i) {
     vkGetPhysicalDeviceProperties(devices[index], &props);
     m_deviceLimits = props.limits;
 
@@ -623,7 +623,7 @@ void Vulkan::pickPhysicalDevice() {
       << m_deviceLimits.maxComputeWorkGroupInvocations));
 
     if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-      break;
+      index = i;
     }
   }
 
