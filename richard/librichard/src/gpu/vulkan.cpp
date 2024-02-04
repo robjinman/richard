@@ -1,4 +1,4 @@
-#include "gpu.hpp"
+#include "gpu/gpu.hpp"
 #include "exception.hpp"
 #include "trace.hpp"
 #include "logger.hpp"

@@ -62,7 +62,7 @@ TEST_F(GpuTest, runShader) {
   GpuBuffer buffer = gpu->allocateBuffer(data.size() * sizeof(netfloat_t), GpuBufferFlags::large);
   gpu->submitBufferData(buffer.handle, data.data());
 
-  auto shaderCode = m_fileSystem->loadBinaryFile("test/shaders/simple_shader.spv");
+  auto shaderCode = m_fileSystem->loadBinaryFile("test_shaders/simple_shader.spv");
 
   GpuBufferBindings buffers{
     { buffer.handle, BufferAccessMode::write }
@@ -100,7 +100,7 @@ TEST_F(GpuTest, structuredBuffer) {
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(statusBuffer.data);
   status.cost = 100.0;
 
-  auto shaderCode = m_fileSystem->loadBinaryFile("test/shaders/structured_buffer.spv");
+  auto shaderCode = m_fileSystem->loadBinaryFile("test_shaders/structured_buffer.spv");
 
   GpuBufferBindings buffers{
     { statusBuffer.handle, BufferAccessMode::write }
@@ -136,7 +136,7 @@ TEST_F(GpuTest, matrixMultiply) {
   gpu->submitBufferData(bufferM.handle, M.data());
   gpu->submitBufferData(bufferV.handle, V.data());
 
-  auto shaderCode = m_fileSystem->loadBinaryFile("test/shaders/matrix_multiply.spv");
+  auto shaderCode = m_fileSystem->loadBinaryFile("test_shaders/matrix_multiply.spv");
 
   GpuBufferBindings buffers{
     { bufferM.handle, BufferAccessMode::read },
@@ -190,7 +190,7 @@ TEST_F(GpuTest, convolution) {
   gpu->submitBufferData(bufferX.handle, X.data());
   gpu->submitBufferData(bufferK.handle, K.data());
 
-  auto shaderCode = m_fileSystem->loadBinaryFile("test/shaders/convolution.spv");
+  auto shaderCode = m_fileSystem->loadBinaryFile("test_shaders/convolution.spv");
 
   Size3 workgroupSize{
     static_cast<uint32_t>(R.W()),
@@ -261,7 +261,7 @@ TEST_F(GpuTest, fullConvolution) {
   gpu->submitBufferData(bufferX.handle, X.data());
   gpu->submitBufferData(bufferK.handle, K.data());
 
-  auto shaderCode = m_fileSystem->loadBinaryFile("test/shaders/full_convolution.spv");
+  auto shaderCode = m_fileSystem->loadBinaryFile("test_shaders/full_convolution.spv");
 
   Size3 workgroupSize{
     static_cast<uint32_t>(R.W()),
