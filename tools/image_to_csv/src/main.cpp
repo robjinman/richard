@@ -63,32 +63,32 @@ int main(int argc, char** argv) {
     std::string line;
     std::getline(stream, line);
 
-    std::stringstream ss{line};
-    while (ss.good()) {
+    std::stringstream ssClasses{line};
+    while (ssClasses.good()) {
       std::string token;
-      std::getline(ss, token, ',');
+      std::getline(ssClasses, token, ',');
 
       std::filesystem::create_directories(outputDir/token);
     }
 
     size_t imageId = 0;
     while (std::getline(stream, line)) {
-      std::stringstream ss{line};
+      std::stringstream ssData{line};
       std::string label = "0";
-      std::getline(ss, label, ',');
+      std::getline(ssData, label, ',');
 
       Bitmap bm(bmSize);
 
-      for (size_t i = 0; ss.good(); ++i) {
+      for (size_t i = 0; ssData.good(); ++i) {
         std::string token;
-        std::getline(ss, token, ',');
+        std::getline(ssData, token, ',');
 
         size_t row = (H - 1 - i / W);
         size_t col = i % W;
 
-        bm[row][col][0] = std::stoi(token);
-        bm[row][col][1] = std::stoi(token);
-        bm[row][col][2] = std::stoi(token);
+        bm[row][col][0] = static_cast<uint8_t>(std::stoi(token));
+        bm[row][col][1] = static_cast<uint8_t>(std::stoi(token));
+        bm[row][col][2] = static_cast<uint8_t>(std::stoi(token));
       }
 
       std::filesystem::path outputPath = outputDir/label/(std::to_string(imageId) + ".bmp");

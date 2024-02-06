@@ -24,8 +24,7 @@ set(FETCHCONTENT_BASE_DIR ${CMAKE_SOURCE_DIR}/dependencies/${CMAKE_BUILD_TYPE})
 set(BOOST_INCLUDE_LIBRARIES program_options)
 set(BOOST_ENABLE_CMAKE ON)
 
-FetchContent_Declare(
-  Boost
+FetchContent_Declare(Boost
   URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
   URL_MD5 893b5203b862eb9bbd08553e24ff146a
   DOWNLOAD_EXTRACT_TIMESTAMP ON
@@ -33,16 +32,14 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Boost)
 
-FetchContent_Declare(
-  googletest
+FetchContent_Declare(googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
 
 FetchContent_MakeAvailable(googletest)
 
-FetchContent_Declare(
-  json
+FetchContent_Declare(json
   URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )
@@ -58,8 +55,7 @@ file(GLOB
 
 add_library(${RICHARD_LIB_TARGET} ${CPP_SOURCES})
 
-target_include_directories(
-  ${RICHARD_LIB_TARGET}
+target_include_directories(${RICHARD_LIB_TARGET}
   PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )

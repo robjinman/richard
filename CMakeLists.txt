@@ -14,6 +14,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 message("Building ${CMAKE_BUILD_TYPE} configuration...")
 
+include(ExternalProject)
+set_property(DIRECTORY PROPERTY EP_BASE ${PROJECT_SOURCE_DIR}/dependencies/${CMAKE_BUILD_TYPE})
+
 include(FetchContent)
 set(FETCHCONTENT_BASE_DIR ${PROJECT_SOURCE_DIR}/dependencies/${CMAKE_BUILD_TYPE})
 

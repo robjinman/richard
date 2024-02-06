@@ -22,8 +22,7 @@ file(GLOB
 
 add_executable(${IMAGE_TO_CSV_TARGET} ${CPP_SOURCES})
 
-target_include_directories(
-  ${IMAGE_TO_CSV_TARGET}
+target_include_directories(${IMAGE_TO_CSV_TARGET}
   PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )

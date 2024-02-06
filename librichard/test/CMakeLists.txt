@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-FetchContent_Declare(
-  googletest
+FetchContent_Declare(googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip
   DOWNLOAD_EXTRACT_TIMESTAMP ON
 )

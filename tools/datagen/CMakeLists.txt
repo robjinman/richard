@@ -17,8 +17,7 @@ file(GLOB CPP_SOURCES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 
 add_executable(datagen ${CPP_SOURCES})
 
-target_include_directories(
-  datagen
+target_include_directories(datagen
   PRIVATE
     "${PROJECT_SOURCE_DIR}/src"
 )

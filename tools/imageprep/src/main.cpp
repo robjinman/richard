@@ -28,7 +28,8 @@ Bitmap readJpegFile(const std::string& filename) {
 
   jpeg_create_decompress(&cinfo);
 
-  FILE* infile = fopen(filename.c_str(), "rb");
+  FILE* infile = nullptr;
+  fopen_s(&infile, filename.c_str(), "rb");
   if (infile == nullptr) {
     std::cerr << "Error opening file: " << filename << std::endl;
     exit(1);
@@ -94,7 +95,7 @@ Bitmap processImage(const Bitmap& srcImage) {
 
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   if (argc != 3) {
     std::cerr << "Usage: " << argv[0] << " input_dir output_dir" << std::endl;
     return 1;
@@ -110,7 +111,7 @@ int main(int argc, char **argv) {
       std::cout << "Processing file " << dirEntry.path() << "..." << std::endl;
 
       try {
-        Bitmap srcImage = readJpegFile(dirEntry.path());
+        Bitmap srcImage = readJpegFile(dirEntry.path().string());
         Bitmap finalImage = processImage(srcImage);
 
         saveBitmap(finalImage, outputDir/dirEntry.path().stem().concat(".bmp"));
