@@ -1,4 +1,4 @@
-#include "bitmap.hpp"
+#include <cpputils/bitmap.hpp>
 #include <iostream>
 #include <filesystem>
 #include <fstream>

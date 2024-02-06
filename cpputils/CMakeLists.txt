@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-set(PROJECT_NAME ImagePrep)
+set(PROJECT_NAME CppUtils)
 
 project(${PROJECT_NAME})
 
@@ -8,26 +8,23 @@ if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-message("Building ${CMAKE_BUILD_TYPE} configuration...")
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(IMAGE_PREP_TARGET imageprep)
-
-find_package(JPEG REQUIRED)
+set(CPP_UTILS_TARGET cpputils)
+set(CPP_UTILS_TARGET ${CPP_UTILS_TARGET} PARENT_SCOPE)
 
 file(GLOB
   CPP_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 
-add_executable(${IMAGE_PREP_TARGET} ${CPP_SOURCES})
+add_library(${CPP_UTILS_TARGET} ${CPP_SOURCES})
 
 target_include_directories(
-  ${IMAGE_PREP_TARGET}
-  PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+  ${CPP_UTILS_TARGET}
+  PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -46,16 +43,14 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   set(RELEASE_LINK_FLAGS ${LINK_FLAGS})
 endif()
 
-target_compile_options(${IMAGE_PREP_TARGET}
-  PRIVATE
+target_compile_options(${CPP_UTILS_TARGET}
+  PUBLIC
     "$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>"
     "$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>"
 )
 
-target_link_libraries(${IMAGE_PREP_TARGET}
-  PRIVATE
-    ${CPP_UTILS_TARGET}
-    JPEG::JPEG
+target_link_libraries(${CPP_UTILS_TARGET}
+  PUBLIC
     "$<$<CONFIG:DEBUG>:${DEBUG_LINK_FLAGS}>"
     "$<$<CONFIG:RELEASE>:${RELEASE_LINK_FLAGS}>"
 )

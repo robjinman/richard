@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.24)
 
 set(PROJECT_NAME ImageToCsv)
 
@@ -13,22 +13,46 @@ message("Building ${CMAKE_BUILD_TYPE} configuration...")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(IMAGE_TO_CSV_TARGET imagetocsv)
+
 file(GLOB
   CPP_SOURCES
-  "${PROJECT_SOURCE_DIR}/src/*.cpp"
-  "${PROJECT_SOURCE_DIR}/../common/*.cpp")
-
-add_executable(imagetocsv ${CPP_SOURCES})
-
-target_include_directories(
-  imagetocsv
-  PRIVATE
-    "${PROJECT_SOURCE_DIR}/src"
-    "${PROJECT_SOURCE_DIR}/../../common"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 
-set(COMPILER_FLAGS -Wextra -Wall)
-set(DEBUG_FLAGS ${COMPILER_FLAGS} -g)
-set(RELEASE_FLAGS ${COMPILER_FLAGS} -O3)
+add_executable(${IMAGE_TO_CSV_TARGET} ${CPP_SOURCES})
 
-target_compile_options(imagetocsv PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_FLAGS}>")
+target_include_directories(
+  ${IMAGE_TO_CSV_TARGET}
+  PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(COMPILE_FLAGS -Wextra -Wall)
+  set(DEBUG_COMPILE_FLAGS ${COMPILE_FLAGS} -g)
+  set(RELEASE_COMPILE_FLAGS ${COMPILE_FLAGS} -O3)
+  set(LINK_FLAGS)
+  set(DEBUG_LINK_FLAGS ${LINK_FLAGS})
+  set(RELEASE_LINK_FLAGS ${LINK_FLAGS})
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  set(COMPILE_FLAGS /W4)
+  set(DEBUG_COMPILE_FLAGS ${COMPILE_FLAGS})
+  set(RELEASE_COMPILE_FLAGS ${COMPILE_FLAGS} /O2)
+  set(LINK_FLAGS)
+  set(DEBUG_LINK_FLAGS ${LINK_FLAGS})
+  set(RELEASE_LINK_FLAGS ${LINK_FLAGS})
+endif()
+
+target_compile_options(${IMAGE_TO_CSV_TARGET}
+  PRIVATE
+    "$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>"
+    "$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>"
+)
+
+target_link_libraries(${IMAGE_TO_CSV_TARGET}
+  PRIVATE
+    ${CPP_UTILS_TARGET}
+    "$<$<CONFIG:DEBUG>:${DEBUG_LINK_FLAGS}>"
+    "$<$<CONFIG:RELEASE>:${RELEASE_LINK_FLAGS}>"
+)

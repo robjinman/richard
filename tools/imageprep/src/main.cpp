@@ -1,4 +1,4 @@
-#include "bitmap.hpp"
+#include <cpputils/bitmap.hpp>
 #include <jpeglib.h>
 #include <cstdio>
 #include <cstdlib>

@@ -42,7 +42,7 @@ Install development dependencies
 
 #### Compile
 
-From the richard subdirectory, to make a release build
+To make a release build
 
 ```
     mkdir -p build/release && cd "$_"
@@ -66,7 +66,7 @@ Install CMake, Python 3, and the Vulkan SDK.
 
 #### Compile
 
-To build the release configuration, open a powershell in the richard subdirectory and run
+To build the release configuration, open a powershell and run
 
 ```
     cd (mkdir build/release)
@@ -95,7 +95,7 @@ To see usage
 Examples
 --------
 
-All examples are run from the build directory, e.g. richard/build/release.
+All examples are run from the build directory, e.g. build/release.
 
 ### Classifying hand-written digits with a fully connected network
 
@@ -149,15 +149,16 @@ All examples are run from the build directory, e.g. richard/build/release.
 ```
 
 ```
-    ./richardcli --train \
+    ./richardcli/richardcli --train \
         --samples ../../../data/ocr/train.csv \
         --config ../../../data/ocr/config.json \
         --network ../../../data/ocr/network \
         --gpu
 
-    ./richardcli --eval \
+    ../richardcli/richardcli --eval \
         --samples ../../../data/ocr/test.csv \
-        --network ../../../data/ocr/network
+        --network ../../../data/ocr/network \
+        --gpu
 ```
 
 ### Classifying cats and dogs with a CNN
@@ -228,15 +229,16 @@ All examples are run from the build directory, e.g. richard/build/release.
 ```
 
 ```
-    ./richardcli --train \
+    ./richardcli/richardcli --train \
         --samples ../../../data/catdog/train \
         --config ../../../data/catdog/config.json \
         --network ../../../data/catdog/network \
         --gpu
 
-    ./richardcli --eval \
+    ./richardcli/richardcli --eval \
         --samples ../../../data/catdog/test \
-        --network ../../../data/catdog/network
+        --network ../../../data/catdog/network \
+        --gpu
 ```
 
 
@@ -247,12 +249,12 @@ If using VS Code, in your c_cpp_properties.json, set the include path as follows
 
 ```
     "includePath": [
-        "${workspaceFolder}/richard/**",
-        "${workspaceFolder}/richard/dependencies/Debug/json-src/include",
-        "${workspaceFolder}/richard/dependencies/Release/json-src/include",
-        "${workspaceFolder}/richard/dependencies/Debug/boost-src/libs",
-        "${workspaceFolder}/richard/dependencies/Release/boost-src/libs",
-        "${workspaceFolder}/richard/dependencies/Debug/googletest-src/googletest/include",
-        "${workspaceFolder}/richard/dependencies/Release/googletest-src/googletest/include",
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/dependencies/Debug/json-src/include",
+        "${workspaceFolder}/dependencies/Release/json-src/include",
+        "${workspaceFolder}/dependencies/Debug/boost-src/libs",
+        "${workspaceFolder}/dependencies/Release/boost-src/libs",
+        "${workspaceFolder}/dependencies/Debug/googletest-src/googletest/include",
+        "${workspaceFolder}/dependencies/Release/googletest-src/googletest/include",
     ],
 ```
