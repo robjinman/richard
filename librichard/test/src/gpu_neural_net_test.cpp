@@ -472,6 +472,8 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
   gpu::ShaderHandle computeCostsShader = gpu->addShader("compute_costs.spv", computeCostsShaderCode,
     computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(outputLayerSize), 1, 1 });
 
+  memset(costsBuffer.data, 0, costsBuffer.size);
+
   for (size_t i = 0; i < X.size(); ++i) {
     memcpy(bufferX.data, X[i].data(), inputSize * sizeof(netfloat_t));
     memcpy(bufferY.data, Y[i].data(), outputLayerSize * sizeof(netfloat_t));

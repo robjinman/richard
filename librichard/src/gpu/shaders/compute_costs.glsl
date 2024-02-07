@@ -37,6 +37,7 @@ void main() {
   writeCosts(index, cost + 0.5 * diff * diff);
 
   if (index == 0) {
+    barrier();
     Status.sampleIndex = (Status.sampleIndex + 1) % MINI_BATCH_SIZE;
   }
 }
