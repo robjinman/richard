@@ -82,20 +82,23 @@ And for the debug configuration
     cmake --build . --config Debug
 ```
 
+Supply the `-D BUILD_TOOLS=1` option if you want to build the tools.
+
+
 Usage
 -----
 
 To see usage
 
 ```
-    ./richardcli -h
+    ./richardcli/richardcli -h
 ```
 
 
 Examples
 --------
 
-All examples are run from the build directory, e.g. build/release.
+All examples are run from the build directory, e.g. build/release, and assume you have datasets located under data/.
 
 ### Classifying hand-written digits with a fully connected network
 
@@ -150,14 +153,14 @@ All examples are run from the build directory, e.g. build/release.
 
 ```
     ./richardcli/richardcli --train \
-        --samples ../../../data/ocr/train.csv \
-        --config ../../../data/ocr/config.json \
-        --network ../../../data/ocr/network \
+        --samples ../../data/ocr/train.csv \
+        --config ../../data/ocr/config.json \
+        --network ../../data/ocr/network \
         --gpu
 
     ../richardcli/richardcli --eval \
-        --samples ../../../data/ocr/test.csv \
-        --network ../../../data/ocr/network \
+        --samples ../../data/ocr/test.csv \
+        --network ../../data/ocr/network \
         --gpu
 ```
 
@@ -230,31 +233,13 @@ All examples are run from the build directory, e.g. build/release.
 
 ```
     ./richardcli/richardcli --train \
-        --samples ../../../data/catdog/train \
-        --config ../../../data/catdog/config.json \
-        --network ../../../data/catdog/network \
+        --samples ../../data/catdog/train \
+        --config ../../data/catdog/config.json \
+        --network ../../data/catdog/network \
         --gpu
 
     ./richardcli/richardcli --eval \
-        --samples ../../../data/catdog/test \
-        --network ../../../data/catdog/network \
+        --samples ../../data/catdog/test \
+        --network ../../data/catdog/network \
         --gpu
-```
-
-
-Development
------------
-
-If using VS Code, in your c_cpp_properties.json, set the include path as follows
-
-```
-    "includePath": [
-        "${workspaceFolder}/**",
-        "${workspaceFolder}/dependencies/Debug/json-src/include",
-        "${workspaceFolder}/dependencies/Release/json-src/include",
-        "${workspaceFolder}/dependencies/Debug/boost-src/libs",
-        "${workspaceFolder}/dependencies/Release/boost-src/libs",
-        "${workspaceFolder}/dependencies/Debug/googletest-src/googletest/include",
-        "${workspaceFolder}/dependencies/Release/googletest-src/googletest/include",
-    ],
 ```

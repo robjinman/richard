@@ -13,9 +13,6 @@ if (CPUPROF)
   endif()
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 set(BOOST_INCLUDE_LIBRARIES program_options)
 set(BOOST_ENABLE_CMAKE ON)
 

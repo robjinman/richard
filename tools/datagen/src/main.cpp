@@ -12,7 +12,7 @@ int main() {
 
   size_t N = 100;
 
-  for (int i = 0; i < N; ++i) {
+  for (size_t i = 0; i < N; ++i) {
     double aX = clusterAX(generator);
     double aY = clusterAY(generator);
 

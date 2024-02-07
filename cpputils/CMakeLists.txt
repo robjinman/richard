@@ -4,13 +4,6 @@ set(PROJECT_NAME CppUtils)
 
 project(${PROJECT_NAME})
 
-if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release")
-endif()
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 set(CPP_UTILS_TARGET cpputils)
 set(CPP_UTILS_TARGET ${CPP_UTILS_TARGET} PARENT_SCOPE)
 
@@ -21,8 +14,7 @@ file(GLOB
 
 add_library(${CPP_UTILS_TARGET} ${CPP_SOURCES})
 
-target_include_directories(
-  ${CPP_UTILS_TARGET}
+target_include_directories(${CPP_UTILS_TARGET}
   PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )

@@ -4,25 +4,16 @@ set(PROJECT_NAME ImageToCsv)
 
 project(${PROJECT_NAME})
 
-if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release")
-endif()
-
-message("Building ${CMAKE_BUILD_TYPE} configuration...")
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-set(IMAGE_TO_CSV_TARGET imagetocsv)
+set(TARGET_NAME imagetocsv)
 
 file(GLOB
   CPP_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
 
-add_executable(${IMAGE_TO_CSV_TARGET} ${CPP_SOURCES})
+add_executable(${TARGET_NAME} ${CPP_SOURCES})
 
-target_include_directories(${IMAGE_TO_CSV_TARGET}
+target_include_directories(${TARGET_NAME}
   PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
@@ -43,13 +34,13 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   set(RELEASE_LINK_FLAGS ${LINK_FLAGS})
 endif()
 
-target_compile_options(${IMAGE_TO_CSV_TARGET}
+target_compile_options(${TARGET_NAME}
   PRIVATE
     "$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>"
     "$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>"
 )
 
-target_link_libraries(${IMAGE_TO_CSV_TARGET}
+target_link_libraries(${TARGET_NAME}
   PRIVATE
     ${CPP_UTILS_TARGET}
     "$<$<CONFIG:DEBUG>:${DEBUG_LINK_FLAGS}>"

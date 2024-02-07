@@ -28,8 +28,12 @@ Bitmap readJpegFile(const std::string& filename) {
 
   jpeg_create_decompress(&cinfo);
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
   FILE* infile = nullptr;
   fopen_s(&infile, filename.c_str(), "rb");
+#else
+  FILE* infile = fopen(filename.c_str(), "rb");
+#endif
   if (infile == nullptr) {
     std::cerr << "Error opening file: " << filename << std::endl;
     exit(1);
