@@ -30,6 +30,10 @@ ClassifierEvalApp::ClassifierEvalApp(FileSystem& fileSystem, const PlatformPaths
   m_dataSet = std::make_unique<LabelledDataSet>(std::move(loader), m_dataDetails->classLabels);
 }
 
+std::string ClassifierEvalApp::name() const {
+  return "Classifier Evaluation";
+}
+
 void ClassifierEvalApp::start() {
   m_logger.info("Testing classifier");
 

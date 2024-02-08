@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.24)
 
 set(PROJECT_NAME Richard)
+set(RICHARD_VERSION_MAJOR 0)
+set(RICHARD_VERSION_MINOR 1)
 
 project(${PROJECT_NAME})
 

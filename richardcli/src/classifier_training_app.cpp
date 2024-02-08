@@ -26,11 +26,13 @@ ClassifierTrainingApp::ClassifierTrainingApp(FileSystem& fileSystem,
   m_dataSet = std::make_unique<LabelledDataSet>(std::move(loader), m_dataDetails->classLabels);
 }
 
+std::string ClassifierTrainingApp::name() const {
+  return "Classifier Training";
+}
+
 void ClassifierTrainingApp::start() {
   StdinMonitor stdinMonitor;
   stdinMonitor.onKey('q', [this]() { m_classifier->abort(); });
-
-  m_logger.info("Training classifier");
 
   m_classifier->train(*m_dataSet);
 

@@ -251,9 +251,12 @@ void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const 
 }
 
 void GpuNeuralNet::train(LabelledDataSet& trainingData) {
-  m_logger.info(STR("Epochs: " << m_params.epochs));
-  m_logger.info(STR("Batch size: " << m_params.batchSize));
-  m_logger.info(STR("Mini-batch size: " << m_params.miniBatchSize));
+  m_logger.info("Model hyper-parameters");
+  m_logger.info(STR("> Batch size: " << m_params.batchSize));
+  m_logger.info(STR("> Mini-batch size: " << m_params.miniBatchSize));
+  m_logger.info(STR("> Epochs: " << m_params.epochs));
+  m_logger.info(std::string(80, '~'));
+  m_logger.info("Richard is gaining power...");
 
   size_t miniBatchSize = m_params.miniBatchSize;
 
@@ -276,7 +279,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
     status.epoch = epoch;
     status.sampleIndex = 0;
 
-    m_logger.info(STR("Epoch " << epoch + 1 << "/" << m_params.epochs));
+    m_logger.info(STR("> Epoch " << epoch + 1 << "/" << m_params.epochs));
     size_t samplesProcessed = 0;
 
     std::vector<Sample> samples;
@@ -304,7 +307,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
         m_gpu->flushQueue();
 
         samplesProcessed += miniBatchSize;
-        m_logger.info(STR("\r  > " << samplesProcessed << "/" << m_params.batchSize), false);
+        m_logger.info(STR("\r  Sample: " << samplesProcessed << "/" << m_params.batchSize), false);
 
         if (samplesProcessed >= m_params.batchSize) {
           break;
@@ -324,7 +327,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
     }
     cost /= samplesProcessed;
 
-    m_logger.info(STR("\r  > cost = " << cost));
+    m_logger.info(STR("\r  Cost: " << cost << "           "));
 
     trainingData.seekToBeginning();
   }

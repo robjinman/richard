@@ -22,6 +22,7 @@ class ClassifierEvalApp : public Application {
     ClassifierEvalApp(FileSystem& fileSystem, const PlatformPaths& platformPaths,
       const Options& options, Logger& logger);
 
+    std::string name() const override;
     void start() override;
 
   private:

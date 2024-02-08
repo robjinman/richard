@@ -43,6 +43,11 @@ FetchContent_Declare(json
 
 FetchContent_MakeAvailable(json)
 
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/version_in.hpp"
+  "${CMAKE_CURRENT_BINARY_DIR}/include/richard/version.hpp"
+)
+
 file(GLOB
   CPP_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
@@ -53,6 +58,8 @@ file(GLOB
 add_library(${RICHARD_LIB_TARGET} ${CPP_SOURCES})
 
 target_include_directories(${RICHARD_LIB_TARGET}
+  PRIVATE
+    "${CMAKE_CURRENT_BINARY_DIR}/include"
   PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )

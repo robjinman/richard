@@ -23,6 +23,7 @@ class ClassifierTrainingApp : public Application {
     ClassifierTrainingApp(FileSystem& fileSystem, const PlatformPaths& platformPaths,
       const Options& options, Logger& logger);
 
+    std::string name() const override;
     void start() override;
 
     static const Config& exampleConfig();

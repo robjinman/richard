@@ -57,4 +57,8 @@ void setIntersection(const std::set<T>& A, const std::set<T>& B, std::set<T>& re
 
 std::ostream& operator<<(std::ostream& os, const Size3& size);
 
+uint32_t majorVersion();
+uint32_t minorVersion();
+std::string versionString();
+
 }

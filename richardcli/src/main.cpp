@@ -102,6 +102,25 @@ void printExampleConfig(Logger& logger, const std::string& appType) {
   logger.info(config.dump(4));
 }
 
+std::string writeBanner(const std::string& mode, bool gpu) {
+  const std::string separator(80, '~');
+
+  std::stringstream banner;
+  banner << separator << std::endl
+    << R"( _____  _____ _____ _    _          _____  _____     )" << std::endl
+    << R"(|  __ \|_   _/ ____| |  | |   /\   |  __ \|  __ \    )" << std::endl
+    << R"(| |__) | | || |    | |__| |  /  \  | |__) | |  | |   )" << std::endl
+    << R"(|  _  /  | || |    |  __  | / /\ \ |  _  /| |  | |   )" << std::endl
+    << R"(| | \ \ _| || |____| |  | |/ ____ \| | \ \| |__| |   )" << std::endl
+    << R"(|_|  \_\_____\_____|_|  |_/_/    \_\_|  \_\_____/    )" << std::endl
+    <<  "                                             " << versionString() << std::endl
+    <<  "[ Mode: " << mode << " ]" << std::endl
+    <<  "[ GPU accelaration: " << (gpu ? "\033[1;4;32mON\033[0m" : "OFF") << " ]" << std::endl
+    << separator << std::endl;
+
+  return banner.str();
+}
+
 }
 
 int main(int argc, char** argv) {
@@ -139,9 +158,13 @@ int main(int argc, char** argv) {
       return EXIT_SUCCESS;
     }
 
+    bool gpuAccelerated = vm.count("gpu");
+
     FileSystemPtr fileSystem = createFileSystem();
     PlatformPathsPtr platformPaths = createPlatformPaths();
     ApplicationPtr app = constructApp(*logger, *fileSystem, *platformPaths, vm);
+
+    logger->info(writeBanner(app->name(), gpuAccelerated), false);
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -149,6 +172,8 @@ int main(int argc, char** argv) {
 
     auto t2 = std::chrono::high_resolution_clock::now();
     long long elapsed = duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+
+    logger->info(std::string(80, '~'));
     logger->info(STR("Running time: " << elapsed << " milliseconds"));
   }
   catch (const std::exception& e) {

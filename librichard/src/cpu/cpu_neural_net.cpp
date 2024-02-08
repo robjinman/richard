@@ -180,9 +180,12 @@ void CpuNeuralNetImpl::updateParams(size_t epoch) {
 }
 
 void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
-  m_logger.info(STR("Epochs: " << m_params.epochs));
-  m_logger.info(STR("Batch size: " << m_params.batchSize));
-  m_logger.info(STR("Mini-batch size: " << m_params.miniBatchSize));
+  m_logger.info("Model hyper-parameters");
+  m_logger.info(STR("> Batch size: " << m_params.batchSize));
+  m_logger.info(STR("> Mini-batch size: " << m_params.miniBatchSize));
+  m_logger.info(STR("> Epochs: " << m_params.epochs));
+  m_logger.info(std::string(80, '~'));
+  m_logger.info("Richard is gaining power...");
 
   m_abort = false;
   for (uint32_t epoch = 0; epoch < m_params.epochs; ++epoch) {
@@ -190,7 +193,7 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
       break;
     }
 
-    m_logger.info(STR("Epoch " << epoch + 1 << "/" << m_params.epochs));
+    m_logger.info(STR("> Epoch " << epoch + 1 << "/" << m_params.epochs));
     netfloat_t cost = 0.0;
     size_t samplesProcessed = 0;
 
@@ -214,7 +217,7 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
           updateParams(epoch);
         }
 
-        m_logger.info(STR("\r  > " << samplesProcessed << "/" << m_params.batchSize), false);
+        m_logger.info(STR("\r  Sample: " << samplesProcessed << "/" << m_params.batchSize), false);
 
         if (samplesProcessed >= m_params.batchSize) {
           break;
@@ -229,7 +232,7 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
     }
 
     cost /= samplesProcessed;
-    m_logger.info(STR("\r  > cost = " << cost));
+    m_logger.info(STR("\r  Cost: " << cost << "            "));
 
     trainingData.seekToBeginning();
   }
