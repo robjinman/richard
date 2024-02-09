@@ -255,7 +255,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
   m_logger.info(STR("> Batch size: " << m_params.batchSize));
   m_logger.info(STR("> Mini-batch size: " << m_params.miniBatchSize));
   m_logger.info(STR("> Epochs: " << m_params.epochs));
-  m_logger.info(std::string(80, '~'));
+  m_logger.info(std::string(80, '-'));
   m_logger.info("Richard is gaining power...");
 
   size_t miniBatchSize = m_params.miniBatchSize;

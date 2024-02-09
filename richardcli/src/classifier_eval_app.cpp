@@ -35,9 +35,9 @@ std::string ClassifierEvalApp::name() const {
 }
 
 void ClassifierEvalApp::start() {
-  m_logger.info("Testing classifier");
-
   Classifier::Results results = m_classifier->test(*m_dataSet);
+
+  m_logger.info(std::string(80, '-'));
 
   m_logger.info(STR("Correct classifications: "
     << results.good << "/" << results.good + results.bad));
