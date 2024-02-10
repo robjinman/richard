@@ -4,7 +4,6 @@
 #include <richard/event_system.hpp>
 #include <richard/file_system.hpp>
 #include <richard/logger.hpp>
-#include <iostream>
 
 namespace richard {
 
@@ -56,7 +55,7 @@ void ClassifierTrainingApp::start() {
 
   auto onEpochComplete = [&](const Event& event) {
     const auto& e = dynamic_cast<const EEpochCompleted&>(event); 
-    m_outputter.printLine(STR("\r  Cost " << e.cost << "                      "));
+    m_outputter.printLine(STR("\r  Cost " << e.cost << std::string(10, ' ')));
   };
 
   auto hOnEpochStart = m_eventSystem.listen(hashString("epochStarted"), onEpochStart);
