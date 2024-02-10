@@ -496,12 +496,12 @@ void checkValidationLayerSupport() {
   }
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(
-  VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
-  const VkDebugUtilsMessengerCallbackDataEXT* data, void* userData) {
+VKAPI_ATTR VkBool32 VKAPI_CALL Vulkan::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT,
+  VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT* data,
+  void* userData) {
 
   Logger& logger = *reinterpret_cast<Logger*>(userData);
-  logger.info(STR("Validation layer: " << data->pMessage));
+  logger.debug(STR("Validation layer: " << data->pMessage));
 
   return VK_FALSE;
 }

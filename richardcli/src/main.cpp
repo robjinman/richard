@@ -154,8 +154,8 @@ int main(int argc, const char** argv) {
 
     if (vm.count("log")) {
       logStream = std::ofstream{vm.at("log").as<std::string>()};
-      vm.erase("log");
       logger = createLogger(logStream, logStream, logStream, logStream);
+      vm.erase("log");
     }
     else {
       logger = createLogger(std::cerr, std::cerr, std::cout, std::cout);

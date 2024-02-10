@@ -43,7 +43,7 @@ void ClassifierTrainingApp::start() {
   m_outputter.printSeparator();
   m_outputter.printLine("Richard is gaining power...");
 
-  auto onEpochStart = [&](const Event& event) {
+  auto onEpochStarted = [&](const Event& event) {
     const auto& e = dynamic_cast<const EEpochStarted&>(event); 
     m_outputter.printLine(STR("> Epoch " << e.epoch + 1 << "/" << e.epochs));
   };
@@ -53,13 +53,13 @@ void ClassifierTrainingApp::start() {
     m_outputter.printLine(STR("\r  Sample " << e.sample + 1 << "/" << e.samples), false);
   };
 
-  auto onEpochComplete = [&](const Event& event) {
+  auto onEpochCompleted = [&](const Event& event) {
     const auto& e = dynamic_cast<const EEpochCompleted&>(event); 
     m_outputter.printLine(STR("\r  Cost " << e.cost << std::string(10, ' ')));
   };
 
-  auto hOnEpochStart = m_eventSystem.listen(hashString("epochStarted"), onEpochStart);
-  auto hOnEpochComplete = m_eventSystem.listen(hashString("epochCompleted"), onEpochComplete);
+  auto hOnEpochStarted = m_eventSystem.listen(hashString("epochStarted"), onEpochStarted);
+  auto hOnEpochCompleted = m_eventSystem.listen(hashString("epochCompleted"), onEpochCompleted);
   auto hOnSampleProcessed = m_eventSystem.listen(hashString("sampleProcessed"), onSampleProcessed);
 
   m_classifier->train(*m_dataSet);
