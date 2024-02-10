@@ -48,7 +48,8 @@ void ClassifierEvalApp::start() {
   m_outputter.printSeparator();
 
   m_outputter.printLine(STR("Correct classifications: "
-    << results.good << "/" << results.good + results.bad));
+    << results.good << "/" << results.good + results.bad
+    << " = " << 100.f * (static_cast<float>(results.good) / (results.good + results.bad)) << "%"));
 
   m_outputter.printLine(STR("Average cost: " << results.cost));
 }
