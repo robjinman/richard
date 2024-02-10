@@ -282,7 +282,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
       break;
     }
 
-    m_eventSystem.raise(EEpochStart{epoch, m_params.epochs});
+    m_eventSystem.raise(EEpochStarted{epoch, m_params.epochs});
 
     memset(m_costsBuffer.data, 0, m_costsBuffer.size);
  
@@ -340,7 +340,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
     }
     cost /= samplesProcessed;
 
-    m_eventSystem.raise(EEpochComplete{epoch, m_params.epochs, cost});
+    m_eventSystem.raise(EEpochCompleted{epoch, m_params.epochs, cost});
 
     trainingData.seekToBeginning();
   }

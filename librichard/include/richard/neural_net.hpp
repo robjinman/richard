@@ -23,27 +23,31 @@ struct Hyperparams {
 
 struct ESampleProcessed : public Event {
   ESampleProcessed(uint32_t sample, uint32_t samples)
-    : Event(hashString("sampleProcessed"))
+    : Event(name)
     , sample(sample)
     , samples(samples) {}
 
   uint32_t sample;
   uint32_t samples;
+
+  static const hashedString_t name;
 };
 
-struct EEpochStart : public Event {
-  EEpochStart(uint32_t epoch, uint32_t epochs)
-    : Event(hashString("epochStart"))
+struct EEpochStarted : public Event {
+  EEpochStarted(uint32_t epoch, uint32_t epochs)
+    : Event(name)
     , epoch(epoch)
     , epochs(epochs) {}
 
   uint32_t epoch;
   uint32_t epochs;
+
+  static const hashedString_t name;
 };
 
-struct EEpochComplete : public Event {
-  EEpochComplete(uint32_t epoch, uint32_t epochs, netfloat_t cost)
-    : Event(hashString("epochComplete"))
+struct EEpochCompleted : public Event {
+  EEpochCompleted(uint32_t epoch, uint32_t epochs, netfloat_t cost)
+    : Event(name)
     , epoch(epoch)
     , epochs(epochs)
     , cost(cost) {}
@@ -51,6 +55,8 @@ struct EEpochComplete : public Event {
   uint32_t epoch;
   uint32_t epochs;
   netfloat_t cost;
+
+  static const hashedString_t name;
 };
 
 using ModelDetails = std::vector<std::pair<std::string, std::string>>;

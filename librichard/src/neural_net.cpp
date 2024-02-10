@@ -4,6 +4,10 @@
 
 namespace richard {
 
+const hashedString_t EEpochStarted::name = hashString("epochStarted");
+const hashedString_t EEpochCompleted::name = hashString("epochCompleted");
+const hashedString_t ESampleProcessed::name = hashString("sampleProcessed");
+
 Hyperparams::Hyperparams()
   : epochs(0)
   , batchSize(1000)

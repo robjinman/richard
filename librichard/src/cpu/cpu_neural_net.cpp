@@ -195,7 +195,7 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
       break;
     }
 
-    m_eventSystem.raise(EEpochStart{epoch, m_params.epochs});
+    m_eventSystem.raise(EEpochStarted{epoch, m_params.epochs});
 
     netfloat_t cost = 0.0;
     uint32_t samplesProcessed = 0;
@@ -239,7 +239,7 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
     }
 
     cost /= samplesProcessed;
-    m_eventSystem.raise(EEpochComplete{epoch, m_params.epochs, cost});
+    m_eventSystem.raise(EEpochCompleted{epoch, m_params.epochs, cost});
 
     trainingData.seekToBeginning();
   }
