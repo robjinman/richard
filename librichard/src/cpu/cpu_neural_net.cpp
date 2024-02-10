@@ -5,9 +5,8 @@
 #include "richard/cpu/cpu_neural_net.hpp"
 #include "richard/exception.hpp"
 #include "richard/labelled_data_set.hpp"
-#include "richard/logger.hpp"
 #include "richard/config.hpp"
-#include "richard/utils.hpp"
+#include "richard/event_system.hpp"
 #include <cmath>
 #include <fstream>
 #include <algorithm>
@@ -28,15 +27,16 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
   public:
     using CostFn = std::function<netfloat_t(const Vector&, const Vector&)>;
 
-    CpuNeuralNetImpl(const Size3& inputShape, const Config& config, Logger& logger);
+    CpuNeuralNetImpl(const Size3& inputShape, const Config& config, EventSystem& eventSystem);
     CpuNeuralNetImpl(const Size3& inputShape, const Config& config, std::istream& stream,
-      Logger& logger);
+      EventSystem& eventSystem);
 
     CostFn costFn() const override;
     Size3 inputSize() const override;
     void writeToStream(std::ostream& s) const override;
     void train(LabelledDataSet& data) override;
     Vector evaluate(const Array3& inputs) const override;
+    ModelDetails modelDetails() const override;
 
     void abort() override;
 
@@ -52,7 +52,7 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
     void backPropagate(const Array3& x, const Vector& y);
     void updateParams(size_t epoch);
 
-    Logger& m_logger;
+    EventSystem& m_eventSystem;
     bool m_isTrained;
     Size3 m_inputShape;
     Hyperparams m_params;
@@ -61,15 +61,15 @@ class CpuNeuralNetImpl : public CpuNeuralNet {
 };
 
 CpuNeuralNetImpl::CpuNeuralNetImpl(const Size3& inputShape, const Config& config,
-  Logger& logger)
-  : m_logger(logger) {
+  EventSystem& eventSystem)
+  : m_eventSystem(eventSystem) {
 
   initialize(inputShape, config, nullptr);
 }
 
 CpuNeuralNetImpl::CpuNeuralNetImpl(const Size3& inputShape, const Config& config,
-  std::istream& stream, Logger& logger)
-  : m_logger(logger) {
+  std::istream& stream, EventSystem& eventSystem)
+  : m_eventSystem(eventSystem) {
 
   initialize(inputShape, config, &stream);
   m_isTrained = true;
@@ -96,6 +96,14 @@ void CpuNeuralNetImpl::initialize(const Size3& inputShape, const Config& config,
   auto outLayerConfig = config.getObject("outputLayer");
   outLayerConfig.setString("type", "output");
   m_layers.push_back(constructLayer(outLayerConfig, prevLayerSize, stream));
+}
+
+ModelDetails CpuNeuralNetImpl::modelDetails() const {
+  return ModelDetails{
+    { "Batch size", std::to_string(m_params.batchSize) },
+    { "Mini-batch size", std::to_string(m_params.miniBatchSize) },
+    { "Epochs", std::to_string(m_params.epochs) }
+  };
 }
 
 LayerPtr CpuNeuralNetImpl::constructLayer(const Config& obj, const Size3& prevLayerSize,
@@ -181,22 +189,16 @@ void CpuNeuralNetImpl::updateParams(size_t epoch) {
 }
 
 void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
-  m_logger.info("Model hyper-parameters");
-  m_logger.info(STR("> Batch size: " << m_params.batchSize));
-  m_logger.info(STR("> Mini-batch size: " << m_params.miniBatchSize));
-  m_logger.info(STR("> Epochs: " << m_params.epochs));
-  m_logger.info(std::string(80, '-'));
-  m_logger.info("Richard is gaining power...");
-
   m_abort = false;
   for (uint32_t epoch = 0; epoch < m_params.epochs; ++epoch) {
     if (m_abort) {
       break;
     }
 
-    m_logger.info(STR("> Epoch " << epoch + 1 << "/" << m_params.epochs));
+    m_eventSystem.raise(EEpochStart{epoch, m_params.epochs});
+
     netfloat_t cost = 0.0;
-    size_t samplesProcessed = 0;
+    uint32_t samplesProcessed = 0;
 
     auto pendingSamples = std::async([&]() { return trainingData.loadSamples(); });
     std::vector<Sample> samples = pendingSamples.get();
@@ -222,7 +224,7 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
           updateParams(epoch);
         }
 
-        m_logger.info(STR("\r  Sample: " << samplesProcessed << "/" << m_params.batchSize), false);
+        m_eventSystem.raise(ESampleProcessed{samplesProcessed, m_params.batchSize});
 
         if (samplesProcessed >= m_params.batchSize) {
           break;
@@ -237,7 +239,7 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
     }
 
     cost /= samplesProcessed;
-    m_logger.info(STR("\r  Cost: " << cost << "            "));
+    m_eventSystem.raise(EEpochComplete{epoch, m_params.epochs, cost});
 
     trainingData.seekToBeginning();
   }
@@ -262,14 +264,16 @@ Layer& CpuNeuralNetImpl::test_getLayer(size_t index) {
   return *m_layers[index];
 }
 
-CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const Config& config, Logger& logger) {
-  return std::make_unique<CpuNeuralNetImpl>(inputShape, config, logger);
+CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const Config& config,
+  EventSystem& eventSystem) {
+  
+  return std::make_unique<CpuNeuralNetImpl>(inputShape, config, eventSystem);
 }
 
-CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const Config& config, std::istream& stream,
-  Logger& logger) {
+CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const Config& config,
+  std::istream& stream, EventSystem& eventSystem) {
 
-  return std::make_unique<CpuNeuralNetImpl>(inputShape, config, stream, logger);
+  return std::make_unique<CpuNeuralNetImpl>(inputShape, config, stream, eventSystem);
 }
 
 }

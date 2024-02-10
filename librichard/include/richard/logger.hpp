@@ -17,7 +17,8 @@ class Logger {
 
 using LoggerPtr = std::unique_ptr<Logger>;
 
-LoggerPtr createStdoutLogger();
+LoggerPtr createLogger(std::ostream& errorStream, std::ostream& warningStream,
+  std::ostream& infoStream, std::ostream& debugStream);
 
 }
 

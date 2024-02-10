@@ -1,15 +1,17 @@
 #include "classifier_training_app.hpp"
+#include "outputter.hpp"
 #include <richard/stdin_monitor.hpp>
-#include <richard/utils.hpp>
+#include <richard/event_system.hpp>
 #include <richard/file_system.hpp>
 #include <richard/logger.hpp>
 #include <iostream>
 
 namespace richard {
 
-ClassifierTrainingApp::ClassifierTrainingApp(FileSystem& fileSystem,
-  const PlatformPaths& platformPaths, const Options& options, Logger& logger)
-  : m_logger(logger)
+ClassifierTrainingApp::ClassifierTrainingApp(EventSystem& eventSystem, FileSystem& fileSystem,
+  const PlatformPaths& platformPaths, const Options& options, Outputter& outputter, Logger& logger)
+  : m_outputter(outputter)
+  , m_eventSystem(eventSystem)
   , m_fileSystem(fileSystem)
   , m_opts(options) {
 
@@ -18,7 +20,7 @@ ClassifierTrainingApp::ClassifierTrainingApp(FileSystem& fileSystem,
 
   m_dataDetails = std::make_unique<DataDetails>(m_config.getObject("data"));
   m_classifier = std::make_unique<Classifier>(*m_dataDetails, m_config.getObject("classifier"),
-    fileSystem, platformPaths, m_logger, m_opts.gpuAccelerated);
+    eventSystem, fileSystem, platformPaths, logger, m_opts.gpuAccelerated);
 
   auto loader = createDataLoader(m_fileSystem, m_config.getObject("dataLoader"), m_opts.samplesPath,
     *m_dataDetails);
@@ -33,6 +35,33 @@ std::string ClassifierTrainingApp::name() const {
 void ClassifierTrainingApp::start() {
   StdinMonitor stdinMonitor;
   stdinMonitor.onKey('q', [this]() { m_classifier->abort(); });
+
+  m_outputter.printLine("Model details");
+  auto details = m_classifier->modelDetails();
+  for (auto item : details) {
+    m_outputter.printLine(STR("> " << item.first << ": " << item.second));
+  }
+  m_outputter.printSeparator();
+  m_outputter.printLine("Richard is gaining power...");
+
+  auto onEpochStart = [&](const Event& event) {
+    const auto& e = dynamic_cast<const EEpochStart&>(event); 
+    m_outputter.printLine(STR("> Epoch " << e.epoch + 1 << "/" << e.epochs));
+  };
+
+  auto onSampleProcessed = [&](const Event& event) {
+    const auto& e = dynamic_cast<const ESampleProcessed&>(event); 
+    m_outputter.printLine(STR("\r  Sample " << e.sample + 1 << "/" << e.samples), false);
+  };
+
+  auto onEpochComplete = [&](const Event& event) {
+    const auto& e = dynamic_cast<const EEpochComplete&>(event); 
+    m_outputter.printLine(STR("\r  Cost " << e.cost << "                      "));
+  };
+
+  auto hOnEpochStart = m_eventSystem.listen(hashString("epochStart"), onEpochStart);
+  auto hOnEpochComplete = m_eventSystem.listen(hashString("epochComplete"), onEpochComplete);
+  auto hOnSampleProcessed = m_eventSystem.listen(hashString("sampleProcessed"), onSampleProcessed);
 
   m_classifier->train(*m_dataSet);
 

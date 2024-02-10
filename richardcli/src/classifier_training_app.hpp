@@ -6,6 +6,8 @@
 #include <richard/labelled_data_set.hpp>
 #include <richard/config.hpp>
 
+class Outputter;
+
 namespace richard {
 
 class FileSystem;
@@ -20,8 +22,9 @@ class ClassifierTrainingApp : public Application {
       bool gpuAccelerated;
     };
 
-    ClassifierTrainingApp(FileSystem& fileSystem, const PlatformPaths& platformPaths,
-      const Options& options, Logger& logger);
+    ClassifierTrainingApp(EventSystem& eventSystem, FileSystem& fileSystem,
+      const PlatformPaths& platformPaths, const Options& options, Outputter& outputter,
+      Logger& logger);
 
     std::string name() const override;
     void start() override;
@@ -31,7 +34,8 @@ class ClassifierTrainingApp : public Application {
   private:
     void saveStateToFile() const;
 
-    Logger& m_logger;
+    Outputter& m_outputter;
+    EventSystem& m_eventSystem;
     FileSystem& m_fileSystem;
     Options m_opts;
     Config m_config;

@@ -1,12 +1,15 @@
+#include "outputter.hpp"
 #include "classifier_training_app.hpp"
 #include "classifier_eval_app.hpp"
 #include <richard/exception.hpp>
 #include <richard/utils.hpp>
 #include <richard/file_system.hpp>
 #include <richard/platform_paths.hpp>
+#include <richard/event_system.hpp>
 #include <richard/logger.hpp>
 #include <boost/program_options.hpp>
 #include <chrono>
+#include <iostream>
 
 namespace po = boost::program_options;
 
@@ -14,6 +17,8 @@ using namespace richard;
 using std::chrono::duration_cast;
 
 namespace {
+
+const std::string APP_DESCRIPTION = "Richard is gaining power";
 
 void optionChoice(const po::variables_map& vm, const std::vector<std::string>& choices) {
   size_t n = 0;
@@ -46,8 +51,8 @@ po::variable_value getOpt(po::variables_map& vm, const std::string& option, bool
   return value;
 };
 
-ApplicationPtr constructApp(Logger& logger, FileSystem& fileSystem,
-  const PlatformPaths& platformPaths, po::variables_map& vm) {
+ApplicationPtr constructApp(EventSystem& eventSystem, Outputter& outputter, Logger& logger,
+  FileSystem& fileSystem, const PlatformPaths& platformPaths, po::variables_map& vm) {
 
   ApplicationPtr app = nullptr;
 
@@ -63,7 +68,8 @@ ApplicationPtr constructApp(Logger& logger, FileSystem& fileSystem,
 
     vm.erase("gpu");
 
-    app = std::make_unique<ClassifierTrainingApp>(fileSystem, platformPaths, opts, logger);
+    app = std::make_unique<ClassifierTrainingApp>(eventSystem, fileSystem, platformPaths, opts,
+      outputter, logger);
   }
   else if (vm.count("eval")) {
     ClassifierEvalApp::Options opts;
@@ -76,7 +82,8 @@ ApplicationPtr constructApp(Logger& logger, FileSystem& fileSystem,
 
     vm.erase("gpu");
 
-    app = std::make_unique<ClassifierEvalApp>(fileSystem, platformPaths, opts, logger);
+    app = std::make_unique<ClassifierEvalApp>(eventSystem, fileSystem, platformPaths, opts,
+      outputter, logger);
   }
   else {
     EXCEPTION("Missing required argument: train or eval");
@@ -89,7 +96,7 @@ ApplicationPtr constructApp(Logger& logger, FileSystem& fileSystem,
   return app;
 }
 
-void printExampleConfig(Logger& logger, const std::string& appType) {
+void printExampleConfig(Outputter& outputter, const std::string& appType) {
   Config config;
 
   if (appType == "train") {
@@ -99,33 +106,18 @@ void printExampleConfig(Logger& logger, const std::string& appType) {
     EXCEPTION("Expected app type to be one of ['train'], got '" << appType << "'");
   }
 
-  logger.info(config.dump(4));
+  outputter.printLine(config.dump(4));
 }
 
-std::string writeBanner(const std::string& mode, bool gpu) {
-  const std::string separator(80, '-');
-
-  std::stringstream banner;
-  banner
-    << R"( ___ _    _                _ )" << std::endl 
-    << R"(| _ (_)__| |_  __ _ _ _ __| |)" << std::endl
-    << R"(|   / / _| ' \/ _` | '_/ _` |)" << std::endl
-    << R"(|_|_\_\__|_||_\__,_|_| \__,_|)" << std::endl
-    <<  "v" << versionString() << std::endl
-    <<  "[ Mode: " << mode << " ]" << std::endl
-    <<  "[ GPU accelaration: " << (gpu ? "ON" : "OFF") << " ]" << std::endl
-    << separator << std::endl;
-
-  return banner.str();
+void printHeader(Outputter& outputter, const std::string& appName, bool gpuAccelerated) {
+  outputter.printBanner();
+  outputter.printLine(STR("[ Mode: " << appName << " ]"));
+  outputter.printLine(STR("[ GPU accelaration: " << (gpuAccelerated ? "ON" : "OFF") << " ]"));
+  outputter.printSeparator();
 }
 
-}
-
-int main(int argc, char** argv) {
-  LoggerPtr logger = createStdoutLogger();
-
-  try {
-    po::options_description desc{"Richard is gaining power"};
+po::variables_map parseProgramArgs(int argc, const char** argv) {
+    po::options_description desc{APP_DESCRIPTION};
     desc.add_options()
       ("help,h", "Show help")
       ("train,t", "Train a classifier")
@@ -134,20 +126,46 @@ int main(int argc, char** argv) {
       ("samples,s", po::value<std::string>())
       ("config,c", po::value<std::string>(), "JSON configuration file")
       ("network,n", po::value<std::string>()->required(), "File to save/load neural network state")
-      ("gpu,x", "Use GPU acceleration");
+      ("gpu,x", "Use GPU acceleration")
+      ("log,l", po::value<std::string>(), "Log file path");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
 
+    return vm;
+}
+
+LoggerPtr constructLogger(po::variables_map& vm) {
+  if (vm.count("log")) {
+    vm.erase("log");
+    std::ofstream stream{vm.at("log").as<std::string>()};
+    return createLogger(stream, stream, stream, stream);
+  }
+  else {
+    return createLogger(std::cerr, std::cerr, std::cout, std::cout);
+  }
+}
+
+}
+
+int main(int argc, const char** argv) {
+  Outputter outputter{std::cout};
+  LoggerPtr logger = nullptr;
+
+  try {
+    auto vm = parseProgramArgs(argc, argv);
+
     if (vm.count("help") || argc == 1) {
-      logger->info(STR(desc));
+      outputter.printLine(STR(APP_DESCRIPTION));
       return EXIT_SUCCESS;
     }
 
     optionChoice(vm, { "train", "eval", "gen" });
 
+    logger = constructLogger(vm);
+
     if (vm.count("gen")) {
-      printExampleConfig(*logger, getOpt(vm, "gen", true).as<std::string>());
+      printExampleConfig(outputter, getOpt(vm, "gen", true).as<std::string>());
 
       for (auto i : vm) {
         logger->warn(STR("Unused option '" << i.first << "'"));
@@ -160,9 +178,11 @@ int main(int argc, char** argv) {
 
     FileSystemPtr fileSystem = createFileSystem();
     PlatformPathsPtr platformPaths = createPlatformPaths();
-    ApplicationPtr app = constructApp(*logger, *fileSystem, *platformPaths, vm);
+    EventSystemPtr eventSystem = createEventSystem();
+    ApplicationPtr app = constructApp(*eventSystem, outputter, *logger, *fileSystem, *platformPaths,
+      vm);
 
-    logger->info(writeBanner(app->name(), gpuAccelerated), false);
+    printHeader(outputter, app->name(), gpuAccelerated);
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -171,11 +191,16 @@ int main(int argc, char** argv) {
     auto t2 = std::chrono::high_resolution_clock::now();
     long long elapsed = duration_cast<std::chrono::milliseconds>(t2 - t1).count();
 
-    logger->info(std::string(80, '-'));
-    logger->info(STR("Running time: " << elapsed << " milliseconds"));
+    outputter.printSeparator();
+    outputter.printLine(STR("Running time: " << elapsed << " milliseconds"));
   }
   catch (const std::exception& e) {
-    logger->error(e.what());
+    if (logger != nullptr) {
+      logger->error(e.what());
+    }
+    else {
+      std::cerr << e.what() << std::endl;
+    }
     return EXIT_FAILURE;
   }
 

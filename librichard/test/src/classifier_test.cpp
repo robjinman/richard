@@ -4,6 +4,7 @@
 #include <richard/config.hpp>
 #include <richard/classifier.hpp>
 #include <richard/data_details.hpp>
+#include <richard/event_system.hpp>
 #include <gtest/gtest.h>
 
 using namespace richard;
@@ -16,11 +17,13 @@ class ClassifierTest : public testing::Test {
 };
 
 TEST_F(ClassifierTest, exampleConfig) {
+  auto eventSystem = createEventSystem();
   auto platformPaths = createPlatformPaths();
   auto fileSystem = createFileSystem();
   NiceMock<MockLogger> logger;
 
   Config config = Classifier::exampleConfig();
   DataDetails dataDetails{DataDetails::exampleConfig()};
-  Classifier classifier{dataDetails, config, *fileSystem, *platformPaths, logger, true};
+  Classifier classifier{dataDetails, config, *eventSystem, *fileSystem, *platformPaths, logger,
+    true};
 }

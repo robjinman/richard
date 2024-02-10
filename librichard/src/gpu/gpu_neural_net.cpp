@@ -5,7 +5,7 @@
 #include "richard/gpu/convolutional_layer.hpp"
 #include "richard/gpu/max_pooling_layer.hpp"
 #include "richard/neural_net.hpp"
-#include "richard/utils.hpp"
+#include "richard/event_system.hpp"
 #include "richard/exception.hpp"
 #include "richard/labelled_data_set.hpp"
 #include "richard/logger.hpp"
@@ -33,16 +33,18 @@ class GpuNeuralNet : public NeuralNet {
   public:
     using CostFn = std::function<netfloat_t(const Vector&, const Vector&)>;
 
-    GpuNeuralNet(const Size3& inputShape, const Config& config, FileSystem& fileSystem,
-      const PlatformPaths& platformPaths, Logger& logger);
-    GpuNeuralNet(const Size3& inputShape, const Config& config, std::istream& stream,
+    GpuNeuralNet(const Size3& inputShape, const Config& config, EventSystem& eventSystem,
       FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger);
+    GpuNeuralNet(const Size3& inputShape, const Config& config, std::istream& stream,
+      EventSystem& eventSystem, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+      Logger& logger);
 
     CostFn costFn() const override;
     Size3 inputSize() const override;
     void writeToStream(std::ostream& stream) const override;
     void train(LabelledDataSet& data) override;
     Vector evaluate(const Array3& inputs) const override;
+    ModelDetails modelDetails() const override;
 
     void abort() override;
 
@@ -55,8 +57,9 @@ class GpuNeuralNet : public NeuralNet {
       size_t numSamples);
     OutputLayer& outputLayer() const;
 
-    Logger& m_logger;
+    EventSystem& m_eventSystem;
     FileSystem& m_fileSystem;
+    Logger& m_logger;
     const PlatformPaths& m_platformPaths;
     bool m_isTrained;
     Size3 m_inputShape;
@@ -72,19 +75,22 @@ class GpuNeuralNet : public NeuralNet {
     ShaderHandle m_computeCostsShader;
 };
 
-GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const Config& config,
+GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const Config& config, EventSystem& eventSystem,
   FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger)
-  : m_logger(logger)
+  : m_eventSystem(eventSystem)
   , m_fileSystem(fileSystem)
+  , m_logger(logger)
   , m_platformPaths(platformPaths) {
 
   initialize(inputShape, config, nullptr);
 }
 
-GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const Config& config,
-  std::istream& stream, FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger)
-  : m_logger(logger)
+GpuNeuralNet::GpuNeuralNet(const Size3& inputShape, const Config& config, std::istream& stream,
+  EventSystem& eventSystem, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+  Logger& logger)
+  : m_eventSystem(eventSystem)
   , m_fileSystem(fileSystem)
+  , m_logger(logger)
   , m_platformPaths(platformPaths) {
 
   initialize(inputShape, config, &stream);
@@ -116,6 +122,14 @@ void GpuNeuralNet::initialize(const Size3& inputShape, const Config& config,
   m_outputSize = m_layers.back()->outputSize()[0];
 
   allocateGpuResources();
+}
+
+ModelDetails GpuNeuralNet::modelDetails() const {
+  return ModelDetails{
+    { "Batch size", std::to_string(m_params.batchSize) },
+    { "Mini-batch size", std::to_string(m_params.miniBatchSize) },
+    { "Epochs", std::to_string(m_params.epochs) }
+  };
 }
 
 void GpuNeuralNet::abort() {
@@ -252,13 +266,6 @@ void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const 
 }
 
 void GpuNeuralNet::train(LabelledDataSet& trainingData) {
-  m_logger.info("Model hyper-parameters");
-  m_logger.info(STR("> Batch size: " << m_params.batchSize));
-  m_logger.info(STR("> Mini-batch size: " << m_params.miniBatchSize));
-  m_logger.info(STR("> Epochs: " << m_params.epochs));
-  m_logger.info(std::string(80, '-'));
-  m_logger.info("Richard is gaining power...");
-
   size_t miniBatchSize = m_params.miniBatchSize;
 
   ASSERT_MSG(trainingData.fetchSize() % m_params.miniBatchSize == 0,
@@ -275,13 +282,14 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
       break;
     }
 
+    m_eventSystem.raise(EEpochStart{epoch, m_params.epochs});
+
     memset(m_costsBuffer.data, 0, m_costsBuffer.size);
  
     status.epoch = epoch;
     status.sampleIndex = 0;
 
-    m_logger.info(STR("> Epoch " << epoch + 1 << "/" << m_params.epochs));
-    size_t samplesProcessed = 0;
+    uint32_t samplesProcessed = 0;
 
     auto pendingSamples = std::async([&]() { return trainingData.loadSamples(); });
     std::vector<Sample> samples = pendingSamples.get();
@@ -312,7 +320,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
         m_gpu->flushQueue();
 
         samplesProcessed += miniBatchSize;
-        m_logger.info(STR("\r  Sample: " << samplesProcessed << "/" << m_params.batchSize), false);
+        m_eventSystem.raise(ESampleProcessed{samplesProcessed, m_params.batchSize});
 
         if (samplesProcessed >= m_params.batchSize) {
           break;
@@ -332,7 +340,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
     }
     cost /= samplesProcessed;
 
-    m_logger.info(STR("\r  Cost: " << cost << "           "));
+    m_eventSystem.raise(EEpochComplete{epoch, m_params.epochs, cost});
 
     trainingData.seekToBeginning();
   }
@@ -359,17 +367,19 @@ Vector GpuNeuralNet::evaluate(const Array3& sample) const {
 }
 
 NeuralNetPtr createNeuralNet(const Size3& inputShape, const Config& config,
-  FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger) {
-
-  return std::make_unique<GpuNeuralNet>(inputShape, config, fileSystem, platformPaths, logger);
-}
-
-NeuralNetPtr createNeuralNet(const Size3& inputShape, const Config& config,
-  std::istream& stream, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+  EventSystem& eventSystem, FileSystem& fileSystem, const PlatformPaths& platformPaths,
   Logger& logger) {
 
-  return std::make_unique<GpuNeuralNet>(inputShape, config, stream, fileSystem, platformPaths,
+  return std::make_unique<GpuNeuralNet>(inputShape, config, eventSystem, fileSystem, platformPaths,
     logger);
+}
+
+NeuralNetPtr createNeuralNet(const Size3& inputShape, const Config& config, std::istream& stream,
+  EventSystem& eventSystem, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+  Logger& logger) {
+
+  return std::make_unique<GpuNeuralNet>(inputShape, config, stream, eventSystem, fileSystem,
+    platformPaths, logger);
 }
 
 }

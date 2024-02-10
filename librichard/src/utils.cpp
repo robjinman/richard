@@ -2,8 +2,14 @@
 #include "richard/exception.hpp"
 #include "richard/version.hpp"
 #include <fstream>
+#include <functional>
 
 namespace richard {
+
+hashedString_t hashString(const std::string& value) {
+  static std::hash<std::string> hash;
+  return hash(value);
+}
 
 uint32_t majorVersion() {
   return static_cast<uint32_t>(RICHARD_VERSION_MAJOR);

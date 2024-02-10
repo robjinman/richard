@@ -31,35 +31,42 @@ bool outputsMatch(const Vector& x, const Vector& y) {
 }
 
 Classifier::Classifier(const DataDetails& dataDetails, const Config& config, std::istream& stream,
-  FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger, bool gpuAccelerated)
-  : m_logger(logger)
+  EventSystem& eventSystem, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+  Logger& logger, bool gpuAccelerated)
+  : m_eventSystem(eventSystem)
   , m_isTrained(false) {
 
   if (gpuAccelerated) {
     m_neuralNet = gpu::createNeuralNet(dataDetails.shape, config.getObject("network"), stream,
-      fileSystem, platformPaths, m_logger);
+      m_eventSystem, fileSystem, platformPaths, logger);
   }
   else {
     m_neuralNet = cpu::createNeuralNet(dataDetails.shape, config.getObject("network"), stream,
-      m_logger);
+      m_eventSystem);
   }
 
   m_isTrained = true;
 }
 
 Classifier::Classifier(const DataDetails& dataDetails, const Config& config,
-  FileSystem& fileSystem, const PlatformPaths& platformPaths, Logger& logger, bool gpuAccelerated)
-  : m_logger(logger)
+  EventSystem& eventSystem, FileSystem& fileSystem, const PlatformPaths& platformPaths,
+  Logger& logger, bool gpuAccelerated)
+  : m_eventSystem(eventSystem)
   , m_neuralNet(nullptr)
   , m_isTrained(false) {
 
   if (gpuAccelerated) {
-    m_neuralNet = gpu::createNeuralNet(dataDetails.shape, config.getObject("network"), fileSystem,
-      platformPaths, m_logger);
+    m_neuralNet = gpu::createNeuralNet(dataDetails.shape, config.getObject("network"),
+      m_eventSystem, fileSystem, platformPaths, logger);
   }
   else {
-    m_neuralNet = cpu::createNeuralNet(dataDetails.shape, config.getObject("network"), m_logger);
+    m_neuralNet = cpu::createNeuralNet(dataDetails.shape, config.getObject("network"),
+      m_eventSystem);
   }
+}
+
+ModelDetails Classifier::modelDetails() const {
+  return m_neuralNet->modelDetails();
 }
 
 void Classifier::writeToStream(std::ostream& stream) const {
@@ -99,11 +106,11 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
 
       if (outputsMatch(actual, expected)) {
         ++results.good;
-        m_logger.info("1", false);
+        results.guesses.push_back(true);
       }
       else {
         ++results.bad;
-        m_logger.info("0", false);
+        results.guesses.push_back(false);
       }
 
       totalCost += costFn(actual, expected);
@@ -112,7 +119,6 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
 
     samples = pendingSamples.get();
   }
-  m_logger.info("");
 
   results.cost = totalCost / totalSamples;
 

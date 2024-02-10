@@ -1,10 +1,10 @@
-#include "mock_logger.hpp"
 #include "mock_data_loader.hpp"
 #include "mock_labelled_data_set.hpp"
 #include <richard/cpu/cpu_neural_net.hpp>
 #include <richard/cpu/dense_layer.hpp>
 #include <richard/cpu/output_layer.hpp>
 #include <richard/cpu/convolutional_layer.hpp>
+#include <richard/event_system.hpp>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
@@ -49,12 +49,12 @@ TEST_F(CpuNeuralNetTest, evaluate) {
   "  }                                  "
   "}                                    ";
 
-  NiceMock<MockLogger> logger;
-
   Size3 inputShape({ 3, 1, 1 });
 
+  auto eventSystem = createEventSystem();
+
   Config config = Config::fromJson(configString);
-  CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);
+  CpuNeuralNetPtr net = createNeuralNet(inputShape, config, *eventSystem);
 
   std::vector<Sample> samples{Sample{"a", Array3({{{ 0.5f, 0.3f, 0.7f }}})}};
 
@@ -158,14 +158,14 @@ TEST_F(CpuNeuralNetTest, evaluateTrivialConvVsFullyConnected) {
   "  }                                      "
   "}                                        ";
 
-  NiceMock<MockLogger> logger;
-
   Size3 inputShape({ 2, 2, 1 });
 
+  auto eventSystem = createEventSystem();
+
   CpuNeuralNetPtr convNet = createNeuralNet(inputShape, Config::fromJson(convNetConfigString),
-    logger);
+    *eventSystem);
   CpuNeuralNetPtr denseNet = createNeuralNet(inputShape, Config::fromJson(denseNetConfigString),
-    logger);
+    *eventSystem);
 
   std::vector<Sample> samples{Sample{"a", Array3{{
     { 0.5f, 0.4f },
@@ -244,12 +244,12 @@ TEST_F(CpuNeuralNetTest, evaluateConv) {
   "  }                                    "
   "}                                      ";
 
-  NiceMock<MockLogger> logger;
-
   Size3 inputShape({ 5, 5, 1 });
 
+  auto eventSystem = createEventSystem();
+
   Config config = Config::fromJson(configString);
-  CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);
+  CpuNeuralNetPtr net = createNeuralNet(inputShape, config, *eventSystem);
 
   std::vector<Sample> samples{Sample{"a", Array3{{
     { 0.5f, 0.4f, 0.3f, 0.9f, 0.8f },

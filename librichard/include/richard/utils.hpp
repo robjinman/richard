@@ -14,6 +14,10 @@ namespace richard {
   return ss.str(); \
 }()
 
+using hashedString_t = size_t;
+
+hashedString_t hashString(const std::string& value);
+
 constexpr size_t calcProduct(const Size3& s) {
   return s[0] * s[1] * s[2];
 }

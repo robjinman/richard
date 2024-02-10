@@ -4,7 +4,7 @@
 
 namespace richard {
 
-class Logger;
+class EventSystem;
 class Config;
 
 namespace cpu {
@@ -22,9 +22,9 @@ class CpuNeuralNet : public NeuralNet {
 using CpuNeuralNetPtr = std::unique_ptr<CpuNeuralNet>;
 
 CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const Config& config,
-  Logger& logger);
+  EventSystem& eventSystem);
 CpuNeuralNetPtr createNeuralNet(const Size3& inputShape, const Config& config,
-  std::istream& stream, Logger& logger);
+  std::istream& stream, EventSystem& eventSystem);
 
 }
 }
