@@ -135,21 +135,11 @@ po::variables_map parseProgramArgs(int argc, const char** argv) {
     return vm;
 }
 
-LoggerPtr constructLogger(po::variables_map& vm) {
-  if (vm.count("log")) {
-    vm.erase("log");
-    std::ofstream stream{vm.at("log").as<std::string>()};
-    return createLogger(stream, stream, stream, stream);
-  }
-  else {
-    return createLogger(std::cerr, std::cerr, std::cout, std::cout);
-  }
-}
-
 }
 
 int main(int argc, const char** argv) {
   Outputter outputter{std::cout};
+  std::ofstream logStream;
   LoggerPtr logger = nullptr;
 
   try {
@@ -162,7 +152,14 @@ int main(int argc, const char** argv) {
 
     optionChoice(vm, { "train", "eval", "gen" });
 
-    logger = constructLogger(vm);
+    if (vm.count("log")) {
+      logStream = std::ofstream{vm.at("log").as<std::string>()};
+      vm.erase("log");
+      logger = createLogger(logStream, logStream, logStream, logStream);
+    }
+    else {
+      logger = createLogger(std::cerr, std::cerr, std::cout, std::cout);
+    }
 
     if (vm.count("gen")) {
       printExampleConfig(outputter, getOpt(vm, "gen", true).as<std::string>());
