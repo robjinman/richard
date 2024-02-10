@@ -266,7 +266,7 @@ void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const 
 }
 
 void GpuNeuralNet::train(LabelledDataSet& trainingData) {
-  size_t miniBatchSize = m_params.miniBatchSize;
+  uint32_t miniBatchSize = m_params.miniBatchSize;
 
   ASSERT_MSG(trainingData.fetchSize() % m_params.miniBatchSize == 0,
     "Dataset fetch size must be multiple of mini-batch size");
@@ -320,7 +320,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
         m_gpu->flushQueue();
 
         samplesProcessed += miniBatchSize;
-        m_eventSystem.raise(ESampleProcessed{samplesProcessed, m_params.batchSize});
+        m_eventSystem.raise(ESampleProcessed{samplesProcessed - 1, m_params.batchSize});
 
         if (samplesProcessed >= m_params.batchSize) {
           break;

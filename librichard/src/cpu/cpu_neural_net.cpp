@@ -217,14 +217,14 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
         cost += feedForward(x, y);
         backPropagate(x, y);
 
-        ++samplesProcessed;
-
-        bool lastSample = samplesProcessed == m_params.batchSize;
-        if ((samplesProcessed % m_params.miniBatchSize == 0) || lastSample) {
+        bool lastSample = (samplesProcessed + 1) == m_params.batchSize;
+        if (((samplesProcessed + 1) % m_params.miniBatchSize == 0) || lastSample) {
           updateParams(epoch);
         }
 
         m_eventSystem.raise(ESampleProcessed{samplesProcessed, m_params.batchSize});
+
+        ++samplesProcessed;
 
         if (samplesProcessed >= m_params.batchSize) {
           break;
