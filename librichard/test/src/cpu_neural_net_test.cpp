@@ -56,17 +56,13 @@ TEST_F(CpuNeuralNetTest, evaluate) {
   Config config = Config::fromJson(configString);
   CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);
 
-  Sample sample("a", Array3({{{ 0.5f, 0.3f, 0.7f }}}));
-  auto loadSample = [&sample](std::vector<Sample>& samples) {
-    samples.push_back(sample);
-    return 1;
-  };
+  std::vector<Sample> samples{Sample{"a", Array3({{{ 0.5f, 0.3f, 0.7f }}})}};
 
   DataLoaderPtr dataLoader = std::make_unique<MockDataLoader>();
   testing::NiceMock<MockLabelledDataSet> dataSet(std::move(dataLoader),
     std::vector<std::string>({ "a", "b" }));
 
-  ON_CALL(dataSet, loadSamples).WillByDefault(testing::Invoke(loadSample));
+  ON_CALL(dataSet, loadSamples).WillByDefault(testing::Return(samples));
 
   Matrix W0({
     { 0.2f, 0.3f, 0.4f },
@@ -171,20 +167,16 @@ TEST_F(CpuNeuralNetTest, evaluateTrivialConvVsFullyConnected) {
   CpuNeuralNetPtr denseNet = createNeuralNet(inputShape, Config::fromJson(denseNetConfigString),
     logger);
 
-  Sample sample("a", Array3({{
+  std::vector<Sample> samples{Sample{"a", Array3{{
     { 0.5f, 0.4f },
     { 0.7f, 0.6f },
-   }}));
-  auto loadSample = [&sample](std::vector<Sample>& samples) {
-    samples.push_back(sample);
-    return 1;
-  };
+   }}}};
 
   DataLoaderPtr dataLoader = std::make_unique<MockDataLoader>();
   testing::NiceMock<MockLabelledDataSet> dataSet(std::move(dataLoader),
     std::vector<std::string>({ "a", "b" }));
 
-  ON_CALL(dataSet, loadSamples).WillByDefault(testing::Invoke(loadSample));
+  ON_CALL(dataSet, loadSamples).WillByDefault(testing::Return(samples));
 
   ConvolutionalLayer::Filter filter;
   filter.K = Kernel({
@@ -259,23 +251,19 @@ TEST_F(CpuNeuralNetTest, evaluateConv) {
   Config config = Config::fromJson(configString);
   CpuNeuralNetPtr net = createNeuralNet(inputShape, config, logger);
 
-  Sample sample("a", Array3({{
+  std::vector<Sample> samples{Sample{"a", Array3{{
     { 0.5f, 0.4f, 0.3f, 0.9f, 0.8f },
     { 0.7f, 0.6f, 0.9f, 0.2f, 0.5f },
     { 0.5f, 0.5f, 0.1f, 0.6f, 0.3f },
     { 0.4f, 0.1f, 0.8f, 0.2f, 0.7f },
     { 0.2f, 0.3f, 0.7f, 0.1f, 0.4f }
-   }}));
-  auto loadSample = [&sample](std::vector<Sample>& samples) {
-    samples.push_back(sample);
-    return 1;
-  };
+   }}}};
 
   DataLoaderPtr dataLoader = std::make_unique<MockDataLoader>();
   testing::NiceMock<MockLabelledDataSet> dataSet(std::move(dataLoader),
     std::vector<std::string>({ "a", "b" }));
 
-  ON_CALL(dataSet, loadSamples).WillByDefault(testing::Invoke(loadSample));
+  ON_CALL(dataSet, loadSamples).WillByDefault(testing::Return(samples));
 
   ConvolutionalLayer::Filter filter0;
   filter0.K = Kernel({

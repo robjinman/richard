@@ -16,7 +16,7 @@ class LabelledDataSet {
   public:
     LabelledDataSet(DataLoaderPtr loader, const std::vector<std::string>& labels);
 
-    virtual size_t loadSamples(std::vector<Sample>& samples);
+    virtual std::vector<Sample> loadSamples();
     virtual void seekToBeginning();
 
     inline const std::vector<std::string>& labels() const;

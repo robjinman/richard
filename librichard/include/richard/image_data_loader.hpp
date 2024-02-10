@@ -11,7 +11,7 @@ class ImageDataLoader : public DataLoader {
     ImageDataLoader(const std::string& directoryPath, const std::vector<std::string>& labels,
       const NormalizationParams& normalization, size_t fetchSize);
 
-    size_t loadSamples(std::vector<Sample>& samples) override;
+    std::vector<Sample> loadSamples() override;
     void seekToBeginning() override;
 
   private:

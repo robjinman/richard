@@ -13,7 +13,7 @@ class CsvDataLoader : public DataLoader {
       const NormalizationParams& normalization, size_t fetchSize);
 
     void seekToBeginning() override;
-    size_t loadSamples(std::vector<Sample>& samples) override;
+    std::vector<Sample> loadSamples() override;
 
   private:
     size_t m_inputSize;

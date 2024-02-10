@@ -24,8 +24,9 @@ void CsvDataLoader::seekToBeginning() {
   m_stream->seekg(0);
 }
 
-size_t CsvDataLoader::loadSamples(std::vector<Sample>& samples) {
-  size_t numSamples = 0;
+std::vector<Sample> CsvDataLoader::loadSamples() {
+  std::vector<Sample> samples;
+
   std::string line;
   while (std::getline(*m_stream, line)) {
     std::stringstream ss{line};
@@ -52,14 +53,13 @@ size_t CsvDataLoader::loadSamples(std::vector<Sample>& samples) {
     Array3 asArr3(std::move(v.storage()), v.size(), 1, 1);
 
     samples.emplace_back(label, asArr3);
-    ++numSamples;
 
-    if (numSamples >= fetchSize()) {
+    if (samples.size() >= fetchSize()) {
       break;
     }
   }
 
-  return numSamples;
+  return samples;
 }
 
 }

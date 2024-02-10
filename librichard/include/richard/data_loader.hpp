@@ -20,7 +20,7 @@ class DataLoader {
   public:
     DataLoader(size_t fetchSize);
 
-    virtual size_t loadSamples(std::vector<Sample>& samples) = 0;
+    virtual std::vector<Sample> loadSamples() = 0;
     virtual void seekToBeginning() = 0;
 
     inline size_t fetchSize() const;

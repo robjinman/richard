@@ -10,7 +10,7 @@ class MockLabelledDataSet : public LabelledDataSet {
     MockLabelledDataSet(DataLoaderPtr dataLoader, const std::vector<std::string>& labels)
       : LabelledDataSet(std::move(dataLoader), labels) {}
 
-    MOCK_METHOD(size_t, loadSamples, (std::vector<Sample>& samples), (override));
+    MOCK_METHOD(std::vector<Sample>, loadSamples, (), (override));
     MOCK_METHOD(void, seekToBeginning, (), (override));
 };
 

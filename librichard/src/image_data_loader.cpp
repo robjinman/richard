@@ -32,10 +32,10 @@ void ImageDataLoader::seekToBeginning() {
   }
 }
 
-size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples) {
-  size_t samplesLoaded = 0;
+std::vector<Sample> ImageDataLoader::loadSamples() {
+  std::vector<Sample> samples;
 
-  while (samplesLoaded < fetchSize()) {
+  while (samples.size() < fetchSize()) {
     size_t numIteratorsFinished = 0;
     for (auto& cursor : m_iterators) {
       if (cursor.i == std::filesystem::directory_iterator{}) {
@@ -61,12 +61,11 @@ size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples) {
         }
 
         samples.emplace_back(cursor.label, v);
-        ++samplesLoaded;
       }
 
       ++cursor.i;
 
-      if (samplesLoaded >= fetchSize()) {
+      if (samples.size() >= fetchSize()) {
         break;
       }
     }
@@ -76,7 +75,7 @@ size_t ImageDataLoader::loadSamples(std::vector<Sample>& samples) {
     }
   }
 
-  return samplesLoaded;
+  return samples;
 }
 
 }

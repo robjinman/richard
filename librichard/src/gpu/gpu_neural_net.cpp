@@ -12,6 +12,7 @@
 #include "richard/file_system.hpp"
 #include "richard/platform_paths.hpp"
 #include <atomic>
+#include <future>
 #include <cstring>
 
 namespace richard {
@@ -282,8 +283,12 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
     m_logger.info(STR("> Epoch " << epoch + 1 << "/" << m_params.epochs));
     size_t samplesProcessed = 0;
 
-    std::vector<Sample> samples;
-    while (trainingData.loadSamples(samples) > 0) {
+    auto pendingSamples = std::async([&]() { return trainingData.loadSamples(); });
+    std::vector<Sample> samples = pendingSamples.get();
+
+    while (samples.size() > 0) {
+      pendingSamples = std::async([&]() { return trainingData.loadSamples(); });
+
       for (size_t sampleCursor = 0; sampleCursor < samples.size(); sampleCursor += miniBatchSize) {
         loadSampleBuffers(trainingData, samples.data() + sampleCursor, miniBatchSize);
 
@@ -319,6 +324,8 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
       if (samplesProcessed >= m_params.batchSize) {
         break;
       }
+
+      samples = pendingSamples.get();
     }
 
     netfloat_t cost = 0.0;

@@ -7,6 +7,7 @@
 #include "richard/cpu/cpu_neural_net.hpp"
 #include "richard/gpu/gpu_neural_net.hpp"
 #include <limits>
+#include <future>
 
 namespace richard {
 namespace {
@@ -77,14 +78,18 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
 
   Results results;
 
-  std::vector<Sample> samples;
   const auto& costFn = m_neuralNet->costFn();
 
   [[maybe_unused]] size_t netInputSize = calcProduct(m_neuralNet->inputSize());
 
+  auto pendingSamples = std::async([&]() { return testData.loadSamples(); });
+  std::vector<Sample> samples = pendingSamples.get();
+
   size_t totalSamples = 0;
   netfloat_t totalCost = 0.0;
-  while (testData.loadSamples(samples) > 0) {
+  while (samples.size() > 0) {
+    pendingSamples = std::async([&]() { return testData.loadSamples(); });
+
     for (const auto& sample : samples) {
       DBG_ASSERT_MSG(sample.data.size() == netInputSize,
         "Expected sample of size " << netInputSize << ", got " << sample.data.size());
@@ -104,7 +109,8 @@ Classifier::Results Classifier::test(LabelledDataSet& testData) const {
       totalCost += costFn(actual, expected);
       ++totalSamples;
     }
-    samples.clear();
+
+    samples = pendingSamples.get();
   }
   m_logger.info("");
 

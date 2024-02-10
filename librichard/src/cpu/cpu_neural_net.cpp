@@ -12,6 +12,7 @@
 #include <fstream>
 #include <algorithm>
 #include <sstream>
+#include <future>
 #include <atomic>
 
 namespace richard {
@@ -197,8 +198,12 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
     netfloat_t cost = 0.0;
     size_t samplesProcessed = 0;
 
-    std::vector<Sample> samples;
-    while (trainingData.loadSamples(samples) > 0) {
+    auto pendingSamples = std::async([&]() { return trainingData.loadSamples(); });
+    std::vector<Sample> samples = pendingSamples.get();
+
+    while (samples.size() > 0) {
+      pendingSamples = std::async([&]() { return trainingData.loadSamples(); });
+
       DBG_ASSERT_MSG(samples[0].data.size() == calcProduct(m_inputShape),
         "Sample size is " << samples[0].data.size() << ", expected " << calcProduct(m_inputShape));
 
@@ -224,11 +229,11 @@ void CpuNeuralNetImpl::train(LabelledDataSet& trainingData) {
         }
       }
 
-      samples.clear();
-
       if (samplesProcessed >= m_params.batchSize) {
         break;
       }
+
+      samples = pendingSamples.get();
     }
 
     cost /= samplesProcessed;

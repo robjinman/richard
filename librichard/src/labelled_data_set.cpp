@@ -22,9 +22,8 @@ void LabelledDataSet::seekToBeginning() {
   m_loader->seekToBeginning();
 }
 
-size_t LabelledDataSet::loadSamples(std::vector<Sample>& samples) {
-  samples.clear();
-  return m_loader->loadSamples(samples);
+std::vector<Sample> LabelledDataSet::loadSamples() {
+  return m_loader->loadSamples();
 }
 
 }
