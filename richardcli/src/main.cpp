@@ -18,8 +18,6 @@ using std::chrono::duration_cast;
 
 namespace {
 
-const std::string APP_DESCRIPTION = "Richard is gaining power";
-
 void optionChoice(const po::variables_map& vm, const std::vector<std::string>& choices) {
   size_t n = 0;
 
@@ -116,18 +114,17 @@ void printHeader(Outputter& outputter, const std::string& appName, bool gpuAccel
   outputter.printSeparator();
 }
 
-po::variables_map parseProgramArgs(int argc, const char** argv) {
-    po::options_description desc{APP_DESCRIPTION};
+po::variables_map parseProgramArgs(po::options_description& desc, int argc, const char** argv) {
     desc.add_options()
       ("help,h", "Show help")
       ("train,t", "Train a classifier")
       ("eval,e", "Evaluate a classifier with test data")
       ("gen,g", po::value<std::string>(), "Generate example config file for app type [train]")
-      ("samples,s", po::value<std::string>())
+      ("samples,s", po::value<std::string>(), "Path to data samples")
       ("config,c", po::value<std::string>(), "JSON configuration file")
       ("network,n", po::value<std::string>()->required(), "File to save/load neural network state")
-      ("gpu,x", "Use GPU acceleration")
-      ("log,l", po::value<std::string>(), "Log file path");
+      ("log,l", po::value<std::string>(), "Log file path")
+      ("gpu,x", "Use GPU acceleration");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -143,10 +140,11 @@ int main(int argc, const char** argv) {
   LoggerPtr logger = nullptr;
 
   try {
-    auto vm = parseProgramArgs(argc, argv);
+    po::options_description desc{"Richard is gaining power"};
+    auto vm = parseProgramArgs(desc, argc, argv);
 
     if (vm.count("help") || argc == 1) {
-      outputter.printLine(STR(APP_DESCRIPTION));
+      outputter.printLine(STR(desc));
       return EXIT_SUCCESS;
     }
 
