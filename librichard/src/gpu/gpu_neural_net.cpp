@@ -270,7 +270,7 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
   StatusBuffer& status = *reinterpret_cast<StatusBuffer*>(m_statusBuffer.data);
 
   m_abort = false;
-  for (uint32_t epoch = 0; epoch < static_cast<uint32_t>(m_params.epochs); ++epoch) {
+  for (uint32_t epoch = 0; epoch < m_params.epochs; ++epoch) {
     if (m_abort) {
       break;
     }
@@ -318,8 +318,6 @@ void GpuNeuralNet::train(LabelledDataSet& trainingData) {
           break;
         }
       }
-
-      samples.clear();
 
       if (samplesProcessed >= m_params.batchSize) {
         break;
