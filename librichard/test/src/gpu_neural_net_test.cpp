@@ -186,7 +186,7 @@ TEST_F(GpuNeuralNetTest, simpleDenseNetwork) {
   auto computeCostsShaderCode = fileSystem->loadBinaryFile(computeCostsShaderPath);
 
   gpu::ShaderHandle computeCostsShader = gpu->addShader("compute_costs.spv", computeCostsShaderCode,
-    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(layer2Size), 1, 1 });
+    computeCostsBuffers, computeCostsConstants, 0, { static_cast<uint32_t>(layer2Size), 1, 1 });
 
   for (size_t i = 0; i < X.size(); ++i) {
     memcpy(bufferX.data, X[i].data(), inputSize * sizeof(netfloat_t));
@@ -470,7 +470,8 @@ TEST_F(GpuNeuralNetTest, simpleConvNetwork) {
   auto computeCostsShaderCode = fileSystem->loadBinaryFile(computeCostsShaderPath);
 
   gpu::ShaderHandle computeCostsShader = gpu->addShader("compute_costs.spv", computeCostsShaderCode,
-    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(outputLayerSize), 1, 1 });
+    computeCostsBuffers, computeCostsConstants, 0,
+    { static_cast<uint32_t>(outputLayerSize), 1, 1 });
 
   memset(costsBuffer.data, 0, costsBuffer.size);
 

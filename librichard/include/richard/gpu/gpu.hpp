@@ -74,9 +74,9 @@ class Gpu {
     virtual GpuBuffer allocateBuffer(size_t size, GpuBufferFlags flags) = 0;
     virtual ShaderHandle addShader(const std::string& name, const ShaderCode& shaderCode,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-      const Size3& workSize) = 0;
+      uint32_t pushConstantsSize, const Size3& workSize) = 0;
     virtual void submitBufferData(GpuBufferHandle buffer, const void* data) = 0;
-    virtual void queueShader(ShaderHandle shaderHandle) = 0;
+    virtual void queueShader(ShaderHandle shaderHandle, const void* pushConstants = nullptr) = 0;
     virtual void retrieveBuffer(GpuBufferHandle buffer, void* data) = 0;
     virtual void flushQueue() = 0;
 

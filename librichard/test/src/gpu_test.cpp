@@ -68,7 +68,7 @@ TEST_F(GpuTest, runShader) {
     { buffer.handle, BufferAccessMode::write }
   };
 
-  ShaderHandle shader = gpu->addShader("simple_shader", shaderCode, buffers, {},
+  ShaderHandle shader = gpu->addShader("simple_shader", shaderCode, buffers, {}, 0,
     { bufferSize, 1, 1 });
 
   gpu->queueShader(shader);
@@ -76,6 +76,48 @@ TEST_F(GpuTest, runShader) {
 
   std::array<netfloat_t, bufferSize> expected{};
   std::transform(data.begin(), data.end(), expected.begin(), [](netfloat_t x) { return x * 2.f; });
+
+  gpu->retrieveBuffer(buffer.handle, data.data());
+
+  EXPECT_EQ(data, expected);
+}
+
+TEST_F(GpuTest, pushConstants) {
+  testing::NiceMock<MockLogger> logger;
+  GpuPtr gpu = createGpu(logger);
+
+  const size_t bufferSize = 16;
+
+  std::array<netfloat_t, bufferSize> data{};
+
+  for (size_t i = 0; i < data.size(); ++i) {
+    data[i] = static_cast<netfloat_t>(i);
+  }
+
+  GpuBuffer buffer = gpu->allocateBuffer(data.size() * sizeof(netfloat_t), GpuBufferFlags::large);
+  gpu->submitBufferData(buffer.handle, data.data());
+
+  auto shaderCode = m_fileSystem->loadBinaryFile("test_shaders/push_constants.spv");
+
+  GpuBufferBindings buffers{
+    { buffer.handle, BufferAccessMode::write }
+  };
+
+  struct PushConstants {
+    uint32_t constant1;
+    uint32_t constant2;
+  };
+
+  PushConstants pushConstants{7, 5};
+
+  ShaderHandle shader = gpu->addShader("push_constants", shaderCode, buffers, {},
+    sizeof(pushConstants), { bufferSize, 1, 1 });
+
+  gpu->queueShader(shader, &pushConstants);
+  gpu->flushQueue();
+
+  std::array<netfloat_t, bufferSize> expected{};
+  expected.fill(7 + 5);
 
   gpu->retrieveBuffer(buffer.handle, data.data());
 
@@ -106,7 +148,7 @@ TEST_F(GpuTest, structuredBuffer) {
     { statusBuffer.handle, BufferAccessMode::write }
   };
 
-  ShaderHandle shader = gpu->addShader("structured_buffer", shaderCode, buffers, {},
+  ShaderHandle shader = gpu->addShader("structured_buffer", shaderCode, buffers, {}, 0,
     { 16, 1, 1 });
 
   gpu->queueShader(shader);
@@ -145,7 +187,7 @@ TEST_F(GpuTest, matrixMultiply) {
   };
 
   ShaderHandle shader = gpu->addShader("matrix_multiply", shaderCode, buffers,
-    {{ SpecializationConstant::Type::uint_type, static_cast<uint32_t>(V.size()) }},
+    {{ SpecializationConstant::Type::uint_type, static_cast<uint32_t>(V.size()) }}, 0,
     { static_cast<uint32_t>(M.rows()), 1, 1 });
 
   gpu->queueShader(shader);
@@ -210,7 +252,7 @@ TEST_F(GpuTest, convolution) {
     { bufferR.handle, BufferAccessMode::write }
   };
 
-  ShaderHandle shader = gpu->addShader("convolution", shaderCode, buffers, constants,
+  ShaderHandle shader = gpu->addShader("convolution", shaderCode, buffers, constants, 0,
     workgroupSize);
 
   gpu->queueShader(shader);
@@ -281,7 +323,7 @@ TEST_F(GpuTest, fullConvolution) {
     { bufferR.handle, BufferAccessMode::write }
   };
 
-  ShaderHandle shader = gpu->addShader("full_convolution", shaderCode, buffers, constants,
+  ShaderHandle shader = gpu->addShader("full_convolution", shaderCode, buffers, constants, 0,
     workgroupSize);
 
   gpu->queueShader(shader);

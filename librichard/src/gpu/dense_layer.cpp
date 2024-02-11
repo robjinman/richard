@@ -100,7 +100,7 @@ void DenseLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
 
   Size3 workSize{ m_size, 1, 1 };
 
-  m_evalForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_evalForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 void DenseLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
@@ -118,7 +118,7 @@ void DenseLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
   SpecializationConstants constants{
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputSize) },
     { SpecializationConstant::Type::bool_type, m_isFirstLayer },
-  //  { SpecializationConstant::Type::float_type, m_dropoutRate }
+    { SpecializationConstant::Type::float_type, m_dropoutRate }
   };
 
   std::string shaderName = "dense_train_forward.spv";
@@ -126,7 +126,8 @@ void DenseLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
 
   Size3 workSize{ m_size, 1, 1 };
 
-  m_trainForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_trainForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants,
+    sizeof(uint32_t), workSize);
 }
 
 void DenseLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
@@ -157,7 +158,7 @@ void DenseLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
 
   Size3 workSize{ m_size, 1, 1 };
 
-  m_backpropDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_backpropDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 void DenseLayer::createBackpropInputDeltaShader() {
@@ -177,7 +178,7 @@ void DenseLayer::createBackpropInputDeltaShader() {
 
   Size3 workSize{ m_inputSize, 1, 1 };
 
-  m_backpropInputDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants,
+  m_backpropInputDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0,
     workSize);
 }
 
@@ -201,7 +202,7 @@ void DenseLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
 
   Size3 workSize{ m_inputSize, m_size, 1 };
 
-  m_updateParamsShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_updateParamsShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 size_t DenseLayer::size() const {
@@ -217,7 +218,8 @@ void DenseLayer::evalForward() {
 }
 
 void DenseLayer::trainForward() {
-  m_gpu.queueShader(m_trainForwardShader);
+  uint32_t seed = static_cast<uint32_t>(rand());
+  m_gpu.queueShader(m_trainForwardShader, &seed);
 }
 
 void DenseLayer::backprop() {

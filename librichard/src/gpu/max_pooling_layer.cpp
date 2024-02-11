@@ -60,7 +60,7 @@ void MaxPoolingLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
 
   Size3 workSize = outputSize();
 
-  m_evalForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_evalForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 void MaxPoolingLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
@@ -80,7 +80,7 @@ void MaxPoolingLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
 
   Size3 workSize = outputSize();
 
-  m_trainForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_trainForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 void MaxPoolingLayer::createBackpropShader(const Layer* nextLayer) {
@@ -100,7 +100,7 @@ void MaxPoolingLayer::createBackpropShader(const Layer* nextLayer) {
 
   Size3 workSize = outputSize();
 
-  m_backpropShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_backpropShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 size_t MaxPoolingLayer::size() const {

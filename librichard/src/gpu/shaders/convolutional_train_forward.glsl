@@ -6,6 +6,11 @@ layout(constant_id = 3) const uint KERNEL_W = 1;
 layout(constant_id = 4) const uint KERNEL_H = 1;
 layout(constant_id = 5) const uint KERNEL_D = 1;
 layout(constant_id = 6) const bool IS_FIRST_LAYER = false;
+layout(constant_id = 7) const float DROPOUT_RATE = 0.0;
+
+layout(push_constant) uniform PushConstants {
+  uint seed;
+} constants;
 
 layout(std140, binding = 0) readonly buffer StatusSsbo {
   StatusBuffer Status;
@@ -41,7 +46,6 @@ layout(std140, binding = 5) writeonly buffer ASsbo {
 
 FN_WRITE(A)
 
-// TODO: Implement dropout
 void main() {
   const uint xIdx = gl_GlobalInvocationID.x;
   const uint yIdx = gl_GlobalInvocationID.y;
@@ -49,6 +53,9 @@ void main() {
 
   const uint fmW = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
   const uint fmH = gl_WorkGroupSize.y * gl_NumWorkGroups.y;
+
+  const uint idx = arrayIndex3d(fmW, fmH, xIdx, yIdx, zIdx);
+  const bool drop = hash(constants.seed + idx) < DROPOUT_RATE;
 
   const uint imW = fmW + KERNEL_W - 1;
   const uint imH = fmH + KERNEL_H - 1;
@@ -80,5 +87,5 @@ void main() {
   sum += readB(zIdx);
 
   writeZ(zIdx * fmW * fmH + yIdx * fmW + xIdx, sum);
-  writeA(zIdx * fmW * fmH + yIdx * fmW + xIdx, relu(sum));
+  writeA(zIdx * fmW * fmH + yIdx * fmW + xIdx, drop ? 0.0 : relu(sum));
 }

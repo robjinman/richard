@@ -247,7 +247,7 @@ void GpuNeuralNet::allocateGpuResources() {
     computeCostsShaderName));
 
   m_computeCostsShader = m_gpu->addShader(computeCostsShaderName, computeCostsShaderCode,
-    computeCostsBuffers, computeCostsConstants, { static_cast<uint32_t>(m_outputSize), 1, 1 });
+    computeCostsBuffers, computeCostsConstants, 0, { static_cast<uint32_t>(m_outputSize), 1, 1 });
 }
 
 void GpuNeuralNet::loadSampleBuffers(const LabelledDataSet& trainingData, const Sample* samples,

@@ -128,7 +128,7 @@ void ConvolutionalLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
 
   Size3 workSize{ outputSize()[0], outputSize()[1], m_depth };
 
-  m_evalForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_evalForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 void ConvolutionalLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
@@ -148,7 +148,7 @@ void ConvolutionalLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_kernelSize[1]) },
     { SpecializationConstant::Type::uint_type, static_cast<uint32_t>(m_inputDepth) },
     { SpecializationConstant::Type::bool_type, m_isFirstLayer },
-  //  { SpecializationConstant::Type::float_type, m_dropoutRate }
+    { SpecializationConstant::Type::float_type, m_dropoutRate }
   };
 
   std::string shaderName = "convolutional_train_forward.spv";
@@ -156,7 +156,8 @@ void ConvolutionalLayer::createTrainForwardShader(GpuBufferHandle statusBuffer,
 
   Size3 workSize{ outputSize()[0], outputSize()[1], m_depth };
 
-  m_trainForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_trainForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants,
+    sizeof(uint32_t), workSize);
 }
 
 void ConvolutionalLayer::createBackpropDeltaShader(const Layer* nextLayer) {
@@ -171,7 +172,7 @@ void ConvolutionalLayer::createBackpropDeltaShader(const Layer* nextLayer) {
 
   Size3 workSize{ outputSize()[0], outputSize()[1], m_depth };
 
-  m_backpropDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, {}, workSize);
+  m_backpropDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, {}, 0, workSize);
 }
 
 void ConvolutionalLayer::createBackpropInputDeltaShader() {
@@ -193,7 +194,7 @@ void ConvolutionalLayer::createBackpropInputDeltaShader() {
 
   Size3 workSize{ m_inputW, m_inputH, m_inputDepth };
 
-  m_backpropInputDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants,
+  m_backpropInputDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0,
     workSize);
 }
 
@@ -222,7 +223,7 @@ void ConvolutionalLayer::createBackpropParamDeltasShader(GpuBufferHandle statusB
 
   Size3 workSize{ m_kernelSize[0] * m_kernelSize[1], m_inputDepth, m_depth };
 
-  m_backpropParamDeltasShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants,
+  m_backpropParamDeltasShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0,
     workSize);
 }
 
@@ -248,7 +249,7 @@ void ConvolutionalLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) 
 
   Size3 workSize{ m_kernelSize[0] * m_kernelSize[1], m_inputDepth, m_depth };
 
-  m_updateParamsShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_updateParamsShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 size_t ConvolutionalLayer::size() const {
@@ -268,7 +269,8 @@ void ConvolutionalLayer::evalForward() {
 }
 
 void ConvolutionalLayer::trainForward() {
-  m_gpu.queueShader(m_trainForwardShader);
+  uint32_t seed = static_cast<uint32_t>(rand());
+  m_gpu.queueShader(m_trainForwardShader, &seed);
 }
 
 void ConvolutionalLayer::backprop() {

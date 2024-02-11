@@ -4,6 +4,11 @@
 
 layout(constant_id = 3) const uint LAYER_NUM_INPUTS = 1;
 layout(constant_id = 4) const bool IS_FIRST_LAYER = false;
+layout(constant_id = 5) const float DROPOUT_RATE = 0.0;
+
+layout(push_constant) uniform PushConstants {
+  uint seed;
+} constants;
 
 layout(std140, binding = 0) readonly buffer StatusSsbo {
   StatusBuffer Status;
@@ -39,10 +44,9 @@ layout(std140, binding = 5) writeonly buffer ASsbo {
 
 FN_WRITE(A)
 
-// TODO Implement dropout
 void main() {
   const uint index = gl_GlobalInvocationID.x;
-
+  const bool drop = hash(constants.seed + index) < DROPOUT_RATE;
   const uint xOffset = IS_FIRST_LAYER ? Status.sampleIndex * LAYER_NUM_INPUTS : 0;
 
   float weightedSum = 0.0;
@@ -53,5 +57,5 @@ void main() {
   }
   weightedSum += readB(index);
   writeZ(index, weightedSum);
-  writeA(index, sigmoid(weightedSum));
+  writeA(index, drop ? 0.0 : sigmoid(weightedSum));
 }

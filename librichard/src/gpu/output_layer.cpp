@@ -101,7 +101,7 @@ void OutputLayer::createEvalForwardShader(GpuBufferHandle inputBuffer) {
 
   Size3 workSize{ m_size, 1, 1 };
 
-  m_evalForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_evalForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 void OutputLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
@@ -122,7 +122,7 @@ void OutputLayer::createTrainForwardShader(GpuBufferHandle inputBuffer) {
 
   Size3 workSize{ m_size, 1, 1 };
 
-  m_trainForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_trainForwardShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 void OutputLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
@@ -150,7 +150,7 @@ void OutputLayer::createBackpropDeltaShader(GpuBufferHandle statusBuffer,
 
   Size3 workSize{ m_size, 1, 1 };
 
-  m_backpropDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_backpropDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 void OutputLayer::createBackpropInputDeltaShader() {
@@ -170,7 +170,7 @@ void OutputLayer::createBackpropInputDeltaShader() {
 
   Size3 workSize{ m_inputSize, 1, 1 };
 
-  m_backpropInputDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants,
+  m_backpropInputDeltaShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0,
     workSize);
 }
 
@@ -194,7 +194,7 @@ void OutputLayer::createUpdateParamsShader(GpuBufferHandle statusBuffer) {
 
   Size3 workSize{ m_inputSize, m_size, 1 };
 
-  m_updateParamsShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, workSize);
+  m_updateParamsShader = m_gpu.addShader(shaderName, shaderCode, buffers, constants, 0, workSize);
 }
 
 size_t OutputLayer::size() const {

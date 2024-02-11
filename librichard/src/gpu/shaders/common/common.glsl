@@ -43,3 +43,14 @@ float reluPrime(float x) {
 uint arrayIndex3d(uint W, uint H, uint x, uint y, uint z) {
   return z * W * H + y * W + x;
 }
+
+float hash(uint x) {
+  x -= (x << 6);
+  x ^= (x >> 17);
+  x -= (x << 9);
+  x ^= (x << 4);
+  x -= (x << 3);
+  x ^= (x << 10);
+  x ^= (x >> 15);
+  return float(x) / uint(-1);
+}

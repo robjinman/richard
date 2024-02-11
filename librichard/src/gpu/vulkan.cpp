@@ -21,8 +21,6 @@ namespace {
     } \
   }
 
-const size_t DEFAULT_MAX_WORKGROUP_SIZE = 64;
-
 size_t maxValue(const Size3& size, size_t& value) {
   size_t index = 0;
   value = std::numeric_limits<size_t>::lowest();
@@ -58,6 +56,7 @@ struct Buffer {
 struct Pipeline {
   VkPipeline handle = VK_NULL_HANDLE;
   VkPipelineLayout layout = VK_NULL_HANDLE;
+  uint32_t pushConstantsSize = 0;
   VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
   VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
   Size3 numWorkgroups = { 1, 1, 1 };
@@ -71,10 +70,10 @@ class Vulkan : public Gpu {
 
     ShaderHandle addShader(const std::string& name, const ShaderCode& shaderCode,
       const GpuBufferBindings& bufferBindings, const SpecializationConstants& constants,
-      const Size3& workSize) override;
+      uint32_t pushConstantsSize, const Size3& workSize) override;
     GpuBuffer allocateBuffer(size_t size, GpuBufferFlags flags) override;
     void submitBufferData(GpuBufferHandle buffer, const void* data) override;
-    void queueShader(ShaderHandle shaderHandle) override;
+    void queueShader(ShaderHandle shaderHandle, const void* pushConstants) override;
     void retrieveBuffer(GpuBufferHandle buffer, void* data) override;
     void flushQueue() override;
 
@@ -89,7 +88,8 @@ class Vulkan : public Gpu {
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
       VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
     VkDescriptorSetLayout createDescriptorSetLayout(const GpuBufferBindings& buffers);
-    VkPipelineLayout createPipelineLayout(VkDescriptorSetLayout descriptorSetLayout);
+    VkPipelineLayout createPipelineLayout(VkDescriptorSetLayout descriptorSetLayout,
+      uint32_t pushConstantsSize);
     void createCommandPool();
     void createDescriptorPool();
     VkDescriptorSet createDescriptorSet(const GpuBufferBindings& buffers,
@@ -286,7 +286,7 @@ VkSpecializationInfo createSpecializationInfo(const SpecializationConstants& con
 
 ShaderHandle Vulkan::addShader([[maybe_unused]] const std::string& name,
   const ShaderCode& shaderCode, const GpuBufferBindings& bufferBindings,
-  const SpecializationConstants& constants, const Size3& workSize) {
+  const SpecializationConstants& constants, uint32_t pushConstantsSize, const Size3& workSize) {
 
   DBG_TRACE
 
@@ -310,7 +310,8 @@ ShaderHandle Vulkan::addShader([[maybe_unused]] const std::string& name,
   Pipeline pipeline;
   pipeline.numWorkgroups = numWorkgroups;
   pipeline.descriptorSetLayout = createDescriptorSetLayout(bufferBindings);
-  pipeline.layout = createPipelineLayout(pipeline.descriptorSetLayout);
+  pipeline.layout = createPipelineLayout(pipeline.descriptorSetLayout, pushConstantsSize);
+  pipeline.pushConstantsSize = pushConstantsSize;
 
   for (const auto& binding : bufferBindings) {
     switch (binding.mode) {
@@ -359,7 +360,7 @@ void Vulkan::beginCommandBuffer() {
   m_startedRecording = true;
 }
 
-void Vulkan::queueShader(ShaderHandle shaderHandle) {
+void Vulkan::queueShader(ShaderHandle shaderHandle, const void* pushConstants) {
   DBG_TRACE
 
   const Pipeline& pipeline = m_pipelines[shaderHandle];
@@ -409,6 +410,10 @@ void Vulkan::queueShader(ShaderHandle shaderHandle) {
   vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, nullptr,
     static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(), 0, nullptr);
+  if (pushConstants != nullptr) {
+    vkCmdPushConstants(m_commandBuffer, pipeline.layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+      pipeline.pushConstantsSize, pushConstants);
+  }
   vkCmdDispatch(m_commandBuffer, static_cast<uint32_t>(workgroups[0]),
     static_cast<uint32_t>(workgroups[1]), static_cast<uint32_t>(workgroups[2]));
 }
@@ -910,17 +915,24 @@ VkDescriptorSet Vulkan::createDescriptorSet(const GpuBufferBindings& buffers,
   return descriptorSet;
 }
 
-VkPipelineLayout Vulkan::createPipelineLayout(VkDescriptorSetLayout descriptorSetLayout) {
+VkPipelineLayout Vulkan::createPipelineLayout(VkDescriptorSetLayout descriptorSetLayout,
+  uint32_t pushConstantsSize) {
+
   DBG_TRACE
 
-  VkPipelineLayout pipelineLayout;
+  VkPushConstantRange pushConstants;
+  pushConstants.offset = 0;
+  pushConstants.size = pushConstantsSize;
+  pushConstants.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-  pipelineLayoutInfo.pushConstantRangeCount = 0;  // TODO: Support push constants
-  pipelineLayoutInfo.pPushConstantRanges = nullptr;
+  pipelineLayoutInfo.pushConstantRangeCount = 1;
+  pipelineLayoutInfo.pPushConstantRanges = &pushConstants;
+
+  VkPipelineLayout pipelineLayout;
   VK_CHECK(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &pipelineLayout),
     "Failed to create pipeline layout");
 
