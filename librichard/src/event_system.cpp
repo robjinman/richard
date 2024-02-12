@@ -16,7 +16,7 @@ class EventSystemImpl : public EventSystem {
     std::map<eventId_t, std::map<handlerId_t, EventHandler>> m_handlers;
 };
 
-handlerId_t EventSystemImpl::nextId = 0;
+handlerId_t EventSystemImpl::nextId = 1;
 
 EventHandle EventSystemImpl::listen(eventId_t eventId, EventHandler handler) {
   handlerId_t handlerId = nextId++;
@@ -41,10 +41,15 @@ EventHandle::EventHandle(EventSystem& eventSystem, eventId_t eventId, handlerId_
 EventHandle::EventHandle(EventHandle&& mv)
   : m_eventSystem(mv.m_eventSystem)
   , m_eventId(mv.m_eventId)
-  , m_handlerId(mv.m_handlerId) {}
+  , m_handlerId(mv.m_handlerId) {
+
+  mv.m_handlerId = 0;
+}
 
 EventHandle::~EventHandle() {
-  dynamic_cast<EventSystemImpl&>(m_eventSystem).m_handlers[m_eventId].erase(m_handlerId);
+  if (m_handlerId != 0) {
+    dynamic_cast<EventSystemImpl&>(m_eventSystem).m_handlers[m_eventId].erase(m_handlerId);
+  }
 }
 
 EventSystemPtr createEventSystem() {
