@@ -25,6 +25,11 @@ set_property(DIRECTORY PROPERTY EP_BASE ${PROJECT_SOURCE_DIR}/dependencies/${CMA
 include(FetchContent)
 set(FETCHCONTENT_BASE_DIR ${PROJECT_SOURCE_DIR}/dependencies/${CMAKE_BUILD_TYPE})
 
+if (CPU_PROFILE)
+  message("CPU profiling ON")
+  find_package(GOOGLE_PERFTOOLS REQUIRED)
+endif()
+
 include("richard_common")
 
 add_subdirectory(cpputils)

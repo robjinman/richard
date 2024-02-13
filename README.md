@@ -243,3 +243,63 @@ All examples are run from the build directory, e.g. build/release, and assume yo
         --network ../../data/catdog/network \
         --gpu
 ```
+
+
+Profiling
+---------
+
+### CPU profile (Linux)
+
+Install google perftools
+
+```
+    sudo apt install google-perftools
+```
+
+Make a release build and supply the -D CPU_PROFILE=1 option
+
+```
+    cmake -D CMAKE_BUILD_TYPE=Release -D CPU_PROFILE=1 -G "Unix Makefiles" ../..
+    make -j8
+```
+
+Specify the intermediate file in the CPUPROFILE environment variable and run as usual, e.g.
+
+```
+    CPUPROFILE=./prof.out ./richardcli/richardcli --train \
+        --samples ../../data/ocr/train.csv \
+        --config ../../data/ocr/config_cnn.json \
+        --network ../../data/ocr/network
+```
+
+For text output
+
+```
+    google-pprof --text ./richardcli/richardcli ./prof.out > ./prof.txt
+```
+
+For graphical output
+
+```
+    google-pprof --gv ./richardcli/richardcli ./prof.out 
+```
+
+#### Interpreting the results
+
+The text file should contain something like this
+
+```
+    Total: 2823 samples
+        1166  41.3%  41.3%     1277  45.2% richard::computeCrossCorrelation
+        1039  36.8%  78.1%     1145  40.6% richard::computeFullCrossCorrelation
+        199   7.0%  85.2%      199   7.0% richard::Kernel::at (inline)
+        ...
+```
+
+The first column is the number of samples spent inside the function.
+
+The second column is this same number expressed as a percentage of the total samples taken. So in this case, we spent 41.3% of the time executing computeCrossCorrelation.
+
+The third column is the cumulative time spent inside the function. In this example, 85.2% of the execution time is accounted for by these top 3 functions.
+
+The next two columns tell us for how long the given function was part of the call stack. In other words, it includes time spent executing child calls. So in this example, we spent 40.6% of the time inside computeFullCrossCorrelation (including child calls), but only 36.8% actually within the computeFullCrossCorrelation function itself.

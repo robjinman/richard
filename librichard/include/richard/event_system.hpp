@@ -30,10 +30,10 @@ class EventSystem;
 
 class EventHandle {
   public:
-    EventHandle(const EventHandle& cpy) = delete;
-
     EventHandle(EventSystem& eventSystem, eventId_t eventId, handlerId_t handlerId);
+    EventHandle(const EventHandle& cpy) = delete;
     EventHandle(EventHandle&& mv);
+
     ~EventHandle();
 
   private:
