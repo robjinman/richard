@@ -1,6 +1,7 @@
 #pragma once
 
 #include "richard/types.hpp"
+#include <cstdint>
 #include <string>
 #include <sstream>
 #include <set>
