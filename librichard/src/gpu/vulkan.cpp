@@ -601,6 +601,8 @@ void Vulkan::pickPhysicalDevice() {
     EXCEPTION("No physical devices found");
   }
 
+  DBG_LOG(m_logger, STR("Found " << deviceCount << " devices"));
+
   std::vector<VkPhysicalDevice> devices(deviceCount);
   VK_CHECK(vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data()),
     "Failed to enumerate physical devices");
@@ -609,23 +611,22 @@ void Vulkan::pickPhysicalDevice() {
 
   size_t index = 0;
   for (size_t i = 0; i < deviceCount; ++i) {
-    vkGetPhysicalDeviceProperties(devices[index], &props);
-    m_deviceLimits = props.limits;
+    vkGetPhysicalDeviceProperties(devices[i], &props);
 
     DBG_LOG(m_logger, STR("Device: " << props.deviceName));
     DBG_LOG(m_logger, STR("Type: " << props.deviceType));
 
     DBG_LOG(m_logger, "Physical device properties");
     DBG_LOG(m_logger, STR("  maxComputeWorkGroupSize: "
-      << m_deviceLimits.maxComputeWorkGroupSize[0] << ", "
-      << m_deviceLimits.maxComputeWorkGroupSize[1] << ", "
-      << m_deviceLimits.maxComputeWorkGroupSize[2]));
+      << props.limits.maxComputeWorkGroupSize[0] << ", "
+      << props.limits.maxComputeWorkGroupSize[1] << ", "
+      << props.limits.maxComputeWorkGroupSize[2]));
     DBG_LOG(m_logger, STR("  maxComputeWorkGroupCount: "
-      << m_deviceLimits.maxComputeWorkGroupCount[0] << ", "
-      << m_deviceLimits.maxComputeWorkGroupCount[1] << ", "
-      << m_deviceLimits.maxComputeWorkGroupCount[2]));
+      << props.limits.maxComputeWorkGroupCount[0] << ", "
+      << props.limits.maxComputeWorkGroupCount[1] << ", "
+      << props.limits.maxComputeWorkGroupCount[2]));
     DBG_LOG(m_logger, STR("  maxComputeWorkGroupInvocations: "
-      << m_deviceLimits.maxComputeWorkGroupInvocations));
+      << props.limits.maxComputeWorkGroupInvocations));
 
     if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
       index = i;
@@ -633,6 +634,9 @@ void Vulkan::pickPhysicalDevice() {
   }
 
   DBG_LOG(m_logger, STR("Selecting " << props.deviceName));
+
+  vkGetPhysicalDeviceProperties(devices[index], &props);
+  m_deviceLimits = props.limits;
 
   m_physicalDevice = devices[index];
 }
