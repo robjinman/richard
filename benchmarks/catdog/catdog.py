@@ -1,4 +1,5 @@
 import os
+import time
 import numpy as np
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -31,7 +32,7 @@ def load_data_set(class1_dir, class2_dir, n):
 num_classes = 2
 input_shape = (100, 100, 3)
 
-num_training_samples = 1000
+num_training_samples = 2560
 cats_training_dir = "../../data/catdog/train/cat"
 dogs_training_dir = "../../data/catdog/train/dog"
 x_train, y_train = load_data_set(cats_training_dir, dogs_training_dir, num_training_samples)
@@ -57,11 +58,11 @@ model = keras.Sequential(
     layers.Conv2D(32, kernel_size=(3, 3), activation="relu",
       kernel_initializer=initializer1, bias_initializer="zeros"),
     layers.MaxPooling2D(pool_size=(2, 2)),
-    layers.Conv2D(64, kernel_size=(3, 3), activation="relu",
+    layers.Conv2D(64, kernel_size=(4, 4), activation="relu",
       kernel_initializer=initializer2, bias_initializer="zeros"),
     layers.MaxPooling2D(pool_size=(2, 2)),
     layers.Flatten(),
-    layers.Dense(128, activation="sigmoid", kernel_initializer=initializer3,
+    layers.Dense(40, activation="sigmoid", kernel_initializer=initializer3,
       bias_initializer="zeros"),
     layers.Dense(num_classes, activation="sigmoid", kernel_initializer=initializer4,
       bias_initializer="zeros"),
@@ -70,16 +71,19 @@ model = keras.Sequential(
 
 model.summary()
 
-batch_size = 1
-epochs = 10
+batch_size = 16
+epochs = 1
 
-optimizer = keras.optimizers.SGD(learning_rate=0.001, momentum=0.9) # TODO: Remove momentum
+optimizer = keras.optimizers.SGD(learning_rate=0.01)
 
 model.compile(loss="mean_squared_error", optimizer=optimizer, metrics=["accuracy"])
 
+start_time = time.perf_counter()
 model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, shuffle=False)
+end_time = time.perf_counter()
 
 score = model.evaluate(x_test, y_test, verbose=0)
 print("Test loss:", score[0])
 print("Test accuracy:", score[1])
+print("Time: ", end_time - start_time, " seconds")
 
