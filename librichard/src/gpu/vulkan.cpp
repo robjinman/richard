@@ -43,7 +43,8 @@ size_t lowestDivisor(size_t value) {
 }
 
 const std::vector<const char*> ValidationLayers = {
-  "VK_LAYER_KHRONOS_validation"
+  "VK_LAYER_KHRONOS_validation",
+//  "VK_LAYER_NV_nsight-sys"
 };
 
 struct Buffer {
@@ -80,6 +81,7 @@ class Vulkan : public Gpu {
     ~Vulkan();
 
   private:
+    void checkValidationLayerSupport();
     void createVulkanInstance();
     void pickPhysicalDevice();
     void createLogicalDevice();
@@ -482,7 +484,7 @@ const Buffer& Vulkan::getBuffer(GpuBufferHandle handle) const {
 }
 
 #ifndef NDEBUG
-void checkValidationLayerSupport() {
+void Vulkan::checkValidationLayerSupport() {
   uint32_t layerCount;
   VK_CHECK(vkEnumerateInstanceLayerProperties(&layerCount, nullptr),
     "Failed to enumerate instance layer properties");
@@ -490,6 +492,11 @@ void checkValidationLayerSupport() {
   std::vector<VkLayerProperties> available(layerCount);
   VK_CHECK(vkEnumerateInstanceLayerProperties(&layerCount, available.data()),
     "Failed to enumerate instance layer properties");
+
+  DBG_LOG(m_logger, "Available layers:");
+  for (const auto& layerProps : available) {
+    DBG_LOG(m_logger, STR("  " << layerProps.layerName));
+  }
 
   for (auto layer : ValidationLayers) {
     auto fnMatches = [=](const VkLayerProperties& p) {
@@ -759,7 +766,7 @@ void Vulkan::createVulkanInstance() {
   appInfo.applicationVersion = VK_MAKE_API_VERSION(1, 0, 0, 0);
   appInfo.pEngineName = "No Engine";
   appInfo.engineVersion = VK_MAKE_API_VERSION(1, 0, 0, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_0;
+  appInfo.apiVersion = VK_MAKE_API_VERSION(1, 3, 0, 0);
 
   VkInstanceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
