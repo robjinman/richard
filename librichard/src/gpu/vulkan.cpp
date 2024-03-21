@@ -43,8 +43,7 @@ size_t lowestDivisor(size_t value) {
 }
 
 const std::vector<const char*> ValidationLayers = {
-  "VK_LAYER_KHRONOS_validation",
-//  "VK_LAYER_NV_nsight-sys"
+  "VK_LAYER_KHRONOS_validation"
 };
 
 struct Buffer {
@@ -766,7 +765,7 @@ void Vulkan::createVulkanInstance() {
   appInfo.applicationVersion = VK_MAKE_API_VERSION(1, 0, 0, 0);
   appInfo.pEngineName = "No Engine";
   appInfo.engineVersion = VK_MAKE_API_VERSION(1, 0, 0, 0);
-  appInfo.apiVersion = VK_MAKE_API_VERSION(1, 3, 0, 0);
+  appInfo.apiVersion = VK_MAKE_API_VERSION(0, 1, 3, 0);
 
   VkInstanceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
