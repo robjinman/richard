@@ -8,6 +8,7 @@
 #include <cstring>
 #include <algorithm>
 #include <limits>
+#include <cassert>
 
 namespace richard {
 namespace gpu {
@@ -615,7 +616,17 @@ void Vulkan::pickPhysicalDevice() {
 
   VkPhysicalDeviceProperties props;
 
-  size_t index = 0;
+  const std::map<int, size_t> deviceTypePriority{
+    { VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, 0 },
+    { VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU, 1 },
+    { VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU, 2 },
+    { VK_PHYSICAL_DEVICE_TYPE_CPU, 3 },
+    { VK_PHYSICAL_DEVICE_TYPE_OTHER, 4}
+  };
+
+  // (priority, device index)
+  std::set<std::pair<size_t, size_t>> sortedDevices;
+
   for (size_t i = 0; i < deviceCount; ++i) {
     vkGetPhysicalDeviceProperties(devices[i], &props);
 
@@ -634,14 +645,16 @@ void Vulkan::pickPhysicalDevice() {
     DBG_LOG(m_logger, STR("  maxComputeWorkGroupInvocations: "
       << props.limits.maxComputeWorkGroupInvocations));
 
-    if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-      index = i;
-    }
+    size_t priority = deviceTypePriority.at(props.deviceType);
+    sortedDevices.insert(std::make_pair(priority, i));
   }
 
-  DBG_LOG(m_logger, STR("Selecting " << props.deviceName));
+  assert(!sortedDevices.empty());
+  size_t index = sortedDevices.begin()->second;
 
   vkGetPhysicalDeviceProperties(devices[index], &props);
+
+  DBG_LOG(m_logger, STR("Selecting " << props.deviceName));
   m_deviceLimits = props.limits;
 
   m_physicalDevice = devices[index];
