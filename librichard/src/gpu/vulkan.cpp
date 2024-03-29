@@ -84,7 +84,7 @@ class Vulkan : public Gpu {
     void checkValidationLayerSupport();
     void createVulkanInstance();
     void pickPhysicalDevice();
-    void createLogicalDevice();
+    void createLogicalDevice(uint32_t queueFamilyIndex);
     uint32_t findComputeQueueFamily() const;
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
@@ -92,7 +92,7 @@ class Vulkan : public Gpu {
     VkDescriptorSetLayout createDescriptorSetLayout(const GpuBufferBindings& buffers);
     VkPipelineLayout createPipelineLayout(VkDescriptorSetLayout descriptorSetLayout,
       uint32_t pushConstantsSize);
-    void createCommandPool();
+    void createCommandPool(uint32_t queueFamilyIndex);
     void createDescriptorPool();
     VkDescriptorSet createDescriptorSet(const GpuBufferBindings& buffers,
       VkDescriptorSetLayout layout);
@@ -145,8 +145,9 @@ Vulkan::Vulkan(const Config& config, Logger& logger)
   setupDebugMessenger();
 #endif
   pickPhysicalDevice();
-  createLogicalDevice();
-  createCommandPool();
+  uint32_t queueFamilyIndex = findComputeQueueFamily();
+  createLogicalDevice(queueFamilyIndex);
+  createCommandPool(queueFamilyIndex);
   createDescriptorPool();
   createSyncObjects();
 
@@ -668,6 +669,24 @@ uint32_t Vulkan::findComputeQueueFamily() const {
   vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyCount,
     queueFamilies.data());
 
+  DBG_LOG(m_logger, "Queue families:");
+  for (uint32_t i = 0; i < queueFamilies.size(); ++i) {
+    auto flags = queueFamilies[i].queueFlags;
+    DBG_LOG(m_logger, STR("  " << i << ":"));
+    DBG_LOG(m_logger, STR("    Graphics: " << (flags & VK_QUEUE_GRAPHICS_BIT ? "Y" : "N")));
+    DBG_LOG(m_logger, STR("    Compute: " << (flags & VK_QUEUE_COMPUTE_BIT ? "Y" : "N")));
+    DBG_LOG(m_logger, STR("    Transfer: " << (flags & VK_QUEUE_TRANSFER_BIT ? "Y" : "N")));
+    DBG_LOG(m_logger, STR("    Sparse binding: "
+      << (flags & VK_QUEUE_SPARSE_BINDING_BIT ? "Y" : "N")));
+    DBG_LOG(m_logger, STR("    Protected: " << (flags & VK_QUEUE_PROTECTED_BIT ? "Y" : "N")));
+    DBG_LOG(m_logger, STR("    Video decode: "
+      << (flags & VK_QUEUE_VIDEO_DECODE_BIT_KHR ? "Y" : "N")));
+    DBG_LOG(m_logger, STR("    Video encode: "
+      << (flags & VK_QUEUE_VIDEO_ENCODE_BIT_KHR ? "Y" : "N")));
+    DBG_LOG(m_logger, STR("    Optical flow: "
+      << (flags & VK_QUEUE_OPTICAL_FLOW_BIT_NV ? "Y" : "N")));
+  }
+
   for (uint32_t i = 0; i < queueFamilies.size(); ++i) {
     if (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
       return i;
@@ -677,11 +696,11 @@ uint32_t Vulkan::findComputeQueueFamily() const {
   EXCEPTION("Could not find compute queue family");
 }
 
-void Vulkan::createLogicalDevice() {
+void Vulkan::createLogicalDevice(uint32_t queueFamilyIndex) {
   VkDeviceQueueCreateInfo queueCreateInfo{};
 
   queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-  queueCreateInfo.queueFamilyIndex = findComputeQueueFamily();
+  queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
   queueCreateInfo.queueCount = 1;
   float queuePriority = 1;
   queueCreateInfo.pQueuePriorities = &queuePriority;
@@ -802,10 +821,10 @@ void Vulkan::createVulkanInstance() {
   VK_CHECK(vkCreateInstance(&createInfo, nullptr, &m_instance), "Failed to create instance");
 }
 
-void Vulkan::createCommandPool() {
+void Vulkan::createCommandPool(uint32_t queueFamilyIndex) {
   VkCommandPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  poolInfo.queueFamilyIndex = findComputeQueueFamily();
+  poolInfo.queueFamilyIndex = queueFamilyIndex;
   poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
   VK_CHECK(vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool),
