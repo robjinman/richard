@@ -46,6 +46,12 @@ void main() {
   const int xMin = -int(KERNEL_W) + 1;
   const int yMin = -int(KERNEL_H) + 1;
 
+  const int jFrom = max(0, int(KERNEL_H) - int(yIdx) - 1);
+  const int jTo = min(int(KERNEL_H), int(resultH) - int(yIdx));
+
+  const int iFrom = max(0, int(KERNEL_W) - int(xIdx) - 1);
+  const int iTo = min(int(KERNEL_W), int(resultW) - int(xIdx));
+
   float sum = 0.0;
   for (uint d = 0; d < NUM_FEATURE_MAPS; ++d) {
     const uint kernelOffset = d * KERNEL_W * KERNEL_H * KERNEL_D;
@@ -55,13 +61,9 @@ void main() {
       // Compute a full 2D convolution between the d'th feature map delta and k'th slice of this
       // feature map's associated kernel
 
-      const int jFrom = max(0, int(KERNEL_H) - int(yIdx) - 1);
-      const int jTo = min(int(KERNEL_H), int(resultH) - int(yIdx));
       for (int j = jFrom; j < jTo; ++j) {
         const int y = yMin + int(yIdx + j);
 
-        const int iFrom = max(0, int(KERNEL_W) - int(xIdx) - 1);
-        const int iTo = min(int(KERNEL_W), int(resultW) - int(xIdx));
         for (int i = iFrom; i < iTo; ++i) {
           const int x = xMin + int(xIdx + i);
 
