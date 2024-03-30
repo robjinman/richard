@@ -1,0 +1,51 @@
+cmake_minimum_required(VERSION 3.24)
+
+set(RICHARD_GUI_TARGET richardgui)
+set(RICHARD_GUI_TARGET ${RICHARD_GUI_TARGET} PARENT_SCOPE)
+
+FetchContent_Declare(wxWidgets
+  GIT_REPOSITORY https://github.com/wxWidgets/wxWidgets.git
+  GIT_TAG v3.2.4
+)
+
+FetchContent_MakeAvailable(wxWidgets)
+
+file(GLOB
+  CPP_SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+)
+
+add_executable(${RICHARD_GUI_TARGET} ${CPP_SOURCES})
+
+set(CPU_PROFILE_COMPILE_FLAGS -g)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(COMPILE_FLAGS -Wextra -Wall)
+  set(DEBUG_COMPILE_FLAGS ${COMPILE_FLAGS} -g)
+  set(RELEASE_COMPILE_FLAGS ${COMPILE_FLAGS} -O3)
+  set(LINK_FLAGS)
+  set(DEBUG_LINK_FLAGS ${LINK_FLAGS})
+  set(RELEASE_LINK_FLAGS ${LINK_FLAGS})
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  set(COMPILE_FLAGS /W4)
+  set(DEBUG_COMPILE_FLAGS ${COMPILE_FLAGS})
+  set(RELEASE_COMPILE_FLAGS ${COMPILE_FLAGS} /O2)
+  set(LINK_FLAGS)
+  set(DEBUG_LINK_FLAGS ${LINK_FLAGS})
+  set(RELEASE_LINK_FLAGS ${LINK_FLAGS})
+endif()
+
+target_compile_options(${RICHARD_GUI_TARGET}
+  PRIVATE
+    "$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>"
+    "$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>"
+)
+
+target_link_libraries(${RICHARD_GUI_TARGET}
+  PRIVATE
+    ${RICHARD_LIB_TARGET}
+    wx::base
+    wx::core
+    "$<$<CONFIG:DEBUG>:${DEBUG_LINK_FLAGS}>"
+    "$<$<CONFIG:RELEASE>:${RELEASE_LINK_FLAGS}>"
+)
