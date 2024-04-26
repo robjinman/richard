@@ -1,8 +1,6 @@
 Richard
 =======
 
-*Richard is gaining power.*
-
 Named after one of the first programs I ever wrote as a child, Richard started out as a personal effort to learn more about machine learning. The original Richard was meant to be a "virus", but the most malicious thing I could do on my Psion Series 3 personal organiser was print the phrase "Richard is gaining power" in an infinite loop.
 
 The new version of Richard is strictly benevolent.
@@ -12,77 +10,49 @@ In its current form, Richard is a CLI application that performs classification u
 GPU acceleration is supported with Vulkan compute shaders.
 
 
-Building
---------
+Building from source
+--------------------
 
-### Linux
+### Prerequisites
 
-#### Prerequisites
+#### Linux
 
-Install CMake.
+* cmake
+* vcpkg
+* Vulkan SDK (see https://vulkan.lunarg.com/sdk/home)
 
-Install the Vulkan SDK
+#### Windows
 
-```
-    # See https://vulkan.lunarg.com/sdk/home
+* cmake
+* python 3
+* Vulkan SDK
 
-    wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
-    sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.275-jammy.list https://packages.lunarg.com/vulkan/1.3.275/lunarg-vulkan-1.3.275-jammy.list
-    sudo apt update
-    sudo apt install vulkan-sdk
-```
+#### Mac OS
 
-Install development dependencies
+TODO
 
-```
-    sudo apt install \
-        build-essential \
-        libboost-program-options-dev
-```
+### Build
 
-#### Compile
+To build, just run the relevant workflow from the project root.
 
-To make a release build
+To see the list of workflows
 
 ```
-    mkdir -p build/release && cd "$_"
-    cmake -D CMAKE_BUILD_TYPE=Release -G "Unix Makefiles" ../..
-    make -j8
+    cmake --workflow --list-presets
 ```
 
-And for a debug build
+For example, to make a debug build on linux
 
 ```
-    mkdir -p build/debug && cd "$_"
-    cmake -D CMAKE_BUILD_TYPE=Debug -G "Unix Makefiles" ../..
-    make -j8
+    cmake --workflow --preset=linux-debug
 ```
 
-### Windows
-
-#### Prerequisites
-
-Install CMake, Python 3, and the Vulkan SDK.
-
-#### Compile
-
-To build the release configuration, open a powershell and run
+You can also run the configure/build steps separately
 
 ```
-    cd (mkdir build/release)
-    cmake -D CMAKE_BUILD_TYPE=Release -G "Visual Studio 17 2022" ../..
-    cmake --build . --config Release
+    cmake --preset=linux-debug
+    cmake --build --preset=linux-debug
 ```
-
-And for the debug configuration
-
-```
-    cd (mkdir build/debug)
-    cmake -D CMAKE_BUILD_TYPE=Debug -G "Visual Studio 17 2022" ../..
-    cmake --build . --config Debug
-```
-
-Supply the `-D BUILD_TOOLS=1` option if you want to build the tools.
 
 
 Usage
@@ -98,7 +68,7 @@ To see usage
 Examples
 --------
 
-All examples are run from the build directory, e.g. build/release, and assume you have datasets located under data/.
+All examples are run from the build directory, e.g. build/linux/release, and assume you have datasets located under data/.
 
 ### Classifying hand-written digits with a fully connected network
 
@@ -153,14 +123,14 @@ All examples are run from the build directory, e.g. build/release, and assume yo
 
 ```
     ./richardcli/richardcli --train \
-        --samples ../../data/ocr/train.csv \
-        --config ../../data/ocr/config.json \
-        --network ../../data/ocr/network \
+        --samples ../../../data/ocr/train.csv \
+        --config ../../../data/ocr/config.json \
+        --network ../../../data/ocr/network \
         --gpu
 
     ../richardcli/richardcli --eval \
-        --samples ../../data/ocr/test.csv \
-        --network ../../data/ocr/network \
+        --samples ../../../data/ocr/test.csv \
+        --network ../../../data/ocr/network \
         --gpu
 ```
 
@@ -233,14 +203,14 @@ All examples are run from the build directory, e.g. build/release, and assume yo
 
 ```
     ./richardcli/richardcli --train \
-        --samples ../../data/catdog/train \
-        --config ../../data/catdog/config.json \
-        --network ../../data/catdog/network \
+        --samples ../../../data/catdog/train \
+        --config ../../../data/catdog/config.json \
+        --network ../../../data/catdog/network \
         --gpu
 
     ./richardcli/richardcli --eval \
-        --samples ../../data/catdog/test \
-        --network ../../data/catdog/network \
+        --samples ../../../data/catdog/test \
+        --network ../../../data/catdog/network \
         --gpu
 ```
 
@@ -256,20 +226,19 @@ Install google perftools
     sudo apt install google-perftools
 ```
 
-Make a release build and supply the -D CPU_PROFILE=1 option
+Build the linux-cpuprof preset
 
 ```
-    cmake -D CMAKE_BUILD_TYPE=Release -D CPU_PROFILE=1 -G "Unix Makefiles" ../..
-    make -j8
+    cmake --workflow --preset=linux-cpuprof
 ```
 
 Specify the intermediate file in the CPUPROFILE environment variable and run as usual, e.g.
 
 ```
     CPUPROFILE=./prof.out ./richardcli/richardcli --train \
-        --samples ../../data/ocr/train.csv \
-        --config ../../data/ocr/config_cnn.json \
-        --network ../../data/ocr/network
+        --samples ../../../data/ocr/train.csv \
+        --config ../../../data/ocr/config_cnn.json \
+        --network ../../../data/ocr/network
 ```
 
 For text output

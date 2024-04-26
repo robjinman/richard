@@ -28,6 +28,15 @@
       }
     },
     {
+      "name": "linux-cpuprof",
+      "inherits": "linux-default",
+      "binaryDir": "${sourceDir}/build/linux/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CPU_PROFILE": true
+      }
+    },
+    {
       "name": "osx-default",
       "generator": "Unix Makefiles",
       "binaryDir": "${sourceDir}/build/osx/debug",
@@ -89,6 +98,10 @@
     {
       "name": "linux-release",
       "configurePreset": "linux-release"
+    },
+    {
+      "name": "linux-cpuprof",
+      "configurePreset": "linux-cpuprof"
     },
     {
       "name": "osx-debug",
@@ -156,6 +169,20 @@
         {
           "type": "package",
           "name": "linux-deb"
+        }
+      ]
+    },
+    {
+      "description": "Linux cpuprof build",
+      "name": "linux-cpuprof",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-cpuprof"
+        },
+        {
+          "type": "build",
+          "name": "linux-cpuprof"
         }
       ]
     },

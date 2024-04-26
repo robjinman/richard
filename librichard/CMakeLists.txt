@@ -5,6 +5,10 @@ set(RICHARD_LIB_TARGET ${RICHARD_LIB_TARGET} PARENT_SCOPE)
 
 find_package(Vulkan REQUIRED)
 find_package(nlohmann_json REQUIRED)
+if (CPU_PROFILE)
+  message("CPU profiling ON")
+  find_package(GOOGLE_PERFTOOLS REQUIRED)
+endif()
 
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/src/version_in.hpp"

@@ -18,11 +18,6 @@ message("Building ${CMAKE_BUILD_TYPE} configuration...")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
-if (CPU_PROFILE)
-  message("CPU profiling ON")
-  find_package(GOOGLE_PERFTOOLS REQUIRED)
-endif()
-
 include("richard_common")
 
 add_subdirectory(cpputils)
