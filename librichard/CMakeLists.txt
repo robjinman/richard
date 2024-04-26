@@ -27,20 +27,16 @@ target_include_directories(${RICHARD_LIB_TARGET}
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
-set(CPU_PROFILE_COMPILE_FLAGS -g)
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(COMPILE_FLAGS -Wextra -Wall)
   if (CPU_PROFILE)
-    set(COMPILE_FLAGS ${COMPILE_FLAGS} ${CPU_PROFILE_COMPILE_FLAGS})
+    set(COMPILE_FLAGS ${COMPILE_FLAGS} -g)
   endif()
   set(DEBUG_COMPILE_FLAGS ${COMPILE_FLAGS} -g)
   set(RELEASE_COMPILE_FLAGS ${COMPILE_FLAGS} -O3)
-
-  set(CPU_PROFILE_LINK_FLAGS -Wl,--no-as-needed -lprofiler -Wl,--as-needed)
   set(LINK_FLAGS)
   if (CPU_PROFILE)
-    set(LINK_FLAGS ${LINK_FLAGS} ${CPU_PROFILE_LINK_FLAGS})
+    set(LINK_FLAGS ${LINK_FLAGS} -Wl,--no-as-needed -lprofiler -Wl,--as-needed)
   endif()
   set(DEBUG_LINK_FLAGS ${LINK_FLAGS})
   set(RELEASE_LINK_FLAGS ${LINK_FLAGS})
@@ -77,4 +73,3 @@ compile_shaders(
 add_dependencies(${RICHARD_LIB_TARGET} shaders)
 
 add_subdirectory(test)
-
