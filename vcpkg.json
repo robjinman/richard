@@ -1,0 +1,8 @@
+{
+  "dependencies": [
+    "boost-program-options",
+    "nlohmann-json",
+    "gtest",
+    "libjpeg-turbo"
+  ]
+}

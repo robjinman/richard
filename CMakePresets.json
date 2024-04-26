@@ -1,0 +1,227 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "linux-default",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/linux/debug",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/build/linux/vcpkg_installed",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "inherits": "linux-default",
+      "binaryDir": "${sourceDir}/build/linux/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-release",
+      "inherits": "linux-default",
+      "binaryDir": "${sourceDir}/build/linux/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "osx-default",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/osx/debug",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/build/osx/vcpkg_installed",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "osx-debug",
+      "inherits": "osx-default",
+      "binaryDir": "${sourceDir}/build/osx/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "osx-release",
+      "inherits": "osx-default",
+      "binaryDir": "${sourceDir}/build/osx/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "windows-default",
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build/windows/debug",
+      "cacheVariables": {
+        "X_VCPKG_APPLOCAL_DEPS_INSTALL": "ON",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/build/windows/vcpkg_installed",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "windows-debug",
+      "inherits": "windows-default",
+      "binaryDir": "${sourceDir}/build/windows/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "windows-release",
+      "inherits": "windows-default",
+      "binaryDir": "${sourceDir}/build/windows/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug"
+    },
+    {
+      "name": "linux-release",
+      "configurePreset": "linux-release"
+    },
+    {
+      "name": "osx-debug",
+      "configurePreset": "osx-debug"
+    },
+    {
+      "name": "osx-release",
+      "configurePreset": "osx-release"
+    },
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-release",
+      "configuration": "Release"
+    }
+  ],
+  "packagePresets": [
+    {
+      "name": "linux-deb",
+      "configurePreset": "linux-release",
+      "generators": ["DEB"]
+    },
+    {
+      "name": "osx-dmg",
+      "configurePreset": "osx-release",
+      "generators": ["DragNDrop"]
+    },
+    {
+      "name": "windows-zip",
+      "configurePreset": "windows-release",
+      "generators": ["ZIP"]
+    }
+  ],
+  "workflowPresets": [
+    {
+      "description": "Linux debug build",
+      "name": "linux-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-debug"
+        },
+        {
+          "type": "build",
+          "name": "linux-debug"
+        }
+      ]
+    },
+    {
+      "description": "Linux release build",
+      "name": "linux-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-release"
+        },
+        {
+          "type": "build",
+          "name": "linux-release"
+        },
+        {
+          "type": "package",
+          "name": "linux-deb"
+        }
+      ]
+    },
+    {
+      "description": "OS X debug build",
+      "name": "osx-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "osx-debug"
+        },
+        {
+          "type": "build",
+          "name": "osx-debug"
+        }
+      ]
+    },
+    {
+      "description": "OS X release build",
+      "name": "osx-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "osx-release"
+        },
+        {
+          "type": "build",
+          "name": "osx-release"
+        },
+        {
+          "type": "package",
+          "name": "osx-dmg"
+        }
+      ]
+    },
+    {
+      "description": "Windows debug build",
+      "name": "windows-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-debug"
+        },
+        {
+          "type": "build",
+          "name": "windows-debug"
+        }
+      ]
+    },
+    {
+      "description": "Windows release build",
+      "name": "windows-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "windows-release"
+        },
+        {
+          "type": "build",
+          "name": "windows-release"
+        },
+        {
+          "type": "package",
+          "name": "windows-zip"
+        }
+      ]
+    }
+  ]
+}

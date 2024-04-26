@@ -1,16 +1,10 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.27)
 
 set(RICHARD_LIB_TARGET librichard)
 set(RICHARD_LIB_TARGET ${RICHARD_LIB_TARGET} PARENT_SCOPE)
 
 find_package(Vulkan REQUIRED)
-
-FetchContent_Declare(json
-  URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
-  DOWNLOAD_EXTRACT_TIMESTAMP ON
-)
-
-FetchContent_MakeAvailable(json)
+find_package(nlohmann_json REQUIRED)
 
 configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/src/version_in.hpp"

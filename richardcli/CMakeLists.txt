@@ -1,18 +1,9 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.27)
 
 set(RICHARD_CLI_TARGET richardcli)
 set(RICHARD_CLI_TARGET ${RICHARD_CLI_TARGET} PARENT_SCOPE)
 
-set(BOOST_INCLUDE_LIBRARIES program_options)
-set(BOOST_ENABLE_CMAKE ON)
-
-FetchContent_Declare(Boost
-  URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
-  URL_MD5 893b5203b862eb9bbd08553e24ff146a
-  DOWNLOAD_EXTRACT_TIMESTAMP ON
-)
-
-FetchContent_MakeAvailable(Boost)
+find_package(Boost COMPONENTS program_options REQUIRED)
 
 file(GLOB
   CPP_SOURCES
