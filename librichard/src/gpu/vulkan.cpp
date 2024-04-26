@@ -671,7 +671,7 @@ uint32_t Vulkan::findComputeQueueFamily() const {
 
   DBG_LOG(m_logger, "Queue families:");
   for (uint32_t i = 0; i < queueFamilies.size(); ++i) {
-    auto flags = queueFamilies[i].queueFlags;
+    [[maybe_unused]] auto flags = queueFamilies[i].queueFlags;
     DBG_LOG(m_logger, STR("  " << i << ":"));
     DBG_LOG(m_logger, STR("    Graphics: " << (flags & VK_QUEUE_GRAPHICS_BIT ? "Y" : "N")));
     DBG_LOG(m_logger, STR("    Compute: " << (flags & VK_QUEUE_COMPUTE_BIT ? "Y" : "N")));
@@ -681,8 +681,10 @@ uint32_t Vulkan::findComputeQueueFamily() const {
     DBG_LOG(m_logger, STR("    Protected: " << (flags & VK_QUEUE_PROTECTED_BIT ? "Y" : "N")));
     DBG_LOG(m_logger, STR("    Video decode: "
       << (flags & VK_QUEUE_VIDEO_DECODE_BIT_KHR ? "Y" : "N")));
+#ifdef VK_ENABLE_BETA_EXTENSIONS
     DBG_LOG(m_logger, STR("    Video encode: "
       << (flags & VK_QUEUE_VIDEO_ENCODE_BIT_KHR ? "Y" : "N")));
+#endif
     DBG_LOG(m_logger, STR("    Optical flow: "
       << (flags & VK_QUEUE_OPTICAL_FLOW_BIT_NV ? "Y" : "N")));
   }

@@ -40,11 +40,10 @@ layout(std140, binding = 5) readonly buffer ASsbo {
 
 FN_READ(A)
 
-layout(std140, binding = 6) buffer DSsbo {
+layout(std140, binding = 6) writeonly buffer DSsbo {
   vec4 D[];
 };
 
-FN_READ(D)
 FN_WRITE(D)
 
 layout(std140, binding = 7) readonly buffer NextWSsbo {
@@ -81,16 +80,18 @@ void main() {
   for (uint i = 0; i < NEXT_LAYER_SIZE; ++i) {
     weightedSum += readNextW(i * layerSize + index) * readNextD(i);
   }
-  writeD(index, weightedSum * sigmoidPrime(readZ(index)));
+
+  const float delta = weightedSum * sigmoidPrime(readZ(index));
+  writeD(index, delta);
 
   const uint xOffset = IS_FIRST_LAYER ? Status.sampleIndex * LAYER_NUM_INPUTS : 0;
 
   for (uint i = 0; i < LAYER_NUM_INPUTS; ++i) {
     uint wIdx = index * LAYER_NUM_INPUTS + i;
     const float dw = readDeltaW(wIdx);
-    writeDeltaW(wIdx, dw + readX(xOffset + i) * readD(index));
+    writeDeltaW(wIdx, dw + readX(xOffset + i) * delta);
   }
 
   float db = readDeltaB(index);
-  writeDeltaB(index, readDeltaB(index) + readD(index));
+  writeDeltaB(index, readDeltaB(index) + delta);
 }
