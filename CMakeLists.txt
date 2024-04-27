@@ -24,7 +24,3 @@ add_subdirectory(cpputils)
 add_subdirectory(librichard)
 add_subdirectory(richardcli)
 add_subdirectory(tools)
-
-set(CPACK_PACKAGE_VENDOR "Rob Jinman")
-set(CPACK_PACKAGE_CONTACT "jinmanr@gmail.com")
-include(CPack)

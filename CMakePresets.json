@@ -122,23 +122,6 @@
       "configuration": "Release"
     }
   ],
-  "packagePresets": [
-    {
-      "name": "linux-deb",
-      "configurePreset": "linux-release",
-      "generators": ["DEB"]
-    },
-    {
-      "name": "osx-dmg",
-      "configurePreset": "osx-release",
-      "generators": ["DragNDrop"]
-    },
-    {
-      "name": "windows-zip",
-      "configurePreset": "windows-release",
-      "generators": ["ZIP"]
-    }
-  ],
   "workflowPresets": [
     {
       "description": "Linux debug build",
@@ -165,10 +148,6 @@
         {
           "type": "build",
           "name": "linux-release"
-        },
-        {
-          "type": "package",
-          "name": "linux-deb"
         }
       ]
     },
@@ -211,10 +190,6 @@
         {
           "type": "build",
           "name": "osx-release"
-        },
-        {
-          "type": "package",
-          "name": "osx-dmg"
         }
       ]
     },
@@ -243,10 +218,6 @@
         {
           "type": "build",
           "name": "windows-release"
-        },
-        {
-          "type": "package",
-          "name": "windows-zip"
         }
       ]
     }
