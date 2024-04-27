@@ -19,17 +19,21 @@ Building from source
 
 * cmake
 * vcpkg
-* Vulkan SDK (see https://vulkan.lunarg.com/sdk/home)
+* Vulkan SDK
 
 #### Windows
 
+* Visual Studio 17 2022
 * cmake
-* python 3
+* vcpkg
 * Vulkan SDK
 
 #### Mac OS
 
-TODO
+* XCode
+* cmake
+* vcpkg
+* Vulkan SDK
 
 ### Build
 
@@ -128,7 +132,7 @@ All examples are run from the build directory, e.g. build/linux/release, and ass
         --network ../../../data/ocr/network \
         --gpu
 
-    ../richardcli/richardcli --eval \
+    ./richardcli/richardcli --eval \
         --samples ../../../data/ocr/test.csv \
         --network ../../../data/ocr/network \
         --gpu
