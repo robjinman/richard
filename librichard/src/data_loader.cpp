@@ -10,16 +10,13 @@ DataLoader::DataLoader(size_t fetchSize)
   : m_fetchSize(fetchSize) {}
 
 const Config& DataLoader::exampleConfig() {
-  static Config obj;
-  static bool done = false;
+  static Config config = []() {
+    Config c;
+    c.setNumber("fetchSize", 500);
+    return c;
+  }();
   
-  if (!done) {
-    obj.setNumber("fetchSize", 500);
-
-    done = true;
-  }
-  
-  return obj;
+  return config;
 }
 
 DataLoaderPtr createDataLoader(FileSystem& fileSystem, const Config& config,

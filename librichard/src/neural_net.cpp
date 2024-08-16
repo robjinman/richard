@@ -20,27 +20,20 @@ Hyperparams::Hyperparams(const Config& config) {
 }
 
 const Config& Hyperparams::exampleConfig() {
-  static Config config;
-  static bool done = false;
-
-  if (!done) {
-    config.setNumber("epochs", 10);
-    config.setNumber("batchSize", 1000);
-    config.setNumber("miniBatchSize", 16);
-
-    done = true;
-  }
+  static Config config = []() {
+    Config c;
+    c.setNumber("epochs", 10);
+    c.setNumber("batchSize", 1000);
+    c.setNumber("miniBatchSize", 16);
+    return c;
+  }();
 
   return config;
 }
 
 const Config& NeuralNet::exampleConfig() {
-  static Config config;
-  static bool done = false;
-
-  if (!done) {
+  static Config config = []() {
     Config layer1;
-
     layer1.setString("type", "dense");
     layer1.setNumber("size", 300);
     layer1.setNumber("learnRate", 0.7);
@@ -56,8 +49,9 @@ const Config& NeuralNet::exampleConfig() {
 
     std::vector<Config> layersConfig{ layer1, layer2 };
 
-    config.setObject("hyperparams", Hyperparams::exampleConfig());
-    config.setObjectArray("hiddenLayers", layersConfig);
+    Config c;
+    c.setObject("hyperparams", Hyperparams::exampleConfig());
+    c.setObjectArray("hiddenLayers", layersConfig);
 
     Config outLayer;
     outLayer.setString("type", "output");
@@ -65,10 +59,10 @@ const Config& NeuralNet::exampleConfig() {
     outLayer.setNumber("learnRate", 0.7);
     outLayer.setNumber("learnRateDecay", 1.0);
 
-    config.setObject("outputLayer", outLayer);
+    c.setObject("outputLayer", outLayer);
 
-    done = true;
-  }
+    return c;
+  }();
 
   return config;
 }

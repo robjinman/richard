@@ -130,16 +130,13 @@ void Classifier::abort() {
 }
 
 const Config& Classifier::exampleConfig() {
-  static Config obj;
-  static bool done = false;
-
-  if (!done) {
-    obj.setObject("network", NeuralNet::exampleConfig());
-
-    done = true;
-  }
+  static Config config = []() {
+    Config c;
+    c.setObject("network", NeuralNet::exampleConfig());
+    return c;
+  }();
   
-  return obj;
+  return config;
 }
 
 }

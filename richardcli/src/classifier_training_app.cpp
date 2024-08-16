@@ -80,18 +80,15 @@ void ClassifierTrainingApp::saveStateToFile() const {
 }
 
 const Config& ClassifierTrainingApp::exampleConfig() {
-  static Config obj;
-  static bool done = false;
+  static Config config = []() {
+    Config c;
+    c.setObject("data", DataDetails::exampleConfig());
+    c.setObject("dataLoader", DataLoader::exampleConfig());
+    c.setObject("classifier", Classifier::exampleConfig());
+    return c;
+  }();
 
-  if (!done) {
-    obj.setObject("data", DataDetails::exampleConfig());
-    obj.setObject("dataLoader", DataLoader::exampleConfig());
-    obj.setObject("classifier", Classifier::exampleConfig());
-
-    done = true;
-  }
-
-  return obj;
+  return config;
 }
 
 }

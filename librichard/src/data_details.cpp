@@ -11,17 +11,14 @@ NormalizationParams::NormalizationParams(const Config& config)
   , max(config.getNumber<netfloat_t>("max")) {}
 
 const Config& NormalizationParams::exampleConfig() {
-  static Config obj;
-  static bool done = false;
+  static Config config = []() {
+    Config c;
+    c.setNumber("min", 0);
+    c.setNumber("max", 255);
+    return c;
+  }();
 
-  if (!done) {
-    obj.setNumber("min", 0);
-    obj.setNumber("max", 255);
-
-    done = true;
-  }
-
-  return obj;
+  return config;
 }
 
 DataDetails::DataDetails(const Config& config)
@@ -30,20 +27,17 @@ DataDetails::DataDetails(const Config& config)
   , shape(config.getNumberArray<size_t, 3>("shape")) {}
 
 const Config& DataDetails::exampleConfig() {
-  static Config obj;
-  static bool done = false;
-
-  if (!done) {
-    obj.setObject("normalization", NormalizationParams::exampleConfig());
-    obj.setStringArray("classes", {
+  static Config config = []() {
+    Config c;
+    c.setObject("normalization", NormalizationParams::exampleConfig());
+    c.setStringArray("classes", {
       "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"
     });
-    obj.setNumberArray<size_t>("shape", { 28, 28, 1 });
+    c.setNumberArray<size_t>("shape", { 28, 28, 1 });
+    return c;
+  }();
 
-    done = true;
-  }
-
-  return obj;
+  return config;
 }
 
 }
