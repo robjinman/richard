@@ -96,7 +96,7 @@ All examples are run from the build directory, e.g. build/linux/release, and ass
                 "hyperparams": {
                     "epochs": 30,
                     "batchSize": 1024,
-                    "miniBatchSize": 32,
+                    "miniBatchSize": 32
                 },
                 "hiddenLayers": [
                     {
@@ -160,7 +160,7 @@ All examples are run from the build directory, e.g. build/linux/release, and ass
                 "hyperparams": {
                     "epochs": 10,
                     "batchSize": 1024,
-                    "miniBatchSize": 32,
+                    "miniBatchSize": 32
                 },
                 "hiddenLayers": [
                     {

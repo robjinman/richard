@@ -110,7 +110,7 @@ void printExampleConfig(Outputter& outputter, const std::string& appType) {
 void printHeader(Outputter& outputter, const std::string& appName, bool gpuAccelerated) {
   outputter.printBanner();
   outputter.printLine(STR("[ Mode: " << appName << " ]"));
-  outputter.printLine(STR("[ GPU accelaration: " << (gpuAccelerated ? "ON" : "OFF") << " ]"));
+  outputter.printLine(STR("[ GPU acceleration: " << (gpuAccelerated ? "ON" : "OFF") << " ]"));
   outputter.printSeparator();
 }
 
