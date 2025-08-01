@@ -24,3 +24,9 @@ add_subdirectory(cpputils)
 add_subdirectory(librichard)
 add_subdirectory(richardcli)
 add_subdirectory(tools)
+
+# with -DBUILD_TESTING=ON
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+  enable_testing()
+  add_test(unitTests librichard/test/unitTests)
+endif()
